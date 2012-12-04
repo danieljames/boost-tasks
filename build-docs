@@ -56,6 +56,7 @@ export STANDALONE_DOCUMENTATION="geometry phoenix fusion spirit spirit/repositor
 export UPLOAD_DOCUMENTATION="geometry phoenix fusion spirit crc algorithm context coroutine numeric/odeint"
 export DOXYGEN_BIN=/Applications/Doxygen-1.7.4.app/Contents/Resources/doxygen
 export BUILD_TOOL="darwin : 4.4 : ccache g++-mp-4.4"
+export RAPIDXML_VERSION=1.13
 
 ###############################################################################
 #
@@ -91,9 +92,12 @@ download_rapidxml()
 {
     cd $root/tarballs
 
-    if [ ! -f rapidxml-1.13.zip ]
+    export RAPIDXML_FILENAME=rapidxml-${RAPIDXML_VERSION}.zip
+
+    if [ ! -f ${RAPIDXML_FILENAME} ]
     then
-        wget -O rapidxml-1.13.zip http://sourceforge.net/projects/rapidxml/files/rapidxml/rapidxml%201.13/rapidxml-1.13.zip/download
+        wget -O ${RAPIDXML_FILENAME} \
+            http://sourceforge.net/projects/rapidxml/files/rapidxml/rapidxml%20${RAPIDXML_VERSION}/${RAPIDXML_FILENAME}/download
     fi
 }
 
@@ -307,7 +311,7 @@ go()
         echo
 
         cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk/contrib
-        ls $root/tarballs/rapidxml*.zip | xargs -n 1 unzip
+        unzip $root/tarballs/${RAPIDXML_FILENAME}
 
         cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk
         $B2_EXEC -a -q
