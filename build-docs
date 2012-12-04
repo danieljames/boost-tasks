@@ -1,0 +1,478 @@
+#!/bin/bash -e
+#
+# build-docs
+#
+#   Builds trunk & release, exporting from subversion repos.
+#
+# build-docs download
+#
+#  Check out and update repos, downloads tarballs.
+#
+# build-docs build branches...
+#
+#   Builds the given branches.
+#   Exports trunk/release from subversion.
+#   Other branches from git.
+#
+# build-docs upload
+#
+#   Upload any outstanding upload to sandbox and cowic
+#
+# Your ~/.ssh should contain public and private ssh keys for
+# uploading to sourceforge sandbox. Your .netrc should contain
+# the login details for cowic.
+#
+# You probably want to deactivate any hard drive indexing service for
+# this directory. For OS X, go to the spotlight preference pane, and
+# look under the 'privacy' tab.
+
+###############################################################################
+#
+# Initial setup
+#
+# Try to follow this (I'm sure I don't at some point):
+# http://www.davidpashley.com/articles/writing-robust-shell-scripts.html
+
+# Exit on error
+set -e
+# Treat unset parameters as an error
+set -u
+
+cd $(dirname $0)
+root=$(pwd)
+
+# This script uses background tasks in a few places, so try to kill them if
+# things go wrong. Doesn't seem to always work properly though. Might not
+# be worth using background tasks.
+#
+# http://stackoverflow.com/questions/360201/kill-background-process-when-shell-script-exit
+trap 'if [ "$(jobs -p)x" != x ]; then kill $(jobs -p); fi' INT TERM EXIT
+
+###############################################################################
+#
+# Configuration
+
+export STANDALONE_DOCUMENTATION="geometry phoenix fusion spirit spirit/repository crc algorithm context coroutine numeric/odeint"
+export UPLOAD_DOCUMENTATION="geometry phoenix fusion spirit crc algorithm context coroutine numeric/odeint"
+export DOXYGEN_BIN=/Applications/Doxygen-1.7.4.app/Contents/Resources/doxygen
+export BUILD_TOOL="darwin : 4.4 : ccache g++-mp-4.4"
+
+###############################################################################
+#
+# Main
+
+main()
+{
+    if [ $# = 0 ]; then
+        build release trunk
+    else
+        case $1 in
+        "download")     download ;;
+        "build")        shift ; build $* ;;
+        "upload")       upload_documentation ;;
+        *)              echo "Unknown command: $1"; exit 1;;
+        esac
+    fi
+}
+
+###############################################################################
+#
+# Download/update from internet
+#
+# TODO: Just the relevant branches?
+
+download()
+{
+    download_rapidxml
+    checkout_boost
+}
+
+download_rapidxml()
+{
+    cd $root/tarballs
+
+    if [ ! -f rapidxml-1.13.zip ]
+    then
+        wget -O rapidxml-1.13.zip http://sourceforge.net/projects/rapidxml/files/rapidxml/rapidxml%201.13/rapidxml-1.13.zip/download
+    fi
+}
+
+checkout_boost()
+{
+    if [ -d $root/svn-trunk ]
+    then
+        cd $root/svn-trunk
+        svn up
+    else
+        svn checkout https://svn.boost.org/svn/boost/trunk $root/svn-trunk
+    fi
+
+    if [ -d $root/svn-release ]
+    then
+        cd $root/svn-release
+        svn up
+    else
+        svn checkout https://svn.boost.org/svn/boost/branches/release $root/svn-release
+    fi
+}
+
+###############################################################################
+#
+# Check that executables are available and set some environment variables.
+
+setup_executables() {
+    # Could I do this without a global?
+    export CHECK_FAILED=0
+
+    check_executable git
+    check_executable svn
+    check_executable 7za
+    check_executable dvips
+    check_executable $DOXYGEN_BIN
+    check_file $root/tarballs/rapidxml-1.13.zip
+
+    if [ $CHECK_FAILED = 1 ]
+    then
+        exit 1
+    fi
+}
+
+check_executable() {
+    name=$1
+
+    if type -P $name > /dev/null
+    then
+        echo "Found $name"
+    else
+        echo "Error: couldn't find $name"
+        export CHECK_FAILED=1
+    fi
+}
+
+check_file() {
+    name=$1
+
+    if [ -f $name ]
+    then
+        echo "Found $name"
+    else
+        echo "Error: couldn't find $name"
+        export CHECK_FAILED=1
+    fi
+
+}
+
+###############################################################################
+#
+# Build
+#
+# Builds the given branches as child processes so that output can be piped
+# and errors don't end the whole script.
+
+build()
+{
+    # TODO: Better command line options.
+    if [ $1 = '--no-download' ]
+    then
+        echo
+        echo "Not downloading"
+        echo
+
+        shift
+    else
+        # If there is a network connection then download/update
+        if ping -Q -t 5 -c 1 svn.boost.org
+        then
+            echo
+            echo "Downloading updates."
+            echo
+
+            download
+        else
+            echo
+            echo "No network / boost down."
+            echo "Continuing without download."
+            echo
+        fi
+    fi
+
+    echo
+    echo Check that execuables are available.
+    echo
+
+    setup_executables
+
+    echo
+    echo "Setup output directory."
+    echo
+
+    setup_output_dir
+
+    for branch in $*
+    do
+        echo
+        echo "Build branch $branch."
+        echo
+
+        build_impl $branch $output 2>&1 | tee $output/build-$branch.log
+    done
+
+    echo
+    echo "Upload."
+    echo
+
+    # Upload to sandbox and cowic
+    upload_documentation
+}
+
+build_impl()
+{
+    if go $*
+    then
+        echo "Successfull build: $1"
+    else
+        echo "Failed build: $1"
+    fi
+}
+
+###############################################################################
+#
+# The main build
+
+go()
+{
+    name=$1
+    output=$2
+
+    build_dir=$root/build/build-$name
+    boost_root=$build_dir/boost
+
+    if [ -d $build_dir ]
+    then
+        rm -rf $build_dir
+    fi
+
+    echo
+    echo "Setup Build Directory"
+    echo
+
+    mkdir $build_dir
+
+    touch $build_dir/user-config.jam
+    echo "using doxygen : $DOXYGEN_BIN ;"  >> $build_dir/user-config.jam
+    echo "using $BUILD_TOOL ;" >> $build_dir/user-config.jam
+    echo 'using quickbook ;' >> $build_dir/user-config.jam
+    echo 'using boostbook ;' >> $build_dir/user-config.jam
+
+    echo
+    echo "Export repo"
+    echo
+
+    if [ $name = release -o $name = trunk ]; then
+        cd $root/svn-$name
+        svn export -r BASE . $boost_root
+    else
+        mkdir $boost_root
+        cd $root/../git
+        git archive $name | tar -x -C $boost_root
+    fi
+
+    echo
+    echo "Starting Build"
+    echo
+
+    # So that boost build will use the user-config.jam created for this
+    # build
+    export HOME=$build_dir
+    export PATH=$build_dir/bin:$PATH
+
+    # Build b2 executable
+
+    echo
+    echo "Build b2"
+    echo
+
+    cd $boost_root/tools/build/v2
+    ./bootstrap.sh
+    B2_EXEC=$boost_root/tools/build/v2/b2
+    cp $B2_EXEC $boost_root
+    $B2_EXEC install --prefix=$build_dir
+
+    if [ -d $boost_root/libs/geometry ]; then
+
+        echo
+        echo "Build doxgen_xml2qbk"
+        echo
+
+        cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk/contrib
+        ls $root/tarballs/rapidxml*.zip | xargs -n 1 unzip
+
+        cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk
+        $B2_EXEC -a -q
+
+        rm -rf src/docutils/tools/doxygen_xml2qbk/contrib/rapid*
+    fi
+
+    for library in $STANDALONE_DOCUMENTATION
+    do
+        echo
+        echo "Build $library docs"
+        echo
+
+        if [ -d $boost_root/libs/$library/doc ]
+        then
+            if [ $library = 'geometry' ]
+            then
+                cd $boost_root/libs/geometry/doc
+                DOXYGEN=$DOXYGEN_BIN \
+                    DOXYGEN_XML2QBK=$boost_root/dist/bin/doxygen_xml2qbk \
+                    python ./make_qbk.py
+                rm -r generated
+                rm -r doxy/doxygen_output
+            else
+                cd $boost_root/libs/$library/doc
+                find html -name "*.html" -print0 | xargs -0 rm
+                $B2_EXEC --enable-index
+            fi
+        else
+            echo "No directory for $library."
+        fi
+    done
+
+    echo
+    echo "Build main docs"
+    echo
+
+    rm -rf $boost_root/doc/html
+    cd $boost_root/doc
+    $B2_EXEC -q
+
+    echo
+    echo "Create zipfiles"
+    echo
+
+    if [ $name = 'release' -o $name = 'trunk' ]; then
+        target=boost-$name-docs.7z
+
+        cd $boost_root
+        compress_dirs="doc/html"
+
+        for library in $STANDALONE_DOCUMENTATION
+        do
+            if [ -d $boost_root/libs/$library/doc ]
+            then
+                compress_dirs="$compress_dirs libs/$library/doc/html"
+            fi
+        done
+
+        7za a $output/$target $compress_dirs
+
+        # Link file in upload directory, so that it will later
+        # be uploaded via. ftp.
+
+        ln $output/$target $root/upload/$target.upload
+    fi
+
+    if [ $name = trunk ]; then
+        echo $boost_root > $root/upload/upload-trunk
+    fi
+
+    echo
+    echo "Build inspect"
+    echo
+
+    cd $boost_root/tools/inspect/build
+    $B2_EXEC -q
+
+    cd $boost_root
+    $boost_root/dist/bin/inspect > $output/docs-inspect-$name.html
+    ln $output/docs-inspect-$name.html $root/upload/docs-inspect-$name.html.upload
+}
+
+###############################################################################
+#
+# Upload documentation
+
+upload_documentation()
+{
+    pids=""
+
+    if [ -f $root/upload/upload-trunk ]; then
+        upload_trunk &
+        pids="$pids $!"
+    fi
+
+    upload_cowic &
+    pids="$pids $!"
+
+    # Wait for uploads to end
+
+    for pid in $pids
+    do
+        echo "Waiting for $pid"
+        wait $pid || echo "Failed"
+    done
+}
+
+upload_trunk()
+{
+    boost_root=$(cat $root/upload/upload-trunk)
+
+    if [ -d ${boost_root} ]
+    then
+        rsync -avz --exclude-from $root/exclude.txt --delete-after ${boost_root}/ danieljames,boost-sandbox@web.sourceforge.net:htdocs/
+
+        for library in $UPLOAD_DOCUMENTATION
+        do
+            rsync -avz --delete-after ${boost_root}/libs/$library/ danieljames,boost-sandbox@web.sourceforge.net:htdocs/libs/$library/
+        done
+
+        rm $root/upload/upload-trunk
+    else
+        echo "Unable to find trunk to upload."
+        exit 1
+    fi
+}
+
+upload_cowic()
+{
+    nl="
+"
+    cd $root/upload
+
+    for f in $(ls *.upload)
+    do
+        f2=$(echo $f | sed "s/\.upload$//")
+        echo "Uploading $f2"
+
+        echo "put $f ${nl} rename $f $f2" | ftp -v boost.cowic.de 2>&1 | tee upload.log
+
+        if grep '^250 Rename successful' upload.log
+        then
+            rm $f
+        fi
+
+        rm upload.log
+    done
+}
+
+###############################################################################
+#
+# Setup Output Directory
+
+setup_output_dir()
+{
+    export output=$root/history/$(date '+%Y%m%d-%H%M')
+
+    if test -d $output; then
+        rmdir $output
+    fi
+
+    mkdir $output
+}
+
+###############################################################################
+#
+# Launch Main
+
+main $*
