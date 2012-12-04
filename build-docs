@@ -57,6 +57,7 @@ export UPLOAD_DOCUMENTATION="geometry phoenix fusion spirit crc algorithm contex
 export DOXYGEN_BIN=/Applications/Doxygen-1.7.4.app/Contents/Resources/doxygen
 export BUILD_TOOL="darwin : 4.4 : ccache g++-mp-4.4"
 export RAPIDXML_VERSION=1.13
+export SOURCEFORGE_USERNAME=danieljames
 
 ###############################################################################
 #
@@ -426,11 +427,15 @@ upload_trunk()
 
     if [ -d ${boost_root} ]
     then
-        rsync -avz --exclude-from $root/exclude.txt --delete-after ${boost_root}/ danieljames,boost-sandbox@web.sourceforge.net:htdocs/
+        rsync -avz --exclude-from $root/exclude.txt --delete-after \
+            ${boost_root}/ \
+            ${SOURCEFORGE_USERNAME},boost-sandbox@web.sourceforge.net:htdocs/
 
         for library in $UPLOAD_DOCUMENTATION
         do
-            rsync -avz --delete-after ${boost_root}/libs/$library/ danieljames,boost-sandbox@web.sourceforge.net:htdocs/libs/$library/
+            rsync -avz --delete-after \
+                ${boost_root}/libs/$library/ \
+                ${SOURCEFORGE_USERNAME},boost-sandbox@web.sourceforge.net:htdocs/libs/$library/
         done
 
         rm $root/upload/upload-trunk
