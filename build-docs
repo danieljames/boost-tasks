@@ -402,23 +402,11 @@ go()
 
 upload_documentation()
 {
-    pids=""
+    upload_cowic || echo "Upload to cowic failed."
 
     if [ -f $root/upload/upload-trunk ]; then
-        upload_trunk &
-        pids="$pids $!"
+        upload_trunk || echo "Upload trunk docs to sourceforge failed."
     fi
-
-    upload_cowic &
-    pids="$pids $!"
-
-    # Wait for uploads to end
-
-    for pid in $pids
-    do
-        echo "Waiting for $pid"
-        wait $pid || echo "Failed"
-    done
 }
 
 upload_trunk()
