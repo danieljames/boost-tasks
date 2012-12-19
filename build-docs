@@ -231,11 +231,16 @@ build()
 
     for branch in $*
     do
+        echo "Build branch $branch " >> $output/summary.txt
+        echo >> $output/summary.txt
+
         echo
         echo "Build branch $branch."
         echo
 
         build_impl $branch $output 2>&1 | tee $output/build-$branch.log
+
+        echo >> $output/summary.txt
     done
 
     echo
@@ -244,23 +249,19 @@ build()
 
     # Upload to sandbox and cowic
     upload_documentation
-}
 
-build_impl()
-{
-    if go $*
-    then
-        echo "Successfull build: $1"
-    else
-        echo "Failed build: $1"
-    fi
+    echo
+    echo "Summary."
+    echo
+
+    cat $output/summary.txt
 }
 
 ###############################################################################
 #
 # The main build
 
-go()
+build_impl()
 {
     name=$1
     output=$2
@@ -337,7 +338,7 @@ go()
         unzip $root/tarballs/${RAPIDXML_FILENAME}
 
         cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk
-        $B2_EXEC -a -q
+        $B2_EXEC -a -q || echo "Error building: doxgen_xml2qbk" >> $output/summary.txt
 
         rm -rf src/docutils/tools/doxygen_xml2qbk/contrib/rapid*
     fi
@@ -355,13 +356,13 @@ go()
                 cd $boost_root/libs/geometry/doc
                 DOXYGEN=$DOXYGEN_BIN \
                     DOXYGEN_XML2QBK=$boost_root/dist/bin/doxygen_xml2qbk \
-                    python ./make_qbk.py
+                    python ./make_qbk.py || echo "Error building: $library" >> $output/summary.txt
                 rm -r generated
                 rm -r doxy/doxygen_output
             else
                 cd $boost_root/libs/$library/doc
                 find html -name "*.html" -print0 | xargs -0 rm
-                $B2_EXEC --enable-index
+                $B2_EXEC --enable-index || echo "Error building: $library" >> $output/summary.txt
             fi
         else
             echo "No directory for $library."
@@ -374,7 +375,7 @@ go()
 
     rm -rf $boost_root/doc/html
     cd $boost_root/doc
-    $B2_EXEC -q
+    $B2_EXEC -q || echo "Error building: combined documentation" >> $output/summary.txt
 
     echo
     echo "Create zipfiles"
@@ -504,6 +505,7 @@ setup_output_dir()
     fi
 
     mkdir $output
+    touch $output/summary.txt
 }
 
 ###############################################################################
