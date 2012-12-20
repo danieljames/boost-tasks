@@ -52,10 +52,20 @@ trap 'if [ "$(jobs -p)x" != x ]; then kill $(jobs -p); fi' INT TERM EXIT
 #
 # Configuration
 
+# Libraries to build documentation for
 export STANDALONE_DOCUMENTATION="geometry phoenix fusion spirit spirit/repository crc algorithm context coroutine numeric/odeint"
+
+# Libraries to upload documentation for. Uploads all of libs/name, so no need
+# to include nested libraries.
 export UPLOAD_DOCUMENTATION="geometry phoenix fusion spirit crc algorithm context coroutine numeric/odeint"
+
+# Compiler details, leave ccache blank if you don't use it.
+export CCACHE_BIN="ccache"
+export CXX_BIN="g++-mp-4.7"
+export CXX_FLAGS="--std=c++0x -DBOOST_DETAIL_CONTAINER_FWD"
+export B2_TOOLSET="darwin"
+
 export DOXYGEN_BIN=/Applications/Doxygen-1.7.4.app/Contents/Resources/doxygen
-export BUILD_TOOL="darwin : 4.4 : ccache g++-mp-4.4"
 export RAPIDXML_VERSION=1.13
 export SOURCEFORGE_USERNAME=danieljames
 
@@ -134,7 +144,13 @@ setup_executables() {
     check_executable 7za
     check_executable dvips
     check_executable $DOXYGEN_BIN
+    check_executable $CXX_BIN
     check_file $root/tarballs/rapidxml-1.13.zip
+
+    if [ x$CCACHE_BIN != x ]
+    then
+        check_executable $CCACHE_BIN
+    fi
 
     if [ $CHECK_FAILED = 1 ]
     then
@@ -266,7 +282,7 @@ go()
 
     touch $build_dir/user-config.jam
     echo "using doxygen : $DOXYGEN_BIN ;"  >> $build_dir/user-config.jam
-    echo "using $BUILD_TOOL ;" >> $build_dir/user-config.jam
+    echo "using $B2_TOOLSET : : $CCACHE_BIN $CXX_BIN $CXX_FLAGS ;" >> $build_dir/user-config.jam
     echo 'using quickbook ;' >> $build_dir/user-config.jam
     echo 'using boostbook ;' >> $build_dir/user-config.jam
 
