@@ -79,7 +79,7 @@ main()
         build release trunk
     else
         case $1 in
-        "download")     download ;;
+        "download")     download true ;;
         "build")        shift ; build $* ;;
         "upload")       upload_documentation ;;
         *)              echo "Unknown command: $1"; exit 1;;
@@ -95,39 +95,60 @@ main()
 
 download()
 {
-    download_rapidxml
-    checkout_boost
+    download_rapidxml $*
+    checkout_boost $*
 }
 
 download_rapidxml()
 {
+    download=$1
+
     cd $root/tarballs
 
     export RAPIDXML_FILENAME=rapidxml-${RAPIDXML_VERSION}.zip
 
     if [ ! -f ${RAPIDXML_FILENAME} ]
     then
-        wget -O ${RAPIDXML_FILENAME} \
-            http://sourceforge.net/projects/rapidxml/files/rapidxml/rapidxml%20${RAPIDXML_VERSION}/${RAPIDXML_FILENAME}/download
+        if $download
+        then
+            wget -O ${RAPIDXML_FILENAME} \
+                http://sourceforge.net/projects/rapidxml/files/rapidxml/rapidxml%20${RAPIDXML_VERSION}/${RAPIDXML_FILENAME}/download
+        else
+            echo "Can't download ${RAPIDXML_FILENAME}."
+            exit -1
+        fi
     fi
 }
 
 checkout_boost()
 {
+    download=$1
+
+    checkout_branch $download https://svn.boost.org/svn/boost/trunk $root/svn-trunk
+    checkout_branch $download https://svn.boost.org/svn/boost/branches/release $root/svn-release
+}
+
+checkout_branch()
+{
+    download=$1
+    url=$2
+    dir=$3
+
     if [ -d $root/svn-trunk ]
     then
-        cd $root/svn-trunk
-        svn up
+        if $download
+        then
+            cd $root/svn-trunk
+            svn up
+        fi
     else
-        svn checkout https://svn.boost.org/svn/boost/trunk $root/svn-trunk
-    fi
-
-    if [ -d $root/svn-release ]
-    then
-        cd $root/svn-release
-        svn up
-    else
-        svn checkout https://svn.boost.org/svn/boost/branches/release $root/svn-release
+        if $download
+        then
+            svn checkout https://svn.boost.org/svn/boost/trunk $root/svn-trunk
+        else
+            echo "Can't checkout $2"
+            exit -1
+        fi
     fi
 }
 
@@ -192,6 +213,8 @@ check_file() {
 
 build()
 {
+    download=false
+
     # TODO: Better command line options.
     if [ $1 = '--no-download' ]
     then
@@ -208,7 +231,7 @@ build()
             echo "Downloading updates."
             echo
 
-            download
+            download=true
         else
             echo
             echo "No network / boost down."
@@ -216,6 +239,9 @@ build()
             echo
         fi
     fi
+
+    download $download
+
 
     echo
     echo Check that execuables are available.
