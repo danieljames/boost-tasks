@@ -62,7 +62,7 @@ export UPLOAD_DOCUMENTATION="geometry phoenix fusion spirit crc algorithm contex
 # Compiler details, leave ccache blank if you don't use it.
 export CCACHE_BIN="ccache"
 export CXX_BIN="g++-mp-4.7"
-export CXX_FLAGS="--std=c++0x -DBOOST_DETAIL_CONTAINER_FWD"
+export CXX_FLAGS="--std=c++0x"
 export B2_TOOLSET="darwin"
 
 export DOXYGEN_BIN=/Applications/Doxygen-1.7.4.app/Contents/Resources/doxygen
