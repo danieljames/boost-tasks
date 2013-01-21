@@ -111,10 +111,16 @@ download_rapidxml()
     then
         if $download
         then
+            echo
+            echo "Downloading rapidxml"
+            echo
+
             wget -O ${RAPIDXML_FILENAME} \
                 http://sourceforge.net/projects/rapidxml/files/rapidxml/rapidxml%20${RAPIDXML_VERSION}/${RAPIDXML_FILENAME}/download
         else
+            echo
             echo "Can't download ${RAPIDXML_FILENAME}."
+
             exit -1
         fi
     fi
@@ -134,19 +140,33 @@ checkout_branch()
     url=$2
     dir=$3
 
-    if [ -d $root/svn-trunk ]
+    if [ -d $dir ]
     then
         if $download
         then
-            cd $root/svn-trunk
+            echo
+            echo "Download $url"
+            echo
+
+            cd $dir
             svn up
+        else
+            echo
+            echo "Not downloading $url"
+            echo
         fi
     else
         if $download
         then
+            echo
+            echo "Checkout $url"
+            echo
+
             svn checkout https://svn.boost.org/svn/boost/trunk $root/svn-trunk
         else
-            echo "Can't checkout $2"
+            echo
+            echo "Can't checkout $url"
+
             exit -1
         fi
     fi
@@ -213,6 +233,18 @@ check_file() {
 
 build()
 {
+    echo
+    echo Check that execuables are available.
+    echo
+
+    setup_executables
+
+    echo
+    echo "Setup output directory."
+    echo
+
+    setup_output_dir
+
     download=false
 
     # TODO: Better command line options.
@@ -240,20 +272,7 @@ build()
         fi
     fi
 
-    download $download
-
-
-    echo
-    echo Check that execuables are available.
-    echo
-
-    setup_executables
-
-    echo
-    echo "Setup output directory."
-    echo
-
-    setup_output_dir
+    download $download | tee $output/download.log
 
     for branch in $*
     do
