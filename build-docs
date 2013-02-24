@@ -329,7 +329,6 @@ build_impl()
     touch $build_dir/user-config.jam
     echo "using doxygen : $DOXYGEN_BIN ;"  >> $build_dir/user-config.jam
     echo "using $B2_TOOLSET : : $CCACHE_BIN $CXX_BIN $CXX_FLAGS ;" >> $build_dir/user-config.jam
-    echo 'using quickbook ;' >> $build_dir/user-config.jam
     echo 'using boostbook ;' >> $build_dir/user-config.jam
 
     echo
@@ -372,6 +371,15 @@ build_impl()
     # Copy b2 to the root, so that it can be called by geometry's
     # python script.
     cp $B2_EXEC $boost_root
+
+    echo
+    echo "Build quickbook"
+    echo
+
+    cd $boost_root/tools/quickbook
+    $B2_EXEC -q
+    echo "using quickbook : ${boost_root}/dist/bin/quickbook ;" >> $build_dir/user-config.jam
+
 
     if [ -d $boost_root/libs/geometry ]; then
 
