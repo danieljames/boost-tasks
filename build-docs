@@ -380,6 +380,13 @@ build_impl()
     $B2_EXEC -q
     echo "using quickbook : ${boost_root}/dist/bin/quickbook ;" >> $build_dir/user-config.jam
 
+    echo
+    echo "Build auto-index"
+    echo
+
+    cd $boost_root/tools/auto_index/build
+    $B2_EXEC -q
+    echo "using auto-index : ${boost_root}/dist/bin/auto_index ;" >> $build_dir/user-config.jam
 
     if [ -d $boost_root/libs/geometry ]; then
 
