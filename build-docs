@@ -395,7 +395,7 @@ build_impl()
         echo
 
         cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk/contrib
-        unzip $root/tarballs/${RAPIDXML_FILENAME}
+        unzip -n $root/tarballs/${RAPIDXML_FILENAME}
 
         cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk
         $B2_EXEC -a -q || echo "Error building: doxgen_xml2qbk" >> $output/summary.txt
