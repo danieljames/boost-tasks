@@ -65,7 +65,7 @@ export CXX_BIN="g++-mp-4.7"
 export CXX_FLAGS="--std=c++0x"
 export B2_TOOLSET="darwin"
 
-export DOXYGEN_BIN=/Applications/Doxygen-1.7.4.app/Contents/Resources/doxygen
+export DOXYGEN_BIN="doxygen"
 export RAPIDXML_VERSION=1.13
 export SOURCEFORGE_USERNAME=danieljames
 
