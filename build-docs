@@ -524,16 +524,16 @@ upload_trunk()
 
     if [ -d ${boost_root} ]
     then
-        rsync -avz --exclude-from $root/exclude.txt --delete-after \
-            ${boost_root}/ \
-            ${SOURCEFORGE_USERNAME},boost-sandbox@web.sourceforge.net:htdocs/
-
         for library in $UPLOAD_DOCUMENTATION
         do
             rsync -avz --delete-after \
                 ${boost_root}/libs/$library/ \
                 ${SOURCEFORGE_USERNAME},boost-sandbox@web.sourceforge.net:htdocs/libs/$library/
         done
+
+        rsync -avz --exclude-from $root/exclude.txt --delete-after \
+            ${boost_root}/ \
+            ${SOURCEFORGE_USERNAME},boost-sandbox@web.sourceforge.net:htdocs/
 
         rm $root/upload/upload-trunk
     else
