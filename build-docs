@@ -293,7 +293,7 @@ build()
     echo
 
     # Upload to sandbox and cowic
-    upload_documentation
+    upload_documentation | tee $output/upload.log
 
     echo
     echo "Summary."
