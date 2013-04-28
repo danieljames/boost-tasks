@@ -521,21 +521,39 @@ upload_documentation()
 upload_trunk()
 {
     boost_root=$(cat $root/upload/upload-trunk)
+    failed=0
 
     if [ -d ${boost_root} ]
     then
         for library in $UPLOAD_DOCUMENTATION
         do
-            rsync -avz --delete-after \
+            if rsync -avz --delete-after \
                 ${boost_root}/libs/$library/ \
                 ${SOURCEFORGE_USERNAME},boost-sandbox@web.sourceforge.net:htdocs/libs/$library/
+            then
+                echo "Uploaded $library."
+            else
+                echo "Failed to upload $library."
+                failed=1
+            fi
         done
 
-        rsync -avz --exclude-from $root/exclude.txt --delete-after \
+        if rsync -avz --exclude-from $root/exclude.txt --delete-after \
             ${boost_root}/ \
             ${SOURCEFORGE_USERNAME},boost-sandbox@web.sourceforge.net:htdocs/
+        then
+            echo "Uploaded combined documentation."
+        else
+            echo "Failed to upload combined documentation."
+            failed=1
+        fi
 
-        rm $root/upload/upload-trunk
+        if [ $failed = 1 ]
+        then
+            echo "Failed to upload to subversion."
+        else
+            rm $root/upload/upload-trunk
+        fi
     else
         echo "Unable to find trunk to upload."
         exit 1
