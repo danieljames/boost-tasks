@@ -78,6 +78,7 @@ export RAPIDXML_FILENAME=rapidxml-${RAPIDXML_VERSION}.zip
 main()
 {
     if [ $# = 0 ]; then
+        upload_documentation
         build release trunk
     else
         case $1 in
