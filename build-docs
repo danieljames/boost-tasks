@@ -589,7 +589,7 @@ upload_cowic()
 
 setup_output_dir()
 {
-    export output=$root/history/$(date '+%Y%m%d-%H%M')
+    export output=$root/history/$(date -u '+%Y%m%d-%H%M')
 
     if test -d $output; then
         rmdir $output
