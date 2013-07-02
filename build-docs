@@ -65,6 +65,8 @@ export CXX_BIN="g++-mp-4.7"
 export CXX_FLAGS="--std=c++0x"
 export B2_TOOLSET="darwin"
 
+# TODO: Setting DOXYGEN_BIN to anything else won't work for geometry.
+# TODO: Perhaps write a shell script to the bin directory.
 export DOXYGEN_BIN="doxygen"
 export RAPIDXML_VERSION=1.13
 export SOURCEFORGE_USERNAME=danieljames
@@ -315,6 +317,7 @@ build_impl()
     build_dir=$root/build/build-$name
     boost_root=$build_dir/boost
     inspect_root=$build_dir/boost-inspect
+    exec_dir=$build_dir/bin
 
     if [ -d $build_dir ]
     then
@@ -326,6 +329,7 @@ build_impl()
     echo
 
     mkdir $build_dir
+    mkdir $exec_dir
 
     touch $build_dir/user-config.jam
     echo "using doxygen : $DOXYGEN_BIN ;"  >> $build_dir/user-config.jam
@@ -357,7 +361,7 @@ build_impl()
     # So that boost build will use the user-config.jam created for this
     # build
     export HOME=$build_dir
-    export PATH=$build_dir/bin:$PATH
+    export PATH=$exec_dir:$PATH
 
     # Build b2 executable
 
@@ -399,7 +403,13 @@ build_impl()
         unzip -n $root/tarballs/${RAPIDXML_FILENAME}
 
         cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk
-        $B2_EXEC -a -q || echo "Error building: doxgen_xml2qbk" >> $output/summary.txt
+
+        if $B2_EXEC -a -q; then
+            # TODO: Or could just put dist/bin on the path?
+            cp $boost_root/dist/bin/doxygen_xml2qbk $exec_dir
+        else
+            echo "Error building: doxgen_xml2qbk" >> $output/summary.txt
+        fi
 
         rm -rf src/docutils/tools/doxygen_xml2qbk/contrib/rapid*
     fi
@@ -416,7 +426,6 @@ build_impl()
             then
                 cd $boost_root/libs/geometry/doc
                 DOXYGEN=$DOXYGEN_BIN \
-                    DOXYGEN_XML2QBK=$boost_root/dist/bin/doxygen_xml2qbk \
                     python ./make_qbk.py || echo "Error building: $library" >> $output/summary.txt
                 rm -r generated
                 rm -r doxy/doxygen_output
