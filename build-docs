@@ -61,7 +61,7 @@ export UPLOAD_DOCUMENTATION="log geometry phoenix fusion spirit crc algorithm co
 
 # Compiler details, leave ccache blank if you don't use it.
 export CCACHE_BIN="ccache"
-export CXX_BIN="g++-mp-4.7"
+export CXX_BIN="g++-mp-4.8"
 export CXX_FLAGS="--std=c++0x"
 export B2_TOOLSET="darwin"
 
