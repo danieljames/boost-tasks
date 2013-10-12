@@ -445,7 +445,8 @@ build_impl()
 
     rm -rf $boost_root/doc/html
     cd $boost_root/doc
-    $B2_EXEC -q || echo "Error building: combined documentation" >> $output/summary.txt
+    $B2_EXEC doc xsl:param="collect.xref.targets=yes" xsl:param="targets.filename=../combined.db" -q || echo "Error building: combined documentation" >> $output/summary.txt
+    $B2_EXEC asio xsl:param="collect.xref.targets=yes" xsl:param="targets.filename=../asio.db" -q || echo "Error building: combined documentation" >> $output/summary.txt
 
     echo "Finished building." >> $output/summary.txt
 
