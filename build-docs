@@ -85,7 +85,7 @@ main()
     else
         case $1 in
         "download")     download true ;;
-        "build")        shift ; build $* ;;
+        "build")        shift ; upload_documentation ; build $* ;;
         "upload")       upload_documentation ;;
         *)              echo "Unknown command: $1"; exit 1;;
         esac
