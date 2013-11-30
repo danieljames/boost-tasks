@@ -22,9 +22,13 @@ def run_command(command):
 
 def mirror_boostorg(root_dir):
     git_dir = os.path.join(root_dir, 'git')
+    url = 'https://api.github.com/orgs/boostorg/repos'
 
-    r = requests.get('https://api.github.com/orgs/boostorg/repos')
-    if (r.ok):
+    while (url) :
+        r = requests.get(url)
+        if (not r.ok):
+            raise Exception("Error getting: " + url)
+
         for repo in json.loads(r.text or r.content):
             url = repo['clone_url']
             # Note using os.path.join because url path is absolute.
@@ -36,5 +40,7 @@ def mirror_boostorg(root_dir):
                 run_command("git --git-dir=" + path + " fetch")
             else:
                 run_command("git clone --bare " + url + " " + path)
+
+        url = r.links['next']['url'] if 'next' in r.links else False
 
 mirror_boostorg(os.path.realpath(os.path.dirname(sys.argv[0])))
