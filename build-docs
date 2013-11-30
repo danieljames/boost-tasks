@@ -81,7 +81,8 @@ main()
 {
     if [ $# = 0 ]; then
         upload_documentation
-        build release trunk
+        #build release trunk
+        build master develop
     else
         case $1 in
         "download")     download true ;;
@@ -344,9 +345,10 @@ build_impl()
         cd $root/svn-$name
         svn export -r BASE . $boost_root
     else
-        mkdir $boost_root
-        cd $root/../git
-        git archive $name | tar -x -C $boost_root
+        git clone --recursive -b $name $root/git/boostorg/boost.git $boost_root
+
+        #cd $root/../git
+        #git archive $name | tar -x -C $boost_root
     fi
 
     # Make a clean copy that can be used for inspection later.
@@ -376,6 +378,13 @@ build_impl()
     # Copy b2 to the root, so that it can be called by geometry's
     # python script.
     cp $B2_EXEC $boost_root
+
+    echo
+    echo "Link headers"
+    echo
+
+    cd $boost_root
+    $B2_EXEC headers
 
     echo
     echo "Build quickbook"
@@ -456,22 +465,22 @@ build_impl()
 
     echo "Creating zipfiles..." >> $output/summary.txt
 
-    if [ $name = 'release' -o $name = 'trunk' ]; then
-        target=boost-$name-docs.7z
+    target=boost-$name-docs.7z
 
-        cd $boost_root
-        compress_dirs="doc/html"
+    cd $boost_root
+    compress_dirs="doc/html"
 
-        for library in $STANDALONE_DOCUMENTATION
-        do
-            if [ -d $boost_root/libs/$library/doc ]
-            then
-                compress_dirs="$compress_dirs libs/$library/doc/html"
-            fi
-        done
+    for library in $STANDALONE_DOCUMENTATION
+    do
+        if [ -d $boost_root/libs/$library/doc ]
+        then
+            compress_dirs="$compress_dirs libs/$library/doc/html"
+        fi
+    done
 
-        7za a $output/$target $compress_dirs
+    7za a $output/$target $compress_dirs
 
+    if [ $name = 'release' -o $name = 'trunk' -o $name = 'develop' -o $name = 'master' ]; then
         # Link file in upload directory, so that it will later
         # be uploaded via. ftp.
 
@@ -506,7 +515,10 @@ build_impl()
 
     cd $inspect_root
     $boost_root/dist/bin/inspect > $output/docs-inspect-$name.html
-    ln $output/docs-inspect-$name.html $root/upload/docs-inspect-$name.html.upload
+
+    if [ $name = 'release' -o $name = 'trunk' -o $name = 'develop' -o $name = 'master' ]; then
+        ln $output/docs-inspect-$name.html $root/upload/docs-inspect-$name.html.upload
+    fi
 
     echo "Finished inspect." >> $output/summary.txt
 
