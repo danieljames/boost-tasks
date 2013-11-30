@@ -39,7 +39,7 @@ def mirror_boostorg(root_dir):
             if os.path.isdir(path):
                 run_command("git --git-dir=" + path + " fetch")
             else:
-                run_command("git clone --bare " + url + " " + path)
+                run_command("git clone --mirror " + url + " " + path)
 
         url = r.links['next']['url'] if 'next' in r.links else False
 
