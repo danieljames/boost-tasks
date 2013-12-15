@@ -387,6 +387,9 @@ build_impl()
     cd $boost_root
     $B2_EXEC headers
 
+    cd $inspect_root
+    $B2_EXEC headers
+
     echo
     echo "Build quickbook"
     echo
