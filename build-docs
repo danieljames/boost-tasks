@@ -72,6 +72,7 @@ export RAPIDXML_VERSION=1.13
 export SOURCEFORGE_USERNAME=danieljames
 
 export RAPIDXML_FILENAME=rapidxml-${RAPIDXML_VERSION}.zip
+export GIT_URL=$root/../mirror
 
 ###############################################################################
 #
@@ -345,7 +346,7 @@ build_impl()
         cd $root/svn-$name
         svn export -r BASE . $boost_root
     else
-        git clone --recursive -b $name $root/git/boostorg/boost.git $boost_root
+        git clone --recursive -b $name ${GIT_URL}/boostorg/boost.git $boost_root
 
         #cd $root/../git
         #git archive $name | tar -x -C $boost_root
@@ -550,7 +551,7 @@ upload_master()
     then
         for library in $UPLOAD_DOCUMENTATION
         do
-            if rsync -avz --delete-after \
+            if rsync -avz --delete-after --delete-excluded \
                 ${boost_root}/libs/$library/ \
                 ${SOURCEFORGE_USERNAME},boost-sandbox@web.sourceforge.net:htdocs/libs/$library/
             then
