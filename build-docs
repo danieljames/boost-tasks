@@ -487,8 +487,8 @@ build_impl()
         ln $output/$target $root/upload/$target.upload
     fi
 
-    if [ $name = trunk ]; then
-        echo $boost_root > $root/upload/upload-trunk
+    if [ $name = master ]; then
+        echo $boost_root > $root/upload/upload-master
     fi
 
     echo "Finished zipfiles." >> $output/summary.txt
@@ -536,14 +536,14 @@ upload_documentation()
 {
     upload_cowic || echo "Upload to cowic failed."
 
-    if [ -f $root/upload/upload-trunk ]; then
-        upload_trunk || echo "Upload trunk docs to sourceforge failed."
+    if [ -f $root/upload/upload-master ]; then
+        upload_master || echo "Upload master docs to sourceforge failed."
     fi
 }
 
-upload_trunk()
+upload_master()
 {
-    boost_root=$(cat $root/upload/upload-trunk)
+    boost_root=$(cat $root/upload/upload-master)
     failed=0
 
     if [ -d ${boost_root} ]
@@ -575,7 +575,7 @@ upload_trunk()
         then
             echo "Failed to upload to subversion."
         else
-            rm $root/upload/upload-trunk
+            rm $root/upload/upload-master
         fi
     else
         echo "Unable to find trunk to upload."
