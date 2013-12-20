@@ -31,7 +31,7 @@ def mirror_boostorg(root_dir):
 
         for repo in json.loads(r.text or r.content):
             url = repo['clone_url']
-            # Note using os.path.join because url path is absolute.
+            # Not using os.path.join because url path is absolute.
             path = git_dir + urlparse(url).path
             make_dir(os.path.join(path, os.pardir))
 
