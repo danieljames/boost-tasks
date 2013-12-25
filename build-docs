@@ -280,9 +280,9 @@ build_impl()
     echo "Build b2"
     echo
 
-    cd $boost_root/tools/build/v2
+    cd $boost_root/tools/build
     ./bootstrap.sh
-    B2_EXEC=$boost_root/tools/build/v2/b2
+    B2_EXEC=$boost_root/tools/build/b2
 
     # Copy b2 to the root, so that it can be called by geometry's
     # python script.
