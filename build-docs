@@ -2,17 +2,16 @@
 #
 # build-docs
 #
-#   Builds trunk & release, exporting from subversion repos.
+#   Builds master & develop, exporting from subversion repos.
 #
 # build-docs download
 #
-#  Check out and update repos, downloads tarballs.
+#  Downloads tarballs.
 #
 # build-docs build branches...
 #
 #   Builds the given branches.
-#   Exports trunk/release from subversion.
-#   Other branches from git.
+#   Exports from git.
 #
 # build-docs upload
 #
@@ -82,7 +81,6 @@ main()
 {
     if [ $# = 0 ]; then
         upload_documentation
-        #build release trunk
         build master develop
     else
         case $1 in
@@ -102,14 +100,6 @@ main()
 
 download()
 {
-    download_rapidxml $*
-    checkout_boost $*
-}
-
-download_rapidxml()
-{
-    download=$1
-
     cd $root/tarballs
 
     if [ ! -f ${RAPIDXML_FILENAME} ]
@@ -131,52 +121,6 @@ download_rapidxml()
     fi
 }
 
-checkout_boost()
-{
-    download=$1
-
-    checkout_branch $download https://svn.boost.org/svn/boost/trunk $root/svn-trunk
-    checkout_branch $download https://svn.boost.org/svn/boost/branches/release $root/svn-release
-}
-
-checkout_branch()
-{
-    download=$1
-    url=$2
-    dir=$3
-
-    if [ -d $dir ]
-    then
-        if $download
-        then
-            echo
-            echo "Download $url"
-            echo
-
-            cd $dir
-            svn up
-        else
-            echo
-            echo "Not downloading $url"
-            echo
-        fi
-    else
-        if $download
-        then
-            echo
-            echo "Checkout $url"
-            echo
-
-            svn checkout https://svn.boost.org/svn/boost/trunk $root/svn-trunk
-        else
-            echo
-            echo "Can't checkout $url"
-
-            exit -1
-        fi
-    fi
-}
-
 ###############################################################################
 #
 # Check that executables are available and set some environment variables.
@@ -186,7 +130,6 @@ setup_executables() {
     export CHECK_FAILED=0
 
     check_executable git
-    check_executable svn
     check_executable 7za
     check_executable dvips
     check_executable $DOXYGEN_BIN
@@ -250,34 +193,7 @@ build()
 
     setup_output_dir
 
-    download=false
-
-    # TODO: Better command line options.
-    if [ $1 = '--no-download' ]
-    then
-        echo
-        echo "Not downloading"
-        echo
-
-        shift
-    else
-        # If there is a network connection then download/update
-        if ping -Q -t 5 -c 1 svn.boost.org
-        then
-            echo
-            echo "Downloading updates."
-            echo
-
-            download=true
-        else
-            echo
-            echo "No network / boost down."
-            echo "Continuing without download."
-            echo
-        fi
-    fi
-
-    download $download | tee $output/download.log
+    download | tee $output/download.log
 
     for branch in $*
     do
@@ -342,15 +258,7 @@ build_impl()
     echo "Export repo"
     echo
 
-    if [ $name = release -o $name = trunk ]; then
-        cd $root/svn-$name
-        svn export -r BASE . $boost_root
-    else
-        git clone --recursive -b $name ${GIT_URL}/boostorg/boost.git $boost_root
-
-        #cd $root/../git
-        #git archive $name | tar -x -C $boost_root
-    fi
+    git clone --recursive -b $name ${GIT_URL}/boostorg/boost.git $boost_root
 
     # Make a clean copy that can be used for inspection later.
     mkdir $inspect_root
@@ -484,7 +392,7 @@ build_impl()
 
     7za a $output/$target $compress_dirs
 
-    if [ $name = 'release' -o $name = 'trunk' -o $name = 'develop' -o $name = 'master' ]; then
+    if [ $name = 'develop' -o $name = 'master' ]; then
         # Link file in upload directory, so that it will later
         # be uploaded via. ftp.
 
@@ -520,7 +428,7 @@ build_impl()
     cd $inspect_root
     $boost_root/dist/bin/inspect > $output/docs-inspect-$name.html
 
-    if [ $name = 'release' -o $name = 'trunk' -o $name = 'develop' -o $name = 'master' ]; then
+    if [ $name = 'develop' -o $name = 'master' ]; then
         ln $output/docs-inspect-$name.html $root/upload/docs-inspect-$name.html.upload
     fi
 
@@ -577,12 +485,12 @@ upload_master()
 
         if [ $failed = 1 ]
         then
-            echo "Failed to upload to subversion."
+            echo "Failed to upload to sourceforge"
         else
             rm $root/upload/upload-master
         fi
     else
-        echo "Unable to find trunk to upload."
+        echo "Unable to find master to upload."
         exit 1
     fi
 }
