@@ -400,10 +400,6 @@ build_impl()
         ln $output/$target $root/upload/$target.upload
     fi
 
-    if [ $name = master ]; then
-        echo $boost_root > $root/upload/upload-master
-    fi
-
     echo "Finished zipfiles." >> $output/summary.txt
 
     echo "Building and running inspect." >> $output/summary.txt
@@ -421,6 +417,14 @@ build_impl()
 
     cd $inspect_root
     7za x -y $output/$target
+
+    echo
+    echo "Mark inspect copy to upload to servers"
+    echo
+
+    if [ $name = master -o $name = develop ]; then
+        echo $inspect_root > $root/upload/upload-$name
+    fi
 
     echo
     echo "Run inspect"
@@ -450,7 +454,28 @@ upload_documentation()
     upload_cowic || echo "Upload to cowic failed."
 
     if [ -f $root/upload/upload-master ]; then
-        upload_master || echo "Upload master docs to sourceforge failed."
+        upload_master || echo "Upload master docs failed."
+    fi
+
+    if [ -f $root/upload/upload-develop ]; then
+        upload_develop || echo "Upload develop docs failed."
+    fi
+}
+
+upload_develop()
+{
+    boost_root=$(cat $root/upload/upload-develop)
+
+    if [ -d ${boost_root} ]
+    then
+        if rsync -az --delete-after \
+            ${boost_root}/ \
+            dnljms@boost.org:/home/www/shared/archives/live/develop/
+        then
+            echo "Uploaded develop to boost server"
+        else
+            echo "Failed to upload develop to boost server"
+        fi
     fi
 }
 
@@ -461,6 +486,15 @@ upload_master()
 
     if [ -d ${boost_root} ]
     then
+        if rsync -az --delete-after \
+            ${boost_root}/ \
+            dnljms@boost.org:/home/www/shared/archives/live/master/
+        then
+            echo "Uploaded develop to boost server"
+        else
+            echo "Failed to upload develop to boost server"
+        fi
+
         for library in $UPLOAD_DOCUMENTATION
         do
             if rsync -avz --delete-after --delete-excluded \
