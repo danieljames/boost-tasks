@@ -350,7 +350,10 @@ build_impl()
                 rm -r doxy/doxygen_output
             else
                 cd $boost_root/libs/$library/doc
-                find html -name "*.html" -print0 | xargs -0 rm
+                if [ -d html ]
+                then
+                    find html -name "*.html" -exec rm {} \;
+                fi
                 $B2_EXEC --enable-index || echo "Error building: $library" >> $output/summary.txt
             fi
         else
