@@ -175,18 +175,22 @@ check_file() {
 build()
 {
     echo
-    echo Check that execuables are available.
-    echo
-
-    setup_executables
-
-    echo
     echo "Setup output directory."
     echo
 
     setup_output_dir
 
+    echo
+    echo Download dependencies
+    echo
+
     download | tee $output/download.log
+
+    echo
+    echo Check that execuables are available.
+    echo
+
+    setup_executables
 
     for branch in $*
     do
