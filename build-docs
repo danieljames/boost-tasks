@@ -104,20 +104,12 @@ download()
 
     if [ ! -f ${RAPIDXML_FILENAME} ]
     then
-        if $download
-        then
-            echo
-            echo "Downloading rapidxml"
-            echo
+        echo
+        echo "Downloading rapidxml"
+        echo
 
-            wget -O ${RAPIDXML_FILENAME} \
-                http://sourceforge.net/projects/rapidxml/files/rapidxml/rapidxml%20${RAPIDXML_VERSION}/${RAPIDXML_FILENAME}/download
-        else
-            echo
-            echo "Can't download ${RAPIDXML_FILENAME}."
-
-            exit -1
-        fi
+        wget -O ${RAPIDXML_FILENAME} \
+            http://sourceforge.net/projects/rapidxml/files/rapidxml/rapidxml%20${RAPIDXML_VERSION}/${RAPIDXML_FILENAME}/download
     fi
 }
 
