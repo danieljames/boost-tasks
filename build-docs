@@ -124,6 +124,7 @@ setup_executables() {
     check_executable git
     check_executable 7za
     check_executable dvips
+    check_executable pax
     check_executable $DOXYGEN_BIN
     check_executable $CXX_BIN
     check_file $root/tarballs/rapidxml-1.13.zip
