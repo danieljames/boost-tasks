@@ -473,6 +473,7 @@ upload_develop()
             dnljms@boost.org:/home/www/shared/archives/live/develop/
         then
             echo "Uploaded develop to boost server"
+            rm $root/upload/upload-develop
         else
             echo "Failed to upload develop to boost server"
         fi
