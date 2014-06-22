@@ -579,7 +579,7 @@ git_export_recursive()
     ref=$2
     destination=$3
 
-    echo "Exporting repo"
+    echo "Exporting ${ref} from ${git_dir}"
 
     mkdir -p $destination
     git --git-dir=${git_dir} archive ${ref} | tar -x -C ${destination}
