@@ -260,6 +260,17 @@ build_impl()
     git_export_recursive ${GIT_URL}/boostorg/boost.git \
         refs/heads/$name $boost_root
 
+    find $boost_root/libs -name "include" | grep -v "/include/.*/include/" |
+    while read include_dir
+    do
+        cd $include_dir
+        pax -rwl . $boost_root
+        cd -
+        rm -r $include_dir
+    done
+
+    find $boost_root -name ".git*" -print0 | xargs -0 rm -r
+
     # Make a clean copy that can be used for inspection later.
     mkdir $inspect_root
     cd $boost_root
