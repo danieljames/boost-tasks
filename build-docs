@@ -260,21 +260,28 @@ build_impl()
     git_export_recursive ${GIT_URL}/boostorg/boost.git \
         refs/heads/$name $boost_root
 
-    find $boost_root/libs -name "include" | grep -v "/include/.*/include/" |
-    while read include_dir
-    do
-        cd $include_dir
-        pax -rwl . $boost_root
-        cd -
-        rm -r $include_dir
-    done
-
-    find $boost_root -name ".git*" -print0 | xargs -0 rm -r
-
     # Make a clean copy that can be used for inspection later.
     mkdir $inspect_root
     cd $boost_root
     pax -rwl . $inspect_root
+
+    # Make the inspect copy look more like a release by moving
+    # all the headers into $inspect_root/boost, and then removing
+    # .git* files.
+
+    find $inspect_root/libs -name "include" |
+        grep -v "/include/.*/include" |
+        grep -v "/mpl/preprocessed/include" |
+        grep -v "/phoenix/test/include" |
+    while read include_dir
+    do
+        pushd $include_dir
+        pax -rwl . $inspect_root
+        popd
+        rm -r $include_dir
+    done
+
+    find $inspect_root -name ".git*" -print0 | xargs -0 rm -r
 
     echo
     echo "Starting Build"
@@ -304,9 +311,6 @@ build_impl()
     echo
 
     cd $boost_root
-    $B2_EXEC headers
-
-    cd $inspect_root
     $B2_EXEC headers
 
     echo
