@@ -1,0 +1,67 @@
+#!/bin/bash -e
+
+# Exit on error
+set -e
+# Treat unset parameters as an error
+set -u
+
+cwd=$(pwd)
+cd $(dirname $0)
+root=$(pwd)
+cd -
+. $root/settings.sh
+
+usage()
+{
+    echo "Usage: compress-docs branch [boost-root] [output-file]"
+}
+
+main()
+{
+    if [ $# -eq 0 -o $# -gt 3 ]; then
+        usage
+        exit 1
+    fi
+
+    branch=$1
+
+    if [ $# -gt 1 ]
+    then
+        cd $cwd
+        boost_root=$(readlink -f $2)
+    else
+        boost_root=$root/build/build-$branch/boost
+    fi
+
+    if [ $# -gt 2 ]
+    then
+        cd $cwd
+        target=$(readlink -f $3)
+    else
+        target=$cwd/boost-$branch-docs.7z
+    fi
+
+    compress $branch $boost_root $target
+}
+
+compress()
+{
+    name=$1
+    boost_root=$2
+    target=$3
+
+    cd $boost_root
+    compress_dirs="doc/html"
+
+    for library in $STANDALONE_DOCUMENTATION
+    do
+        if [ -d $boost_root/libs/$library/doc ]
+        then
+            compress_dirs="$compress_dirs libs/$library/doc/html"
+        fi
+    done
+
+    7za a $target $compress_dirs
+}
+
+main $*

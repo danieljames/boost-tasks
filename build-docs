@@ -56,38 +56,17 @@ trap 'if [ "$(jobs -p)x" != x ]; then kill $(jobs -p); fi' INT TERM EXIT
 main()
 {
     if [ $# = 0 ]; then
-        upload_documentation
+        $root/upload-documentation
         build master develop
     else
         case $1 in
-        "download")     download true ;;
-        "build")        shift ; upload_documentation ; build $* ;;
-        "master")       upload_documentation ; build $* ;;
-        "develop")      upload_documentation ; build $* ;;
-        "upload")       upload_documentation ;;
+        "download")     $root/download true ;;
+        "build")        shift ; $root/upload-documentation ; build $* ;;
+        "master")       $root/upload-documentation ; build $* ;;
+        "develop")      $root/upload-documentation ; build $* ;;
+        "upload")       $root/upload-documentation ;;
         *)              echo "Unknown command: $1"; exit 1;;
         esac
-    fi
-}
-
-###############################################################################
-#
-# Download/update from internet
-#
-# TODO: Just the relevant branches?
-
-download()
-{
-    cd $root/tarballs
-
-    if [ ! -f ${RAPIDXML_FILENAME} ]
-    then
-        echo
-        echo "Downloading rapidxml"
-        echo
-
-        wget -O ${RAPIDXML_FILENAME} \
-            http://sourceforge.net/projects/rapidxml/files/rapidxml/rapidxml%20${RAPIDXML_VERSION}/${RAPIDXML_FILENAME}/download
     fi
 }
 
@@ -162,7 +141,7 @@ build()
     echo Download dependencies
     echo
 
-    download | tee $output/download.log
+    $root/download | tee $output/download.log
 
     echo
     echo Check that execuables are available.
@@ -179,7 +158,7 @@ build()
         echo "Build branch $branch."
         echo
 
-        build_impl $branch $output 2>&1 | tee $output/build-$branch.log
+        $root/build-impl $branch $output 2>&1 | tee $output/build-$branch.log
 
         echo >> $output/summary.txt
     done
@@ -189,311 +168,13 @@ build()
     echo
 
     # Upload to sandbox and cowic
-    upload_documentation | tee $output/upload.log
+    $root/upload-documentation | tee $output/upload.log
 
     echo
     echo "Summary."
     echo
 
     cat $output/summary.txt
-}
-
-###############################################################################
-#
-# The main build
-
-build_impl()
-{
-    name=$1
-    output=$2
-
-    build_dir=$root/build/build-$name
-    boost_root=$build_dir/boost
-    inspect_root=$build_dir/boost-inspect
-    exec_dir=$build_dir/bin
-
-    if [ -d $build_dir ]
-    then
-        rm -rf $build_dir
-    fi
-
-    echo
-    echo "Setup Build Directory"
-    echo
-
-    mkdir $build_dir
-    mkdir $exec_dir
-
-    touch $build_dir/user-config.jam
-    echo "using doxygen : $DOXYGEN_BIN ;"  >> $build_dir/user-config.jam
-    echo "using $B2_TOOLSET : : $CCACHE_BIN $CXX_BIN $CXX_FLAGS ;" >> $build_dir/user-config.jam
-    echo 'using boostbook ;' >> $build_dir/user-config.jam
-
-    echo
-    echo "Export repo"
-    echo
-
-    git_export_recursive ${GIT_URL}/boostorg/boost.git \
-        refs/heads/$name $boost_root
-
-    # Make a clean copy that can be used for inspection later.
-    mkdir $inspect_root
-    cd $boost_root
-    pax -rwl . $inspect_root
-
-    # Make the inspect copy look more like a release by moving
-    # all the headers into $inspect_root/boost, and then removing
-    # .git* files.
-
-    find $inspect_root/libs -name "include" |
-        grep -v "/include/.*/include" |
-        grep -v "/mpl/preprocessed/include" |
-        grep -v "/phoenix/test/include" |
-    while read include_dir
-    do
-        pushd $include_dir
-        pax -rwl . $inspect_root
-        popd
-        rm -r $include_dir
-    done
-
-    find $inspect_root -name ".git*" -print0 | xargs -0 rm -r
-
-    echo
-    echo "Starting Build"
-    echo
-
-    # So that boost build will use the user-config.jam created for this
-    # build
-    export HOME=$build_dir
-    export PATH=$exec_dir:$PATH
-
-    # Build b2 executable
-
-    echo
-    echo "Build b2"
-    echo
-
-    cd $boost_root/tools/build
-    ./bootstrap.sh
-    B2_EXEC=$boost_root/tools/build/b2
-
-    # Copy b2 to the root, so that it can be called by geometry's
-    # python script.
-    cp $B2_EXEC $boost_root
-
-    echo
-    echo "Link headers"
-    echo
-
-    cd $boost_root
-    $B2_EXEC headers
-
-    echo
-    echo "Build quickbook"
-    echo
-
-    cd $boost_root/tools/quickbook
-    $B2_EXEC -q
-    echo "using quickbook : ${boost_root}/dist/bin/quickbook ;" >> $build_dir/user-config.jam
-
-    echo
-    echo "Build auto-index"
-    echo
-
-    cd $boost_root/tools/auto_index/build
-    $B2_EXEC -q
-    echo "using auto-index : ${boost_root}/dist/bin/auto_index ;" >> $build_dir/user-config.jam
-
-    if [ -d $boost_root/libs/geometry ]; then
-
-        echo
-        echo "Build doxgen_xml2qbk"
-        echo
-
-        cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk/contrib
-        unzip -n $root/tarballs/${RAPIDXML_FILENAME}
-
-        cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk
-
-        if $B2_EXEC -a -q; then
-            # TODO: Or could just put dist/bin on the path?
-            cp $boost_root/dist/bin/doxygen_xml2qbk $exec_dir
-        else
-            echo "Error building: doxgen_xml2qbk" >> $output/summary.txt
-        fi
-
-        rm -rf src/docutils/tools/doxygen_xml2qbk/contrib/rapid*
-    fi
-
-    for library in $STANDALONE_DOCUMENTATION
-    do
-        echo
-        echo "Build $library docs"
-        echo
-
-        if [ -d $boost_root/libs/$library/doc ]
-        then
-            if [ $library = 'geometry' ]
-            then
-                cd $boost_root/libs/geometry/doc
-                DOXYGEN=$DOXYGEN_BIN \
-                    python ./make_qbk.py || echo "Error building: $library" >> $output/summary.txt
-                rm -r generated
-                rm -r doxy/doxygen_output
-            else
-                cd $boost_root/libs/$library/doc
-                if [ -d html ]
-                then
-                    find html -name "*.html" -exec rm {} \;
-                fi
-                $B2_EXEC --enable-index || echo "Error building: $library" >> $output/summary.txt
-            fi
-        else
-            echo "No directory for $library."
-        fi
-    done
-
-    echo
-    echo "Build main docs"
-    echo
-
-    rm -rf $boost_root/doc/html
-    cd $boost_root/doc
-    $B2_EXEC doc xsl:param="collect.xref.targets=yes" xsl:param="targets.filename=../combined.db" -q || echo "Error building: combined documentation" >> $output/summary.txt
-    $B2_EXEC asio xsl:param="collect.xref.targets=yes" xsl:param="targets.filename=../asio.db" -q || echo "Error building: combined documentation" >> $output/summary.txt
-
-    echo "Finished building." >> $output/summary.txt
-
-    echo
-    echo "Create zipfiles"
-    echo
-
-    echo "Creating zipfiles..." >> $output/summary.txt
-
-    target=boost-$name-docs.7z
-
-    cd $boost_root
-    compress_dirs="doc/html"
-
-    for library in $STANDALONE_DOCUMENTATION
-    do
-        if [ -d $boost_root/libs/$library/doc ]
-        then
-            compress_dirs="$compress_dirs libs/$library/doc/html"
-        fi
-    done
-
-    7za a $output/$target $compress_dirs
-
-    if [ $name = 'develop' -o $name = 'master' ]; then
-        # Link file in upload directory, so that it will later
-        # be uploaded via. ftp.
-
-        ln $output/$target $root/upload/$target.upload
-    fi
-
-    echo "Finished zipfiles." >> $output/summary.txt
-
-    echo "Building and running inspect." >> $output/summary.txt
-
-    echo
-    echo "Build inspect"
-    echo
-
-    cd $boost_root/tools/inspect/build
-    $B2_EXEC -q
-
-    echo
-    echo "Extract docs into inspect copy"
-    echo
-
-    cd $inspect_root
-    7za x -y $output/$target
-
-    echo
-    echo "Mark inspect copy to upload to servers"
-    echo
-
-    if [ $name = master -o $name = develop ]; then
-        echo $inspect_root > $root/upload/upload-$name
-    fi
-
-    echo
-    echo "Run inspect"
-    echo
-
-    cd $inspect_root
-    $boost_root/dist/bin/inspect > $output/docs-inspect-$name.html || true
-
-    if [ $name = 'develop' -o $name = 'master' ]; then
-        ln $output/docs-inspect-$name.html $root/upload/docs-inspect-$name.html.upload
-    fi
-
-    echo "Finished inspect." >> $output/summary.txt
-
-    echo
-    echo
-
-    echo "All OK." >> $output/summary.txt
-}
-
-###############################################################################
-#
-# Upload documentation
-
-upload_documentation()
-{
-    upload_cowic || echo "Upload to cowic failed."
-
-    if [ -f $root/upload/upload-master ]; then
-        upload_to_server master || echo "Upload master docs failed."
-    fi
-
-    if [ -f $root/upload/upload-develop ]; then
-        upload_to_server develop || echo "Upload develop docs failed."
-    fi
-}
-
-upload_to_server()
-{
-    branch=$1
-    boost_root=$(cat $root/upload/upload-$branch)
-
-    if [ -d ${boost_root} ]
-    then
-        if rsync -az --delete-after \
-            ${boost_root}/ \
-            dnljms@boost.org:/home/www/shared/archives/live/$branch/
-        then
-            echo "Uploaded $branch to boost server"
-            rm $root/upload/upload-$branch
-        else
-            echo "Failed to upload $branch to boost server"
-        fi
-    fi
-}
-
-upload_cowic()
-{
-    nl="
-"
-    cd $root/upload
-
-    for f in $(ls *.upload)
-    do
-        f2=$(echo $f | sed "s/\.upload$//")
-        echo "Uploading $f2"
-
-        echo "put $f ${nl} rename $f $f2" | ftp -v boost.cowic.de 2>&1 | tee upload.log
-
-        if grep '^250 Rename successful' upload.log
-        then
-            rm $f
-        fi
-
-        rm upload.log
-    done
 }
 
 ###############################################################################
@@ -512,42 +193,6 @@ setup_output_dir()
     touch $output/summary.txt
 }
 
-###############################################################################
-#
-# git export
-
-git_export_recursive()
-{
-    git_dir=$1
-    ref=$2
-    destination=$3
-
-    echo "Exporting ${ref} from ${git_dir}"
-
-    mkdir -p $destination
-    git --git-dir=${git_dir} archive ${ref} | tar -x -C ${destination}
-
-    git config -f $destination/.gitmodules -l |
-        grep '^submodule\.\w*\.path=' |
-        sed 's/submodule\.\(.*\)\.path=\(.*\)/\1 \2/' |
-        while read line
-        do
-            set $line
-            name=$1
-            path=$2
-
-            hash=$(git --git-dir=$git_dir \
-                ls-tree $ref $path |
-                cut -f 1 | cut -d ' ' -f 3)
-
-            repo=$(git config -f $destination/.gitmodules submodule.$name.url)
-            #TODO: Check that repo is a relative path...
-
-            echo "Export ${name}"
-            git --git-dir=${git_dir}/${repo} archive ${hash} |
-                tar -x -C ${destination}/${path}
-        done
-}
 
 ###############################################################################
 #
