@@ -12,7 +12,7 @@ build_impl()
     name=$1
     output=$2
 
-    build_dir=$root/build/build-$name
+    build_dir=$DOC_DATA/build/build-$name
     boost_root=$build_dir/boost
     inspect_root=$build_dir/boost-inspect
     exec_dir=$build_dir/bin
@@ -26,8 +26,9 @@ build_impl()
     echo "Setup Build Directory"
     echo
 
-    mkdir $build_dir
-    mkdir $exec_dir
+    mkdir -p $DOC_DATA/upload
+    mkdir -p $build_dir
+    mkdir -p $exec_dir
 
     touch $build_dir/user-config.jam
     echo "using doxygen : $DOXYGEN_BIN ;"  >> $build_dir/user-config.jam
@@ -117,7 +118,7 @@ build_impl()
         echo
 
         cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk/contrib
-        unzip -n $root/tarballs/${RAPIDXML_FILENAME}
+        unzip -n $DOC_DATA/tarballs/${RAPIDXML_FILENAME}
 
         cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk
 
@@ -184,7 +185,7 @@ build_impl()
         # Link file in upload directory, so that it will later
         # be uploaded via. ftp.
 
-        ln $zip_file $root/upload/$target.upload
+        ln $zip_file $DOC_DATA/upload/$target.upload
     fi
 
     echo "Finished zipfile." >> $output/summary.txt
@@ -210,7 +211,7 @@ build_impl()
     echo
 
     if [ $name = master -o $name = develop ]; then
-        echo $inspect_root > $root/upload/upload-$name
+        echo $inspect_root > $DOC_DATA/upload/upload-$name
     fi
 
     echo
@@ -221,7 +222,7 @@ build_impl()
     $boost_root/dist/bin/inspect > $output/docs-inspect-$name.html || true
 
     if [ $name = 'develop' -o $name = 'master' ]; then
-        ln $output/docs-inspect-$name.html $root/upload/docs-inspect-$name.html.upload
+        ln $output/docs-inspect-$name.html $DOC_DATA/upload/docs-inspect-$name.html.upload
     fi
 
     echo "Finished inspect." >> $output/summary.txt

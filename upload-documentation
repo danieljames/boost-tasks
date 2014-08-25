@@ -15,11 +15,11 @@ upload_documentation()
 {
     upload_cowic || echo "Upload to cowic failed."
 
-    if [ -f $root/upload/upload-master ]; then
+    if [ -f $DOC_DATA/upload/upload-master ]; then
         upload_to_server master || echo "Upload master docs failed."
     fi
 
-    if [ -f $root/upload/upload-develop ]; then
+    if [ -f $DOC_DATA/upload/upload-develop ]; then
         upload_to_server develop || echo "Upload develop docs failed."
     fi
 }
@@ -27,7 +27,7 @@ upload_documentation()
 upload_to_server()
 {
     branch=$1
-    boost_root=$(cat $root/upload/upload-$branch)
+    boost_root=$(cat $DOC_DATA/upload/upload-$branch)
 
     if [ -d ${boost_root} ]
     then
@@ -36,7 +36,7 @@ upload_to_server()
             dnljms@boost.org:/home/www/shared/archives/live/$branch/
         then
             echo "Uploaded $branch to boost server"
-            rm $root/upload/upload-$branch
+            rm $DOC_DATA/upload/upload-$branch
         else
             echo "Failed to upload $branch to boost server"
         fi
@@ -47,7 +47,7 @@ upload_cowic()
 {
     nl="
 "
-    cd $root/upload
+    cd $DOC_DATA/upload
 
     for f in $(ls *.upload)
     do

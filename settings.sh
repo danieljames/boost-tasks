@@ -2,6 +2,11 @@
 #
 # Configuration
 
+# Directories
+
+export DATA_DIR=$root/../update-data
+export DOC_DATA=$DATA_DIR/doc
+
 # Libraries to build documentation for
 export STANDALONE_DOCUMENTATION="geometry phoenix fusion spirit spirit/repository crc algorithm context coroutine numeric/odeint log tti functional/factory functional/forward range utility core convert"
 
@@ -18,4 +23,4 @@ export RAPIDXML_VERSION=1.13
 export SOURCEFORGE_USERNAME=danieljames
 
 export RAPIDXML_FILENAME=rapidxml-${RAPIDXML_VERSION}.zip
-export GIT_URL=$root/../boost-update/repos/mirror/
+export GIT_URL=$DATA_DIR/mirror/

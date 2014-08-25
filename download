@@ -15,7 +15,8 @@ root=$(pwd)
 
 download()
 {
-    cd $root/tarballs
+    mkdir -p $DOC_DATA/tarballs
+    cd $DOC_DATA/tarballs
 
     if [ ! -f ${RAPIDXML_FILENAME} ]
     then

@@ -30,7 +30,7 @@ main()
         cd $cwd
         boost_root=$(readlink -f $2)
     else
-        boost_root=$root/build/build-$branch/boost
+        boost_root=$DOC_DATA/build/build-$branch/boost
     fi
 
     if [ $# -gt 2 ]
