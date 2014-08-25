@@ -49,5 +49,12 @@ class EvilGlobals {
             "develop" => "{$data_root}/develop",
             "master" => "{$data_root}/master"
         );
+
+        // Set up cache
+
+        self::$github_cache = new \GitHubCache(
+                self::$settings['username'],
+                self::$settings['password']);
+
     }
 }

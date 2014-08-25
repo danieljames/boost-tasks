@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright 2013 Daniel James <daniel@calamity.org.uk>.
+ * Copyright 2013-2014 Daniel James <daniel@calamity.org.uk>.
  *
  * Distributed under the Boost Software License, Version 1.0. (See accompanying
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,6 +13,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Monolog\Handler\NativeMailerHandler;
 
@@ -58,7 +59,15 @@ class BoostUpdateApplication extends Application
     protected function getDefaultCommands()
     {
         $defaultCommands = parent::getDefaultCommands();
-
+        $defaultCommands[] = new CronJobCommand();
         return $defaultCommands;
+    }
+}
+
+class CronJobCommand extends Command {
+    protected function configure() { $this->setName('cron'); }
+
+    protected function execute(InputInterface $input, OutputInterface $output) {
+        EventQueue::downloadEvents();
     }
 }
