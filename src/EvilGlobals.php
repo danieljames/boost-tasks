@@ -16,7 +16,7 @@ class EvilGlobals {
     static function init() {
         // Set up repo directory.
 
-        $data_root = __DIR__."/../data";
+        $data_root = __DIR__."/../../update-data";
         self::$data_root = $data_root;
         self::$mirror_root = "{$data_root}/mirror";
         self::$super_root = "{$data_root}/super";
