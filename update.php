@@ -1,6 +1,6 @@
 <?php
 
-require 'src/_init.php';
+require 'vendor/autoload.php';
 
 $console = new BoostUpdateApplication();
 $r = $console->run();

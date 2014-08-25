@@ -7,7 +7,7 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-require_once(__DIR__.'/src/_init.php');
+require_once(__DIR__.'/vendor/autoload.php');
 
 try {
     $dst = EvilGlobals::$data_root.'/upload';

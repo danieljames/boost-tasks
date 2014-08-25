@@ -29,7 +29,7 @@
         "redbeanphp": "4.0.*"
     },
     "autoload": {
-        "files": [ "vendor/redbeanphp/rb.php" ],
+        "files": [ "vendor/redbeanphp/rb.php", "src/_init.php" ],
         "psr-0": { "" : "src/" }
     },
     "minimum-stability": "dev",
