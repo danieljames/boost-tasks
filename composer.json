@@ -2,6 +2,19 @@
     "name": "danieljames/boost-tasks",
     "description": "Misc. boost things.",
     "license": "BSL-1.0",
+    "repositories": [
+        {
+            "type": "package",
+            "package": {
+                 "name": "redbeanphp",
+                 "version": "4.0.4",
+                 "dist": {
+                     "url": "http://www.redbeanphp.com/downloadredbean.php",
+                     "type": "tar"
+                 }
+            }
+        }
+    ],
     "authors": [
         {
             "name": "Daniel James",
@@ -12,9 +25,13 @@
         "guzzle/guzzle": "*",
         "symfony/process": "*",
         "symfony/console": "*",
-        "symfony/monolog-bridge": "*"
+        "symfony/monolog-bridge": "*",
+        "redbeanphp": "4.0.*"
     },
     "autoload": {
+        "files": [ "vendor/redbeanphp/rb.php" ],
         "psr-0": { "" : "src/" }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
