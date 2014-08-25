@@ -4,6 +4,8 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 class EvilGlobals {
+    static $settings;
+
     // Filesystem layout
     static $data_root;
     static $mirror_root;
@@ -11,20 +13,8 @@ class EvilGlobals {
 
     static $branch_repos;
     static $github_cache;
-    static $settings;
 
     static function init() {
-        // Set up repo directory.
-
-        $data_root = __DIR__."/../../update-data";
-        self::$data_root = $data_root;
-        self::$mirror_root = "{$data_root}/mirror";
-        self::$super_root = "{$data_root}/super";
-
-        if (!is_dir(self::$data_root)) { mkdir(self::$data_root); }
-        if (!is_dir(self::$mirror_root)) { mkdir(self::$mirror_root); }
-        if (!is_dir(self::$super_root)) { mkdir(self::$super_root); }
-
         // Load settings
 
         self::$settings = array(
@@ -38,6 +28,17 @@ class EvilGlobals {
             self::$settings = array_merge(self::$settings,
                     json_decode(file_get_contents(__DIR__."/../config.json"), true));
         }
+
+        // Set up repo directory.
+
+        $data_root = __DIR__."/../../update-data";
+        self::$data_root = $data_root;
+        self::$mirror_root = "{$data_root}/mirror";
+        self::$super_root = "{$data_root}/super";
+
+        if (!is_dir(self::$data_root)) { mkdir(self::$data_root); }
+        if (!is_dir(self::$mirror_root)) { mkdir(self::$mirror_root); }
+        if (!is_dir(self::$super_root)) { mkdir(self::$super_root); }
 
         // Set up the logger.
 
