@@ -18,11 +18,14 @@ and [composer](https://getcomposer.org/).
 Example configuration file:
 
     {
+        "data": "../data",
         "username": "your-username",
         "password": "your-password",
         "website-data": "path-to-website-data",
         "push-to-repo": false
     }
+
+`data` is the path to the directory that will hold data for this script.
 
 `username` and `password` are the GitHub login details for the account that
 the script will use.

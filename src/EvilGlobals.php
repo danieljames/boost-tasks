@@ -11,6 +11,8 @@ class EvilGlobals {
     static $mirror_root;
     static $super_root;
 
+    static $website_data;
+
     static $branch_repos;
     static $github_cache;
 
@@ -18,20 +20,25 @@ class EvilGlobals {
         // Load settings
 
         self::$settings = array(
+            'data' => '../data',
             'username' => null,
             'password' => null,
             'website-data' => null,
             'push-to-repo' => false,
         );
 
-        if (is_file(__DIR__."/../config.json")) {
+        if (is_file(self::resolve_path('config.json'))) {
             self::$settings = array_merge(self::$settings,
                     json_decode(file_get_contents(__DIR__."/../config.json"), true));
+        }
+        else {
+            echo "Config file not found.\n";
+            exit(1);
         }
 
         // Set up repo directory.
 
-        $data_root = __DIR__."/../../update-data";
+        $data_root = self::resolve_path(self::$settings['data']);
         self::$data_root = $data_root;
         self::$mirror_root = "{$data_root}/mirror";
         self::$super_root = "{$data_root}/super";
@@ -39,6 +46,12 @@ class EvilGlobals {
         if (!is_dir(self::$data_root)) { mkdir(self::$data_root); }
         if (!is_dir(self::$mirror_root)) { mkdir(self::$mirror_root); }
         if (!is_dir(self::$super_root)) { mkdir(self::$super_root); }
+
+        // Set up website data directory.
+
+        if (self::$settings['website-data']) {
+            self::$website_data = self::resolve_path(self::$settings['website-data']);
+        }
 
         // Set up the logger.
 
@@ -63,5 +76,13 @@ class EvilGlobals {
                 self::$settings['username'],
                 self::$settings['password']);
 
+    }
+
+    static function resolve_path($path) {
+        if ($path[0] != '/') {
+            $path = __DIR__.'/../'.$path;
+        }
+        $path = rtrim($path, '/');
+        return $path;
     }
 }
