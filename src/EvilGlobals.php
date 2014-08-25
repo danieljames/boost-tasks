@@ -7,6 +7,7 @@ class EvilGlobals {
     // Filesystem layout
     static $data_root;
     static $mirror_root;
+    static $super_root;
 
     static $branch_repos;
     static $github_cache;
@@ -18,10 +19,11 @@ class EvilGlobals {
         $data_root = __DIR__."/../data";
         self::$data_root = $data_root;
         self::$mirror_root = "{$data_root}/mirror";
+        self::$super_root = "{$data_root}/super";
 
-        if (!is_dir($data_root)) {
-            mkdir($data_root);
-        }
+        if (!is_dir(self::$data_root)) { mkdir(self::$data_root); }
+        if (!is_dir(self::$mirror_root)) { mkdir(self::$mirror_root); }
+        if (!is_dir(self::$super_root)) { mkdir(self::$super_root); }
 
         // Load settings
 
@@ -50,8 +52,8 @@ class EvilGlobals {
         // Set up repos
 
         self::$branch_repos = array(
-            "develop" => "{$data_root}/develop",
-            "master" => "{$data_root}/master"
+            "develop" => self::$super_root."/develop",
+            "master" => self::$super_root."/master",
         );
 
         // Set up cache
