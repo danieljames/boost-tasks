@@ -5,10 +5,6 @@
 # Libraries to build documentation for
 export STANDALONE_DOCUMENTATION="geometry phoenix fusion spirit spirit/repository crc algorithm context coroutine numeric/odeint log tti functional/factory functional/forward range utility core convert"
 
-# Libraries to upload documentation for. Uploads all of libs/name, so no need
-# to include nested libraries.
-export UPLOAD_DOCUMENTATION="log geometry phoenix fusion spirit crc algorithm context coroutine numeric/odeint container tti functional/factory functional/forward range utility core convert"
-
 # Compiler details, leave ccache blank if you don't use it.
 export CCACHE_BIN="ccache"
 export CXX_BIN="g++"
