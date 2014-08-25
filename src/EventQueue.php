@@ -45,6 +45,18 @@ class EventQueue {
             && $this->queue->last_github_id >= $status->start_id;
     }
 
+    static function outputEvents() {
+        foreach(R::findAll(self::$event_table) as $event) {
+            echo "GitHub id: {$event->github_id}\n";
+            echo "Branch: {$event->branch}\n";
+            echo "Repo: {$event->repo}\n";
+            echo "Created: {$event->created}\n";
+            echo "Payload: ";
+            print_r(json_decode($event->payload));
+            echo "\n";
+        }
+    }
+
     static function downloadEvents() {
         $status = self::getStatus();
         $last_id = $status->last_id;

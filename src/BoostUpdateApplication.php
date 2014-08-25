@@ -60,6 +60,7 @@ class BoostUpdateApplication extends Application
     {
         $defaultCommands = parent::getDefaultCommands();
         $defaultCommands[] = new CronJobCommand();
+        $defaultCommands[] = new EventListCommand();
         return $defaultCommands;
     }
 }
@@ -69,5 +70,13 @@ class CronJobCommand extends Command {
 
     protected function execute(InputInterface $input, OutputInterface $output) {
         EventQueue::downloadEvents();
+    }
+}
+
+class EventListCommand extends Command {
+    protected function configure() { $this->setName('event-list'); }
+
+    protected function execute(InputInterface $input, OutputInterface $output) {
+        EventQueue::outputEvents();
     }
 }
