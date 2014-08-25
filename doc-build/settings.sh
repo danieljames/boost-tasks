@@ -4,7 +4,7 @@
 
 # Directories
 
-export DATA_DIR=$root/../update-data
+export DATA_DIR=$root/../../update-data
 export DOC_DATA=$DATA_DIR/doc
 
 # Libraries to build documentation for
