@@ -4,7 +4,10 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 class EvilGlobals {
+    // Filesystem layout
     static $data_root;
+    static $mirror_root;
+
     static $branch_repos;
     static $github_cache;
     static $settings;
@@ -14,6 +17,7 @@ class EvilGlobals {
 
         $data_root = __DIR__."/../data";
         self::$data_root = $data_root;
+        self::$mirror_root = "{$data_root}/mirror";
 
         if (!is_dir($data_root)) {
             mkdir($data_root);

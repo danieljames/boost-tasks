@@ -61,6 +61,8 @@ class BoostUpdateApplication extends Application
         $defaultCommands = parent::getDefaultCommands();
         $defaultCommands[] = new CronJobCommand();
         $defaultCommands[] = new EventListCommand();
+        $defaultCommands[] = new MirrorCommand();
+        $defaultCommands[] = new MirrorListCommand();
         return $defaultCommands;
     }
 }
@@ -70,6 +72,13 @@ class CronJobCommand extends Command {
 
     protected function execute(InputInterface $input, OutputInterface $output) {
         EventQueue::downloadEvents();
+        $this->callCommand($input, $output, 'mirror', array('--no-fetch'));
+    }
+
+    private function callCommand($input, $output, $name, $arguments) {
+        $command = $this->getApplication()->find($name);
+        $input = new Symfony\Component\Console\Input\ArrayInput($arguments);
+        return $command->run($input, $output);
     }
 }
 
@@ -78,5 +87,37 @@ class EventListCommand extends Command {
 
     protected function execute(InputInterface $input, OutputInterface $output) {
         EventQueue::outputEvents();
+    }
+}
+
+class MirrorCommand extends Command {
+    protected function configure() {
+        $this->setName('mirror')
+            ->setDescription('Creates or updates the GitHub mirror')
+            ->addOption('no-fetch', null, InputOption::VALUE_NONE,
+                    "Don't fetch events from GitHub")
+            ->addOption('all', null, InputOption::VALUE_NONE,
+                    "Update all repos in mirror");
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output) {
+        if (!$input->getOption('no-fetch')) { EventQueue::downloadEvents(); }
+        $mirror = new LocalMirror();
+        if ($input->getOption('all')) {
+            $mirror->refreshAll();
+        } else {
+            EventQueue::downloadEvents();
+            $mirror->refresh();
+        }
+        $mirror->fetchDirty();
+    }
+}
+
+class MirrorListCommand extends Command {
+    protected function configure() { $this->setName('mirror-list'); }
+
+    protected function execute(InputInterface $input, OutputInterface $output) {
+        $mirror = new LocalMirror();
+        $mirror->outputRepos();
     }
 }
