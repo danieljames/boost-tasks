@@ -1,0 +1,201 @@
+#!/bin/bash -e
+#
+# build-docs
+#
+#   Builds master & develop, exporting from subversion repos.
+#
+# build-docs download
+#
+#  Downloads tarballs.
+#
+# build-docs build branches...
+#
+#   Builds the given branches.
+#   Exports from git.
+#
+# build-docs upload
+#
+#   Upload any outstanding upload to sandbox and cowic
+#
+# Your ~/.ssh should contain public and private ssh keys for
+# uploading to sourceforge sandbox. Your .netrc should contain
+# the login details for cowic.
+#
+# You probably want to deactivate any hard drive indexing service for
+# this directory. For OS X, go to the spotlight preference pane, and
+# look under the 'privacy' tab.
+
+###############################################################################
+#
+# Initial setup
+#
+# Try to follow this (I'm sure I don't at some point):
+# http://www.davidpashley.com/articles/writing-robust-shell-scripts.html
+
+# Exit on error
+set -e
+# Treat unset parameters as an error
+set -u
+
+cd $(dirname $0)
+root=$(pwd)
+. $root/settings.sh
+
+# This script uses background tasks in a few places, so try to kill them if
+# things go wrong. Doesn't seem to always work properly though. Might not
+# be worth using background tasks.
+#
+# http://stackoverflow.com/questions/360201/kill-background-process-when-shell-script-exit
+trap 'if [ "$(jobs -p)x" != x ]; then kill $(jobs -p); fi' INT TERM EXIT
+
+
+###############################################################################
+#
+# Main
+
+main()
+{
+    if [ $# = 0 ]; then
+        $DOC_DATA/upload-documentation
+        build master develop
+    else
+        case $1 in
+        "download")     $root/download true ;;
+        "build")        shift ; $root/upload-documentation ; build $* ;;
+        "master")       $root/upload-documentation ; build $* ;;
+        "develop")      $root/upload-documentation ; build $* ;;
+        "upload")       $root/upload-documentation ;;
+        *)              echo "Unknown command: $1"; exit 1;;
+        esac
+    fi
+}
+
+###############################################################################
+#
+# Check that executables are available and set some environment variables.
+
+setup_executables() {
+    # Could I do this without a global?
+    export CHECK_FAILED=0
+
+    check_executable git
+    check_executable 7za
+    check_executable dvips
+    check_executable pax
+    check_executable $DOXYGEN_BIN
+    check_executable $CXX_BIN
+    check_file $DOC_DATA/tarballs/rapidxml-1.13.zip
+
+    if [ x$CCACHE_BIN != x ]
+    then
+        check_executable $CCACHE_BIN
+    fi
+
+    if [ $CHECK_FAILED = 1 ]
+    then
+        exit 1
+    fi
+}
+
+check_executable() {
+    name=$1
+
+    if type -P $name > /dev/null
+    then
+        echo "Found $name"
+    else
+        echo "Error: couldn't find $name"
+        export CHECK_FAILED=1
+    fi
+}
+
+check_file() {
+    name=$1
+
+    if [ -f $name ]
+    then
+        echo "Found $name"
+    else
+        echo "Error: couldn't find $name"
+        export CHECK_FAILED=1
+    fi
+
+}
+
+###############################################################################
+#
+# Build
+#
+# Builds the given branches as child processes so that output can be piped
+# and errors don't end the whole script.
+
+build()
+{
+    echo
+    echo "Setup output directory."
+    echo
+
+    setup_output_dir
+
+    echo
+    echo Download dependencies
+    echo
+
+    $root/download | tee $output/download.log
+
+    echo
+    echo Check that execuables are available.
+    echo
+
+    setup_executables
+
+    for branch in $*
+    do
+        echo "Build branch $branch " >> $output/summary.txt
+        echo >> $output/summary.txt
+
+        echo
+        echo "Build branch $branch."
+        echo
+
+        $root/build-impl $branch $output 2>&1 | tee $output/build-$branch.log
+
+        echo >> $output/summary.txt
+    done
+
+    echo
+    echo "Upload."
+    echo
+
+    # Upload to sandbox and cowic
+    $root/upload-documentation | tee $output/upload.log
+
+    echo
+    echo "Summary."
+    echo
+
+    cat $output/summary.txt
+}
+
+###############################################################################
+#
+# Setup Output Directory
+
+setup_output_dir()
+{
+    export output=$DOC_DATA/history/$(date -u '+%Y%m%d-%H%M')
+
+    if test -d $output; then
+        rmdir $output
+    fi
+
+    mkdir -p $output
+    touch $output/summary.txt
+}
+
+
+###############################################################################
+#
+# Launch Main
+
+main $*

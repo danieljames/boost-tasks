@@ -1,0 +1,32 @@
+#!/bin/bash -e
+
+set -e
+set -u
+
+cd $(dirname $0)
+root=$(pwd)
+. $root/settings.sh
+
+###############################################################################
+#
+# Download/update from internet
+#
+# TODO: Just the relevant branches?
+
+download()
+{
+    mkdir -p $DOC_DATA/tarballs
+    cd $DOC_DATA/tarballs
+
+    if [ ! -f ${RAPIDXML_FILENAME} ]
+    then
+        echo
+        echo "Downloading rapidxml"
+        echo
+
+        wget -O ${RAPIDXML_FILENAME} \
+            http://sourceforge.net/projects/rapidxml/files/rapidxml/rapidxml%20${RAPIDXML_VERSION}/${RAPIDXML_FILENAME}/download
+    fi
+}
+
+download $*

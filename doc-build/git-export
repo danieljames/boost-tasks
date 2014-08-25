@@ -1,0 +1,43 @@
+#!/bin/bash -e
+
+set -e
+set -u
+
+cd $(dirname $0)
+root=$(pwd)
+. $root/settings.sh
+
+git_export_recursive()
+{
+    git_dir=$1
+    ref=$2
+    destination=$3
+
+    echo "Exporting ${ref} from ${git_dir}"
+
+    mkdir -p $destination
+    git --git-dir=${git_dir} archive ${ref} | tar -x -C ${destination}
+
+    git config -f $destination/.gitmodules -l |
+        grep '^submodule\.\w*\.path=' |
+        sed 's/submodule\.\(.*\)\.path=\(.*\)/\1 \2/' |
+        while read line
+        do
+            set $line
+            name=$1
+            path=$2
+
+            hash=$(git --git-dir=$git_dir \
+                ls-tree $ref $path |
+                cut -f 1 | cut -d ' ' -f 3)
+
+            repo=$(git config -f $destination/.gitmodules submodule.$name.url)
+            #TODO: Check that repo is a relative path...
+
+            echo "Export ${name}"
+            git --git-dir=${git_dir}/${repo} archive ${hash} |
+                tar -x -C ${destination}/${path}
+        done
+}
+
+git_export_recursive $*

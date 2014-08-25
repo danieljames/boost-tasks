@@ -1,0 +1,236 @@
+#!/bin/bash -e
+
+set -e
+set -u
+
+cd $(dirname $0)
+root=$(pwd)
+. $root/settings.sh
+
+build_impl()
+{
+    name=$1
+    output=$2
+
+    build_dir=$DOC_DATA/build/build-$name
+    boost_root=$build_dir/boost
+    inspect_root=$build_dir/boost-inspect
+    exec_dir=$build_dir/bin
+
+    if [ -d $build_dir ]
+    then
+        rm -rf $build_dir
+    fi
+
+    echo
+    echo "Setup Build Directory"
+    echo
+
+    mkdir -p $DOC_DATA/upload
+    mkdir -p $build_dir
+    mkdir -p $exec_dir
+
+    touch $build_dir/user-config.jam
+    echo "using doxygen : $DOXYGEN_BIN ;"  >> $build_dir/user-config.jam
+    echo "using $B2_TOOLSET : : $CCACHE_BIN $CXX_BIN $CXX_FLAGS ;" >> $build_dir/user-config.jam
+    echo 'using boostbook ;' >> $build_dir/user-config.jam
+
+    echo
+    echo "Export repo"
+    echo
+
+    $root/git-export ${GIT_URL}/boostorg/boost.git \
+        refs/heads/$name $boost_root
+
+    # Make a clean copy that can be used for inspection later.
+    mkdir $inspect_root
+    cd $boost_root
+    pax -rwl . $inspect_root
+
+    # Make the inspect copy look more like a release by moving
+    # all the headers into $inspect_root/boost, and then removing
+    # .git* files.
+
+    find $inspect_root/libs -name "include" |
+        grep -v "/include/.*/include" |
+        grep -v "/mpl/preprocessed/include" |
+        grep -v "/phoenix/test/include" |
+    while read include_dir
+    do
+        pushd $include_dir
+        pax -rwl . $inspect_root
+        popd
+        rm -r $include_dir
+    done
+
+    find $inspect_root -name ".git*" -print0 | xargs -0 rm -r
+
+    echo
+    echo "Starting Build"
+    echo
+
+    # So that boost build will use the user-config.jam created for this
+    # build
+    export HOME=$build_dir
+    export PATH=$exec_dir:$PATH
+
+    # Build b2 executable
+
+    echo
+    echo "Build b2"
+    echo
+
+    cd $boost_root/tools/build
+    ./bootstrap.sh
+    B2_EXEC=$boost_root/tools/build/b2
+
+    # Copy b2 to the root, so that it can be called by geometry's
+    # python script.
+    cp $B2_EXEC $boost_root
+
+    echo
+    echo "Link headers"
+    echo
+
+    cd $boost_root
+    $B2_EXEC headers
+
+    echo
+    echo "Build quickbook"
+    echo
+
+    cd $boost_root/tools/quickbook
+    $B2_EXEC -q
+    echo "using quickbook : ${boost_root}/dist/bin/quickbook ;" >> $build_dir/user-config.jam
+
+    echo
+    echo "Build auto-index"
+    echo
+
+    cd $boost_root/tools/auto_index/build
+    $B2_EXEC -q
+    echo "using auto-index : ${boost_root}/dist/bin/auto_index ;" >> $build_dir/user-config.jam
+
+    if [ -d $boost_root/libs/geometry ]; then
+
+        echo
+        echo "Build doxgen_xml2qbk"
+        echo
+
+        cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk/contrib
+        unzip -n $DOC_DATA/tarballs/${RAPIDXML_FILENAME}
+
+        cd $boost_root/libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk
+
+        if $B2_EXEC -a -q; then
+            # TODO: Or could just put dist/bin on the path?
+            cp $boost_root/dist/bin/doxygen_xml2qbk $exec_dir
+        else
+            echo "Error building: doxgen_xml2qbk" >> $output/summary.txt
+        fi
+
+        rm -rf src/docutils/tools/doxygen_xml2qbk/contrib/rapid*
+    fi
+
+    for library in $STANDALONE_DOCUMENTATION
+    do
+        echo
+        echo "Build $library docs"
+        echo
+
+        if [ -d $boost_root/libs/$library/doc ]
+        then
+            if [ $library = 'geometry' ]
+            then
+                cd $boost_root/libs/geometry/doc
+                DOXYGEN=$DOXYGEN_BIN \
+                    python ./make_qbk.py || echo "Error building: $library" >> $output/summary.txt
+                rm -r generated
+                rm -r doxy/doxygen_output
+            else
+                cd $boost_root/libs/$library/doc
+                if [ -d html ]
+                then
+                    find html -name "*.html" -exec rm {} \;
+                fi
+                $B2_EXEC --enable-index || echo "Error building: $library" >> $output/summary.txt
+            fi
+        else
+            echo "No directory for $library."
+        fi
+    done
+
+    echo
+    echo "Build main docs"
+    echo
+
+    rm -rf $boost_root/doc/html
+    cd $boost_root/doc
+    $B2_EXEC doc xsl:param="collect.xref.targets=yes" xsl:param="targets.filename=../combined.db" -q || echo "Error building: combined documentation" >> $output/summary.txt
+    $B2_EXEC asio xsl:param="collect.xref.targets=yes" xsl:param="targets.filename=../asio.db" -q || echo "Error building: combined documentation" >> $output/summary.txt
+
+    echo "Finished building." >> $output/summary.txt
+
+    echo
+    echo "Create zipfile"
+    echo
+
+    echo "Creating zipfile..." >> $output/summary.txt
+
+    target=boost-$name-docs.7z
+    zip_file=$output/$target
+    $root/compress-docs $name $boost_root $zip_file
+
+    if [ $name = 'develop' -o $name = 'master' ]; then
+        # Link file in upload directory, so that it will later
+        # be uploaded via. ftp.
+
+        ln $zip_file $DOC_DATA/upload/$target.upload
+    fi
+
+    echo "Finished zipfile." >> $output/summary.txt
+
+    echo "Building and running inspect." >> $output/summary.txt
+
+    echo
+    echo "Build inspect"
+    echo
+
+    cd $boost_root/tools/inspect/build
+    $B2_EXEC -q
+
+    echo
+    echo "Extract docs into inspect copy"
+    echo
+
+    cd $inspect_root
+    7za x -y $output/$target
+
+    echo
+    echo "Mark inspect copy to upload to servers"
+    echo
+
+    if [ $name = master -o $name = develop ]; then
+        echo $inspect_root > $DOC_DATA/upload/upload-$name
+    fi
+
+    echo
+    echo "Run inspect"
+    echo
+
+    cd $inspect_root
+    $boost_root/dist/bin/inspect > $output/docs-inspect-$name.html || true
+
+    if [ $name = 'develop' -o $name = 'master' ]; then
+        ln $output/docs-inspect-$name.html $DOC_DATA/upload/docs-inspect-$name.html.upload
+    fi
+
+    echo "Finished inspect." >> $output/summary.txt
+
+    echo
+    echo
+
+    echo "All OK." >> $output/summary.txt
+}
+
+build_impl $*
