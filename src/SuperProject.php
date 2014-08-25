@@ -16,12 +16,19 @@ class SuperProject {
     var $submodules;
     var $enable_push;
 
-    function __construct($branch, $path) {
-        $this->branch = $branch;
-        $this->submodule_branch = $branch;
-        $this->path = $path;
-        $this->submodules = new SuperProject_Submodules($path);
+    function __construct($settings) {
+        $this->branch = $this->get($settings, 'superproject-branch');
+        $this->submodule_branch = $this->get($settings, 'submodule-branch');
+        $this->path = $this->get($settings, 'path');
+        $this->submodules = new SuperProject_Submodules($this->path);
         $this->enable_push = EvilGlobals::$settings['push-to-repo'];
+    }
+
+    private function get($settings, $name) {
+        if (empty($settings[$name])) {
+            throw new RuntimeException("Missing super project setting: {$name}");
+        }
+        return $settings[$name];
     }
 
     function checkedUpdateFromEvents() {

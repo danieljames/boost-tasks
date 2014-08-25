@@ -104,8 +104,8 @@ class SuperProjectCommand extends Command {
 
     protected function execute(InputInterface $input, OutputInterface $output) {
         if (!$input->getOption('no-fetch')) { EventQueue::downloadEvents(); }
-        foreach (EvilGlobals::$branch_repos as $branch => $path) {
-            $super = new SuperProject($branch, $path);
+        foreach (EvilGlobals::$branch_repos as $x) {
+            $super = new SuperProject($x);
             $super->checkedUpdateFromEvents();
         }
     }

@@ -13,7 +13,7 @@ class EvilGlobals {
 
     static $website_data;
 
-    static $branch_repos;
+    static $branch_repos = array();
     static $github_cache;
 
     static function init() {
@@ -25,6 +25,7 @@ class EvilGlobals {
             'password' => null,
             'website-data' => null,
             'push-to-repo' => false,
+            'superproject-branches' => array(),
         );
 
         if (is_file(self::resolve_path('config.json'))) {
@@ -65,10 +66,13 @@ class EvilGlobals {
 
         // Set up repos
 
-        self::$branch_repos = array(
-            "develop" => self::$super_root."/develop",
-            "master" => self::$super_root."/master",
-        );
+        foreach(self::$settings['superproject-branches'] as $branch => $submodule_branch) {
+            self::$branch_repos[] = array(
+                'path' => self::$super_root."/".$branch,
+                'superproject-branch' => $branch,
+                'submodule-branch' => $submodule_branch,
+            );
+        }
 
         // Set up cache
 

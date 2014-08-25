@@ -22,7 +22,11 @@ Example configuration file:
         "username": "your-username",
         "password": "your-password",
         "website-data": "path-to-website-data",
-        "push-to-repo": false
+        "push-to-repo": false,
+        "superproject-branches": {
+            "master": "master",
+            "develop": "develop"
+        }
     }
 
 `data` is the path to the directory that will hold data for this script.
@@ -37,4 +41,7 @@ This is optional, if it's absent the data will be written to stdout.
 If `push-to-repo` is true then any git changes made (such as updating the
 submodules) will be pushed to GitHub. Don't want this to happen when testing
 the script.
+
+The keys in `superproject-branches' specifies the branches in the super
+project to update, the values are the branches to update from.
 
