@@ -74,7 +74,7 @@ class CronJobCommand extends Command {
 
     protected function execute(InputInterface $input, OutputInterface $output) {
         EventQueue::downloadEvents();
-        $this->callCommand($input, $output, 'mirror', array('--no-fetch'));
+        //$this->callCommand($input, $output, 'mirror', array('--no-fetch'));
         $this->callCommand($input, $output, 'superproject', array('--no-fetch'));
     }
 
