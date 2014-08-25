@@ -65,6 +65,7 @@ class BoostUpdateApplication extends Application
         $defaultCommands[] = new MirrorCommand();
         $defaultCommands[] = new MirrorListCommand();
         $defaultCommands[] = new SuperProjectCommand();
+        $defaultCommands[] = new PullRequestReportCommand();
         return $defaultCommands;
     }
 }
@@ -139,5 +140,14 @@ class MirrorListCommand extends Command {
     protected function execute(InputInterface $input, OutputInterface $output) {
         $mirror = new LocalMirror();
         $mirror->outputRepos();
+    }
+}
+
+class PullRequestReportCommand extends Command {
+    protected function configure() { $this->setName('pull-request-report'); }
+
+    protected function execute(InputInterface $input, OutputInterface $output) {
+        $report = new PullRequestReport();
+        $report->run();
     }
 }
