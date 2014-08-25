@@ -61,8 +61,10 @@ class BoostUpdateApplication extends Application
         $defaultCommands = parent::getDefaultCommands();
         $defaultCommands[] = new CronJobCommand();
         $defaultCommands[] = new EventListCommand();
+        $defaultCommands[] = new SuperProjectCommand();
         $defaultCommands[] = new MirrorCommand();
         $defaultCommands[] = new MirrorListCommand();
+        $defaultCommands[] = new SuperProjectCommand();
         return $defaultCommands;
     }
 }
@@ -73,6 +75,7 @@ class CronJobCommand extends Command {
     protected function execute(InputInterface $input, OutputInterface $output) {
         EventQueue::downloadEvents();
         $this->callCommand($input, $output, 'mirror', array('--no-fetch'));
+        $this->callCommand($input, $output, 'superproject', array('--no-fetch'));
     }
 
     private function callCommand($input, $output, $name, $arguments) {
@@ -87,6 +90,23 @@ class EventListCommand extends Command {
 
     protected function execute(InputInterface $input, OutputInterface $output) {
         EventQueue::outputEvents();
+    }
+}
+
+class SuperProjectCommand extends Command {
+    protected function configure() {
+        $this->setName('superproject')
+            ->setDescription('Update the super projects')
+            ->addOption('no-fetch', null, InputOption::VALUE_NONE,
+                    "Don't fetch events from GitHub");
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output) {
+        if (!$input->getOption('no-fetch')) { EventQueue::downloadEvents(); }
+        foreach (EvilGlobals::$branch_repos as $branch => $path) {
+            $super = new SuperProject($branch, $path);
+            $super->checkedUpdateFromEvents();
+        }
     }
 }
 
