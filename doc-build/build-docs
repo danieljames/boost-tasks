@@ -56,7 +56,7 @@ trap 'if [ "$(jobs -p)x" != x ]; then kill $(jobs -p); fi' INT TERM EXIT
 main()
 {
     if [ $# = 0 ]; then
-        $DOC_DATA/upload-documentation
+        $root/upload-documentation
         build master develop
     else
         case $1 in
