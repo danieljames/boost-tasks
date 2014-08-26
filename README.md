@@ -42,6 +42,6 @@ If `push-to-repo` is true then any git changes made (such as updating the
 submodules) will be pushed to GitHub. Don't want this to happen when testing
 the script.
 
-The keys in `superproject-branches' specifies the branches in the super
+The keys in `superproject-branches` specifies the branches in the super
 project to update, the values are the branches to update from.
 
