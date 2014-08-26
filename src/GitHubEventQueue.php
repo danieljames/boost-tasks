@@ -7,7 +7,7 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-class EventQueue {
+class GitHubEventQueue {
     static $queue_table = 'queue';
     static $event_table = 'event';
     static $event_state_table = 'eventstate';

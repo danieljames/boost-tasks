@@ -59,7 +59,7 @@ class SuperProject {
     function update() {
         $this->fetchRepo();
 
-        $queue = new EventQueue($this->submodule_branch);
+        $queue = new GitHubEventQueue($this->submodule_branch);
         if (!$queue->continuedFromLastRun()) {
             Log::info('Full referesh of submodules because of gap in event queue.');
             $updates = $this->getUpdatesFromAll($queue);

@@ -74,7 +74,7 @@ class CronJobCommand extends Command {
     protected function configure() { $this->setName('cron'); }
 
     protected function execute(InputInterface $input, OutputInterface $output) {
-        EventQueue::downloadEvents();
+        GitHubEventQueue::downloadEvents();
         //$this->callCommand($input, $output, 'mirror', array('--no-fetch'));
         $this->callCommand($input, $output, 'superproject', array('--no-fetch'));
     }
@@ -90,7 +90,7 @@ class EventListCommand extends Command {
     protected function configure() { $this->setName('event-list'); }
 
     protected function execute(InputInterface $input, OutputInterface $output) {
-        EventQueue::outputEvents();
+        GitHubEventQueue::outputEvents();
     }
 }
 
@@ -103,7 +103,7 @@ class SuperProjectCommand extends Command {
     }
 
     protected function execute(InputInterface $input, OutputInterface $output) {
-        if (!$input->getOption('no-fetch')) { EventQueue::downloadEvents(); }
+        if (!$input->getOption('no-fetch')) { GitHubEventQueue::downloadEvents(); }
         foreach (EvilGlobals::$branch_repos as $x) {
             $super = new SuperProject($x);
             $super->checkedUpdateFromEvents();
@@ -122,12 +122,12 @@ class MirrorCommand extends Command {
     }
 
     protected function execute(InputInterface $input, OutputInterface $output) {
-        if (!$input->getOption('no-fetch')) { EventQueue::downloadEvents(); }
+        if (!$input->getOption('no-fetch')) { GitHubEventQueue::downloadEvents(); }
         $mirror = new LocalMirror();
         if ($input->getOption('all')) {
             $mirror->refreshAll();
         } else {
-            EventQueue::downloadEvents();
+            GitHubEventQueue::downloadEvents();
             $mirror->refresh();
         }
         $mirror->fetchDirty();

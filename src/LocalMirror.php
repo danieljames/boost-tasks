@@ -15,7 +15,7 @@ class LocalMirror {
 
     function __construct() {
         $this->mirror_root = EvilGlobals::$mirror_root;
-        $this->queue = new EventQueue('mirror');
+        $this->queue = new GitHubEventQueue('mirror');
     }
 
     function refresh() {
