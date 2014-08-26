@@ -144,7 +144,7 @@ build()
     $root/download | tee $output/download.log
 
     echo
-    echo Check that execuables are available.
+    echo Check that executables are available.
     echo
 
     setup_executables
