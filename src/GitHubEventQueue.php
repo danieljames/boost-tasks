@@ -61,12 +61,13 @@ class GitHubEventQueue {
         $status = self::getStatus();
         $last_id = $status->last_id;
         $new_last_id = null;
+        $event_row = null;
 
         foreach(EvilGlobals::$github_cache->iterate('/orgs/boostorg/events')
                 as $event) {
             if ($event->id <= $last_id) { break; }
             if (!$new_last_id) { $new_last_id = $event->id; }
-            self::addGitHubEvent($event);
+            $event_row = self::addGitHubEvent($event);
         }
 
         if ($new_last_id) {
@@ -75,11 +76,14 @@ class GitHubEventQueue {
             // that were just downloaded.
             if (!$status->start_id || $event->id > $status->last_id) {
                 $status->start_id = $event->id;
-                $event->sequence_start = true;
-                R::store($event);
+                if ($event_row) {
+                    $event_row->sequence_start = true;
+                    R::store($event_row);
+                }
             }
             $status->last_id = $new_last_id;
             R::store($status);
+            self::$event_queue_status = $status;
         }
     }
 
@@ -101,6 +105,7 @@ class GitHubEventQueue {
         $event_row->payload = json_encode($event->payload);
         $event_row->created = new \DateTime($event->created_at);
         R::store($event_row);
+        return $event_row;
     }
 
     static function getStatus($force = false) {
