@@ -28,7 +28,8 @@ main()
     if [ $# -gt 1 ]
     then
         cd $cwd
-        boost_root=$(readlink -f $2)
+        cd $2
+        boost_root=$(pwd)
     else
         boost_root=$DOC_DATA/build/build-$branch/boost
     fi
@@ -36,7 +37,8 @@ main()
     if [ $# -gt 2 ]
     then
         cd $cwd
-        target=$(readlink -f $3)
+        cd $3
+        target=$(pwd)
     else
         target=$cwd/boost-$branch-docs.7z
     fi
