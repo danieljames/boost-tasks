@@ -14,6 +14,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Command\Command;
+use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Monolog\Handler\NativeMailerHandler;
 
@@ -29,10 +30,19 @@ class BoostUpdateApplication extends Application
     {
         parent::configureIO($input, $output);
 
-        Log::$log->pushHandler(new ConsoleHandler($output));
+        if ($output) {
+            $verbosity = $output->getVerbosity();
+            if ($verbosity > OutputInterface::VERBOSITY_QUIET) {
+                Log::$log->pushHandler(new ConsoleHandler($output,
+                    $verbosity >= OutputInterface::VERBOSITY_DEBUG ? Logger::DEBUG : (
+                    $verbosity >= OutputInterface::VERBOSITY_VERY_VERBOSE ? Logger::INFO : (
+                    $verbosity >= OutputInterface::VERBOSITY_VERBOSE ? Logger::INFO : (
+                    Logger::ERROR)))));
+            }
+        }
 
         try {
-            $input->bind($this->getDefinition());
+            if ($input) { $input->bind($this->getDefinition()); }
         }
         catch (\Exception $e) {
             // If validation fails here, do nothing, the
