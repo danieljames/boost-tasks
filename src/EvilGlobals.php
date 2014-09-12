@@ -1,8 +1,5 @@
 <?php
 
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
-
 class EvilGlobals {
     static $settings;
 
@@ -54,11 +51,6 @@ class EvilGlobals {
             self::$website_data = self::resolve_path(self::$settings['website-data']);
         }
 
-        // Set up the logger.
-
-        Log::$log = new Logger('boost update log');
-        Log::$log->pushHandler(
-                new StreamHandler("{$data_root}/log.txt", Logger::INFO));
 
         // Set up the database
 

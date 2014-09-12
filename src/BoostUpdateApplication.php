@@ -14,9 +14,10 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Command\Command;
-use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
+use Monolog\Logger;
 use Monolog\Handler\NativeMailerHandler;
+use Monolog\Handler\StreamHandler;
 
 /**
  * Description of BoostUpdateApplication
@@ -30,6 +31,13 @@ class BoostUpdateApplication extends Application
     {
         parent::configureIO($input, $output);
 
+        // Set up the logger.
+
+        Log::$log = new Logger('boost update log');
+        Log::$log->pushHandler(
+                new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO));
+
+        // What if $output if falsey?
         if ($output) {
             $verbosity = $output->getVerbosity();
             if ($verbosity > OutputInterface::VERBOSITY_QUIET) {

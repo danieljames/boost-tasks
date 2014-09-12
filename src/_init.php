@@ -17,7 +17,12 @@ EvilGlobals::init();
 
 function myErrorHandler($errno, $errstr, $errfile, $errline)
 {
-    Log::error("{$errfile}:{$errline}: {$errstr}");
+    if (Log::$log) {
+        Log::error("{$errfile}:{$errline}: {$errstr}");
+    }
+    else {
+        fputs(STDERR, "{$errfile}:{$errline}: {$errstr}");
+    }
     exit(1);
 }
 
