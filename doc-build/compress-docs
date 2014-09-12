@@ -31,14 +31,15 @@ main()
         cd $2
         boost_root=$(pwd)
     else
-        boost_root=$DOC_DATA/build/build-$branch/boost
+        cd $DOC_DATA/build/build-$branch/boost
+        boost_root=$(pwd)
     fi
 
     if [ $# -gt 2 ]
     then
         cd $cwd
-        cd $3
-        target=$(pwd)
+        cd $(dirname $3)
+        target=$(pwd)/$(basename $3)
     else
         target=$cwd/boost-$branch-docs.7z
     fi
