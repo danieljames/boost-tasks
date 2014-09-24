@@ -84,6 +84,7 @@ class BoostUpdateApplication extends Application
         $defaultCommands[] = new MirrorListCommand();
         $defaultCommands[] = new SuperProjectCommand();
         $defaultCommands[] = new PullRequestReportCommand();
+        $defaultCommands[] = new BuildDocCommand();
         return $defaultCommands;
     }
 }
@@ -145,7 +146,6 @@ class MirrorCommand extends Command {
         if ($input->getOption('all')) {
             $mirror->refreshAll();
         } else {
-            GitHubEventQueue::downloadEvents();
             $mirror->refresh();
         }
         $mirror->fetchDirty();
@@ -167,5 +167,17 @@ class PullRequestReportCommand extends Command {
     protected function execute(InputInterface $input, OutputInterface $output) {
         $report = new PullRequestReport();
         $report->run();
+    }
+}
+
+class BuildDocCommand extends Command {
+    protected function configure() { $this->setName('build-docs'); }
+
+    protected function execute(InputInterface $input, OutputInterface $output) {
+        GitHubEventQueue::downloadEvents();
+        $mirror = new LocalMirror();
+        $mirror->refresh();
+        $mirror->fetchDirty();
+        passthru(__DIR__.'/../doc-build/build-docs');
     }
 }
