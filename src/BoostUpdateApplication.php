@@ -171,13 +171,20 @@ class PullRequestReportCommand extends Command {
 }
 
 class BuildDocCommand extends Command {
-    protected function configure() { $this->setName('build-docs'); }
+    protected function configure() {
+        $this->setName('build-docs')
+            ->setDescription('Build the documentation (updating the mirror first).')
+            ->addArgument('branch', InputArgument::IS_ARRAY, 'Branch to build');
+    }
 
     protected function execute(InputInterface $input, OutputInterface $output) {
+        $branch = $input->getArgument('branch');
+
         GitHubEventQueue::downloadEvents();
         $mirror = new LocalMirror();
         $mirror->refresh();
         $mirror->fetchDirty();
-        passthru(__DIR__.'/../doc-build/build-docs');
+        passthru(__DIR__.'/../doc-build/build-docs'.
+            ($branch ? ' build '.implode(' ', $branch) : ''));
     }
 }
