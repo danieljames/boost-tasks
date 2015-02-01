@@ -54,6 +54,24 @@ class Repo {
                 $this->path);
     }
 
+    function commitAll($message) {
+        Process::run('git add -u .', $this->path);
+        $process = new \Symfony\Component\Process\Process(
+            'git diff-index HEAD --quiet', $this->path);
+        $status = $process->run();
+
+        if ($status == 0) {
+            Log::info("No changes.");
+            return false;
+        } else if ($status == 1) {
+            Log::info("Committing changes to repo.");
+            Process::run('git commit -m "'.$message.'"', $this->path);
+            return true;
+        } else {
+            throw new RuntimeException("Unexpected status from 'git diff-index'.");
+        }
+    }
+
     function attemptAndPush($callback) {
         try {
             // Loop to retry if update fails

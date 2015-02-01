@@ -85,6 +85,7 @@ class BoostUpdateApplication extends Application
         $defaultCommands[] = new SuperProjectCommand();
         $defaultCommands[] = new PullRequestReportCommand();
         $defaultCommands[] = new BuildDocCommand();
+        $defaultCommands[] = new UpdateDocumentListCommand();
         return $defaultCommands;
     }
 }
@@ -187,5 +188,42 @@ class BuildDocCommand extends Command {
         $mirror->fetchDirty();
         passthru(__DIR__.'/../doc-build/build-docs'.
             ($branch ? ' build '.implode(' ', $branch) : ''));
+    }
+}
+
+class UpdateDocumentListCommand extends Command {
+    protected function configure() {
+        $this->setName('update-doc-list')
+            ->setDescription('Update the documentation list.')
+            ->addArgument('version', InputArgument::OPTIONAL,
+                'Version to update (e.g. develop, 1.57.0)');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output) {
+        // TODO: For some reason 'hasArgument' is always true, even when
+        // there isn't a version. Am I misunderstanding it? Doesn't really
+        // matter as it ends up falsey.
+        $version = $input->hasArgument('version')
+            ? $input->getArgument('version') : null;
+
+        // Update the mirror
+        GitHubEventQueue::downloadEvents();
+        $mirror = new LocalMirror();
+        $mirror->refresh();
+        $mirror->fetchDirty();
+
+        // Update the website repo.
+        $website_repo = new WebsiteRepo();
+        $result = $website_repo->updateDocumentationList($mirror, $version);
+        if (!$result) {
+            // Want a hard failure here, so that we're not updating the
+            // super projects from data that isn't checked in.
+            throw new RuntimeException("Failed to update documentation list on website.");
+        }
+
+        // Update maintainer lists.
+        foreach (EvilGlobals::$branch_repos as $x) {
+            $website_repo->updateSuperProject(new SuperProject($x));
+        }
     }
 }

@@ -7,6 +7,7 @@ class EvilGlobals {
     static $data_root;
     static $mirror_root;
     static $super_root;
+    static $repos_root;
 
     static $website_data;
 
@@ -40,10 +41,12 @@ class EvilGlobals {
         self::$data_root = $data_root;
         self::$mirror_root = "{$data_root}/mirror";
         self::$super_root = "{$data_root}/super";
+        self::$repos_root = "{$data_root}/repos";
 
         if (!is_dir(self::$data_root)) { mkdir(self::$data_root); }
         if (!is_dir(self::$mirror_root)) { mkdir(self::$mirror_root); }
         if (!is_dir(self::$super_root)) { mkdir(self::$super_root); }
+        if (!is_dir(self::$repos_root)) { mkdir(self::$repos_root); }
 
         // Set up website data directory.
 
