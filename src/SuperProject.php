@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright 2013-2014 Daniel James <daniel@calamity.org.uk>.
+ * Copyright 2013-2015 Daniel James <daniel@calamity.org.uk>.
  *
  * Distributed under the Boost Software License, Version 1.0. (See accompanying
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,17 +9,16 @@
 
 use Guzzle\Http\Url;
 
-class SuperProject {
-    var $branch;
+class SuperProject extends Repo {
     var $submodule_branch;
-    var $path;
     var $submodules;
     var $enable_push;
 
     function __construct($settings) {
-        $this->branch = $this->get($settings, 'superproject-branch');
+        parent::__construct('boost',
+            $this->get($settings, 'superproject-branch'),
+            $this->get($settings, 'path'));
         $this->submodule_branch = $this->get($settings, 'submodule-branch');
-        $this->path = $this->get($settings, 'path');
         $this->submodules = new SuperProject_Submodules($this->path);
         $this->enable_push = EvilGlobals::$settings['push-to-repo'];
     }
@@ -58,6 +57,7 @@ class SuperProject {
      */
     function update() {
         $this->fetchRepo();
+        $this->submodules->readSubmodules();
 
         $queue = new GitHubEventQueue($this->submodule_branch);
         if (!$queue->continuedFromLastRun()) {
@@ -115,43 +115,6 @@ class SuperProject {
         }
 
         return $updates;
-    }
-
-    function fetchRepo() {
-        // Create the repos or update them as required.
-
-        if (!is_dir($this->path)) {
-            Log::info("Clone {$this->branch}");
-            $this->cloneRepo();
-        }
-        else {
-            Log::info("Update {$this->branch}");
-            $this->updateRepo();
-        }
-    }
-
-    private function cloneRepo() {
-        // TODO: Clean up if this fails.
-
-        // Use a shallow clone so it doesn't take too long, and since this
-        // will never use the history.
-        Process::run(
-            "git clone -q --depth 1 -b {$this->branch} ".
-            "git@github.com:boostorg/boost.git {$this->path}");
-        Process::run("git config user.email 'automated@calamity.org.uk'",
-                $this->path);
-        Process::run("git config user.name 'Automated Commit'",
-                $this->path);
-
-        $this->submodules->readSubmodules();
-    }
-
-    private function updateRepo() {
-        Process::run("git fetch -q", $this->path);
-        Process::run("git reset -q --hard origin/{$this->branch}", $this->path);
-        Process::run("git clean -d -f", $this->path);
-
-        $this->submodules->readSubmodules();
     }
 
     /**
