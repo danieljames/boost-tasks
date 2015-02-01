@@ -50,4 +50,19 @@ class Repo {
         Process::run("git reset -q --hard origin/{$this->branch}", $this->path);
         Process::run("git clean -d -f", $this->path);
     }
+
+    function pushRepo() {
+        // TODO: Maybe I should parse the output from git push to check exactly
+        // what succeeded/failed.
+
+        $process = new \Symfony\Component\Process\Process(
+            'git push -q --porcelain', $this->path);
+        $status = $process->run();
+
+        if ($status > 1) {
+            throw new \RuntimeException("Push failed: {$process->getErrorOutput()}");
+        }
+
+        return $status == 0;
+    }
 }

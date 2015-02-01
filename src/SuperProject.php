@@ -166,18 +166,7 @@ class SuperProject extends Repo {
 
     public function push() {
         if ($this->enable_push) {
-            // TODO: Maybe I should parse the output from git push to check exactly
-            // what succeeded/failed.
-
-            $process = new \Symfony\Component\Process\Process(
-                'git push -q --porcelain', $this->path);
-            $status = $process->run();
-
-            if ($status > 1) {
-                throw new \RuntimeException("Push failed: {$process->getErrorOutput()}");
-            }
-
-            return $status == 0;
+            return $this->pushRepo();
         }
         else {
             echo "{$this->path} processed, not configured to push to repo.\n";
