@@ -142,6 +142,7 @@ class MirrorCommand extends Command {
 
     protected function execute(InputInterface $input, OutputInterface $output) {
         if (!$input->getOption('no-fetch')) { GitHubEventQueue::downloadEvents(); }
+        GitHubEventQueue::downloadEvents();
         $mirror = new LocalMirror();
         if ($input->getOption('all')) {
             $mirror->refreshAll();
