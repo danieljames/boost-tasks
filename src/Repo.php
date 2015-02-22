@@ -32,23 +32,26 @@ class Repo {
     }
 
     function cloneRepo() {
-        // TODO: Clean up if this fails.
-
         // Use a shallow clone so it doesn't take too long, and since this
         // will never use the history.
         Process::run(
             "git clone -q --depth 1 -b {$this->branch} ".
             "git@github.com:boostorg/{$this->module}.git {$this->path}");
-        Process::run("git config user.email 'automated@calamity.org.uk'",
-                $this->path);
-        Process::run("git config user.name 'Automated Commit'",
-                $this->path);
+        $this->configureRepo();
     }
 
     function updateRepo() {
         Process::run("git fetch -q", $this->path);
         Process::run("git reset -q --hard origin/{$this->branch}", $this->path);
         Process::run("git clean -d -f", $this->path);
+        $this->configureRepo();
+    }
+
+    function configureRepo() {
+        Process::run("git config user.email 'automated@calamity.org.uk'",
+                $this->path);
+        Process::run("git config user.name 'Automated Commit'",
+                $this->path);
     }
 
     function attemptAndPush($callback) {
