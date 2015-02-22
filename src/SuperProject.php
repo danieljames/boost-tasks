@@ -31,52 +31,24 @@ class SuperProject extends Repo {
     }
 
     function checkedUpdateFromEvents() {
-        try {
-            // Loop to retry if update fails
-            for ($try = 0; $try < 2; ++$try) {
-                if ($this->update()) {
-                    return true;
-                }
+        $self = $this; // Has to work on php 5.3
+        $queue = new GitHubEventQueue($self->submodule_branch);
+        $result = $this->attemptAndPush(function() use($self, $queue) {
+            $self->submodules->readSubmodules();
+
+            if (!$queue->continuedFromLastRun()) {
+                Log::info('Full referesh of submodules because of gap in event queue.');
+                $updates = $self->getUpdatesFromAll($queue);
+            }
+            else {
+                Log::info('Referesh submodules from event queue.');
+                $updates = $self->getUpdatedFromEventQueue($queue);
             }
 
-            Log::error("Branch {$this->branch}: ".
-                "Failed to update too many times.");
-            return false;
-        }
-        catch (\RuntimeException $e) {
-            Log::error("Branch {$this->branch}: {$e}");
-            return false;
-        }
-    }
+            return $self->updateHashes($updates);
+        });
 
-    /**
-     * Use the GitHub events to update the super-project.
-     *
-     * @return bool Did the update succeed?
-     * @throws \RuntimeException
-     */
-    function update() {
-        $this->fetchRepo();
-        $this->submodules->readSubmodules();
-
-        $queue = new GitHubEventQueue($this->submodule_branch);
-        if (!$queue->continuedFromLastRun()) {
-            Log::info('Full referesh of submodules because of gap in event queue.');
-            $updates = $this->getUpdatesFromAll($queue);
-        }
-        else {
-            Log::info('Referesh submodules from event queue.');
-            $updates = $this->getUpdatedFromEventQueue($queue);
-        }
-
-        if ($this->updateHashes($updates)) {
-            if (!$this->push()) {
-                Log::notice("Branch {$this->branch}: Push failed.");
-                return false;
-            }
-        }
-
-        $queue->catchUp();
+        if ($result) { $queue->catchUp(); }
         return true;
     }
 

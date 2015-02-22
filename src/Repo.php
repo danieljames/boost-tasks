@@ -51,6 +51,26 @@ class Repo {
         Process::run("git clean -d -f", $this->path);
     }
 
+    function attemptAndPush($callback) {
+        try {
+            // Loop to retry if update fails
+            for ($try = 0; $try < 2; ++$try) {
+                $this->fetchRepo();
+                $result = call_user_func($callback);
+                // Nothing to push, so a trivial success
+                if (!$result) { return true; }
+                if ($this->push()) { return true; }
+            }
+
+            Log::error("Failed to update too many times.");
+            return false;
+        }
+        catch (\RuntimeException $e) {
+            Log::error($e);
+            return false;
+        }
+    }
+
     function pushRepo() {
         // TODO: Maybe I should parse the output from git push to check exactly
         // what succeeded/failed.
