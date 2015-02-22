@@ -18,7 +18,7 @@ class Repo {
         $this->path = $path;
     }
 
-    function fetchRepo() {
+    function setupCleanCheckout() {
         // Create the repos or update them as required.
 
         if (!is_dir($this->path)) {
@@ -55,7 +55,7 @@ class Repo {
         try {
             // Loop to retry if update fails
             for ($try = 0; $try < 2; ++$try) {
-                $this->fetchRepo();
+                $this->setupCleanCheckout();
                 $result = call_user_func($callback);
                 // Nothing to push, so a trivial success
                 if (!$result) { return true; }
