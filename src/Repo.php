@@ -80,7 +80,7 @@ class Repo {
                 $result = call_user_func($callback);
                 // Nothing to push, so a trivial success
                 if (!$result) { return true; }
-                if ($this->push()) { return true; }
+                if ($this->pushRepo()) { return true; }
             }
 
             Log::error("Failed to update too many times.");
