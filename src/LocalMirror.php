@@ -108,4 +108,62 @@ class LocalMirror {
     private function getPath($repo_entry) {
         return $this->mirror_root.$repo_entry->path;
     }
+
+    function exportRecursive($repo, $branch, $dst_dir) {
+        $repo = '/'.trim($repo, '/');
+        $dst_dir = ltrim($dst_dir, '/');
+
+        if (!@mkdir($dst_dir)) {
+            throw \RuntimeException("Unable to create export destination: '{$dst_dir}'.");
+        }
+
+        $this->exportRecursiveImpl($repo, $branch, $dst_dir);
+    }
+
+    private function exportRecursiveImpl($repo, $ref, $dst_dir) {
+        $git_dir = "{$this->mirror_root}{$repo}";
+        Process::run("git --git-dir='{$git_dir}' archive {$ref} | tar -x -C '${dst_dir}'");
+
+        $child_repos = [];
+        foreach(SuperProject::readSubmoduleConfig($dst_dir) as $name => $values) {
+            if (empty($values['path']) { throw \RuntimeException("Missing path.");
+            if (empty($values['url']) { throw \RuntimeException("Missing URL.");
+            $child_repos[$values['path']] = self::resolveGithubUrl($values['url'], $repo);
+        }
+
+        foreach(SuperProject::currentHashes($git_dir, array_keys($child_repos)) as $path => $hash) {
+            $this->exportRecursiveImpl($child_repos[$path], $hash, $path);
+        }
+    }
+
+    // Unfortunately git URLs aren't actually URLs, so can't just use
+    // a URL library.
+    //
+    // A close enough emulation of what git-submodule does.
+    private static function resolveGithubUrl($url, $base) {
+        if (strpos(':', $url) !== FALSE) {
+            throw \RuntimeException("Remote URLs aren't supported.");
+        } else if ($url[0] == '/') {
+            // What git-submodule treats as an absolute path
+            return '/'.trim($url, '/');
+        } else {
+            $result = $base;
+
+            while (true) {
+                if (substr($url, 0, 3) == '../') {
+                    if ($result == '/') {
+                        throw \RuntimeException("Unable to resolve relative URL.");
+                    }
+                    $result = dirname($result);
+                    $url = substr($url, 3);
+                } else if (substr($url, 0, 2) == './') {
+                    $url = substr($url, 2);
+                } else {
+                    break;
+                }
+            }
+
+            return "{$result}/{$url}";
+        }
+    }
 }
