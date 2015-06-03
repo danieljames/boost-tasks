@@ -221,9 +221,9 @@ class SuperProject_Submodules {
                     "@160000 commit (?<hash>[a-zA-Z0-9]{40})\t(?<path>.*)@",
                     $line, $matches))
             {
-                if (!isset($path_map[$matches['path']]))
-                    throw new \LogicException(
-                    "Unexpected path: {$path_map[$matches['path']]}");
+                if (!isset($path_map[$matches['path']])) {
+                    throw new \LogicException("Unexpected path: {$matches['path']}");
+                }
 
                 $submodule = $path_map[$matches['path']];
                 $hashes[$submodule->boost_name] = $matches['hash'];
