@@ -151,6 +151,7 @@ class SuperProject_Submodules {
 
     function __construct($path) {
         $this->path = $path;
+        $this->readSubmodules();
     }
 
     /**
@@ -159,7 +160,6 @@ class SuperProject_Submodules {
      * @throws \RuntimeException
      */
     function getSubmodules() {
-        if (!$this->submodules) $this->readSubmodules();
         return $this->submodules;
     }
 
