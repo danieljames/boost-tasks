@@ -151,7 +151,7 @@ class SuperProject extends Repo {
     // supports reading from a bare repo.
     static function readSubmoduleConfig($repo_path) {
         $submodule_config = array();
-        foreach(Process::read_lines("git config -f .gitmodules -l", $this->path)
+        foreach(Process::read_lines("git config -f .gitmodules -l", $repo_path)
                 as $line)
         {
             $matches = null;
