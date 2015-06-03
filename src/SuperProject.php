@@ -11,7 +11,6 @@ use Guzzle\Http\Url;
 
 class SuperProject extends Repo {
     var $submodule_branch;
-    var $submodules;
     var $enable_push;
 
     function __construct($settings) {
@@ -19,7 +18,6 @@ class SuperProject extends Repo {
             $this->get($settings, 'superproject-branch'),
             $this->get($settings, 'path'));
         $this->submodule_branch = $this->get($settings, 'submodule-branch');
-        $this->submodules = new SuperProject_Submodules($this->path);
         $this->enable_push = EvilGlobals::$settings['push-to-repo'];
     }
 
@@ -34,27 +32,28 @@ class SuperProject extends Repo {
         $self = $this; // Has to work on php 5.3
         $queue = new GitHubEventQueue($self->submodule_branch);
         $result = $this->attemptAndPush(function() use($self, $queue) {
-            $self->submodules->readSubmodules();
+            $submodules = new SuperProject_Submodules($self->path);
+            $submodules->readSubmodules();
 
             if (!$queue->continuedFromLastRun()) {
                 Log::info('Full referesh of submodules because of gap in event queue.');
-                $updates = $self->getUpdatesFromAll($queue);
+                $updates = $self->getUpdatesFromAll($submodules, $queue);
             }
             else {
                 Log::info('Referesh submodules from event queue.');
-                $updates = $self->getUpdatedFromEventQueue($queue);
+                $updates = $self->getUpdatedFromEventQueue($submodules, $queue);
             }
 
-            return $self->updateHashes($updates);
+            return $self->updateHashes($submodules, $updates);
         });
 
         if ($result) { $queue->catchUp(); }
         return true;
     }
 
-    private function getUpdatesFromAll($queue) {
+    private function getUpdatesFromAll($submodules, $queue) {
         $updates = array();
-        foreach($this->submodules->getSubmodules() as $submodule) {
+        foreach($submodules->getSubmodules() as $submodule) {
             foreach (EvilGlobals::$github_cache->iterate(
                     "/repos/{$submodule->github_name}/branches") as $branch) {
                 if ($branch->name === $this->submodule_branch) {
@@ -73,12 +72,12 @@ class SuperProject extends Repo {
         return $updates;
     }
 
-    private function getUpdatedFromEventQueue($queue) {
+    private function getUpdatedFromEventQueue($submodules, $queue) {
         $updates = array();
 
         foreach ($queue->getEvents() as $event) {
             if ($event->branch == $this->submodule_branch) {
-                $submodule = $this->findByGitHubName($event->repo);
+                $submodule = $submodules->findByGitHubName($event->repo);
                 if ($submodule) {
                     $updates[$submodule->boost_name]
                             = json_decode($event->payload)->head;
@@ -95,14 +94,14 @@ class SuperProject extends Repo {
      * @param Array $hashes
      * @return boolean True if a change was committed.
      */
-    function updateHashes($hashes) {
-        $old_hashes = $this->submodules->currentHashes();
+    function updateHashes($submodules, $hashes) {
+        $old_hashes = $submodules->currentHashes();
 
         $updates = array();
         $names = array();
         foreach($hashes as $boost_name => $hash) {
             if ($old_hashes[$boost_name] != $hash) {
-                $updates[$this->submodules->findByBoostName($boost_name)->path]
+                $updates[$submodules->findByBoostName($boost_name)->path]
                         = $hash;
                 $names[] = $boost_name;
             }
@@ -124,10 +123,6 @@ class SuperProject extends Repo {
         Process::run("git commit -m '{$message}'", $this->path);
 
         return true;
-    }
-
-    public function findByGitHubName($github_name) {
-        return $this->submodules->findByGitHubName($github_name);
     }
 
     /**
