@@ -175,11 +175,11 @@ class SuperProject extends Repo {
      *
      * @return Array
      */
-    static function currentHashes($repo_path, $paths) {
+    static function currentHashes($repo_path, $paths, $ref = 'HEAD') {
         $matches = null;
         $hashes = Array();
         foreach (Process::read_lines(
-            'git ls-tree HEAD '. implode(' ', $paths),
+            "git ls-tree {$ref} ". implode(' ', $paths),
             $repo_path) as $line)
         {
             if (preg_match(
