@@ -99,7 +99,7 @@ class SuperProject extends Repo {
         foreach($hashes as $boost_name => $hash) {
             $paths[] = $submodules->findByBoostName($boost_name)->path;
         }
-        $old_hashes = $submodules->currentHashes($paths);
+        $old_hashes = SuperProject::currentHashes($this->path, $paths);
 
         $updates = array();
         $names = array();
@@ -169,6 +169,37 @@ class SuperProject extends Repo {
 
         return $submodule_config;
     }
+
+    /**
+     * Get the current hash values of the given paths.
+     *
+     * @return Array
+     */
+    static function currentHashes($repo_path, $paths) {
+        $matches = null;
+        $hashes = Array();
+        foreach (Process::read_lines(
+            'git ls-tree HEAD '. implode(' ', $paths),
+            $repo_path) as $line)
+        {
+            if (preg_match(
+                    "@160000 commit (?<hash>[a-zA-Z0-9]{40})\t(?<path>.*)@",
+                    $line, $matches))
+            {
+                if (!in_array($matches['path'], $paths)) {
+                    throw new \LogicException("Unexpected path: {$matches['path']}");
+                }
+
+                $hashes[$matches['path']] = $matches['hash'];
+            }
+            else {
+                throw new \LogicException(
+                    "Unable to parse submodule entry:\n{$line}");
+            }
+        }
+
+        return $hashes;
+    }
 }
 
 /**
@@ -202,37 +233,6 @@ class SuperProject_Submodules {
         }
 
         return $this->submodules;
-    }
-
-    /**
-     * Get the current hash values of the given paths.
-     *
-     * @return Array
-     */
-    function currentHashes($paths) {
-        $matches = null;
-        $hashes = Array();
-        foreach (Process::read_lines(
-            'git ls-tree HEAD '. implode(' ', $paths),
-            $this->path) as $line)
-        {
-            if (preg_match(
-                    "@160000 commit (?<hash>[a-zA-Z0-9]{40})\t(?<path>.*)@",
-                    $line, $matches))
-            {
-                if (!in_array($matches['path'], $paths)) {
-                    throw new \LogicException("Unexpected path: {$matches['path']}");
-                }
-
-                $hashes[$matches['path']] = $matches['hash'];
-            }
-            else {
-                throw new \LogicException(
-                    "Unable to parse submodule entry:\n{$line}");
-            }
-        }
-
-        return $hashes;
     }
 
     public function findByBoostName($github_name) {
