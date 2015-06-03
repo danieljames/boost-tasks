@@ -19,8 +19,7 @@ git_export()
     git --git-dir=${git_dir} archive ${ref} | tar -x -C ${destination}
 
     git config -f $destination/.gitmodules -l |
-        grep '^submodule\.\w*\.path=' |
-        sed 's/submodule\.\(.*\)\.path=\(.*\)/\1 \2/' |
+        sed -n 's/submodule\.\([^.]*\)\.path=\(.*\)/\1 \2/p' |
         while read line
         do
             set $line
