@@ -95,14 +95,18 @@ class SuperProject extends Repo {
      * @return boolean True if a change was committed.
      */
     function updateHashes($submodules, $hashes) {
-        $old_hashes = $submodules->currentHashes();
+        $paths = Array();
+        foreach($hashes as $boost_name => $hash) {
+            $paths[] = $submodules->findByBoostName($boost_name)->path;
+        }
+        $old_hashes = $submodules->currentHashes($paths);
 
         $updates = array();
         $names = array();
         foreach($hashes as $boost_name => $hash) {
-            if ($old_hashes[$boost_name] != $hash) {
-                $updates[$submodules->findByBoostName($boost_name)->path]
-                        = $hash;
+            $submodule = $submodules->findByBoostName($boost_name);
+            if ($old_hashes[$submodule->path] != $hash) {
+                $updates[$submodule->path] = $hash;
                 $names[] = $boost_name;
             }
         }
@@ -201,32 +205,26 @@ class SuperProject_Submodules {
     }
 
     /**
-     * Get the current hash values of the submodules.
+     * Get the current hash values of the given paths.
      *
      * @return Array
      */
-    function currentHashes() {
-        $path_map = Array();
-        foreach($this->getSubmodules() as $submodule) {
-            $path_map[$submodule->path] = $submodule;
-        }
-
+    function currentHashes($paths) {
         $matches = null;
         $hashes = Array();
         foreach (Process::read_lines(
-            'git ls-tree HEAD '. implode(' ', array_keys($path_map)),
+            'git ls-tree HEAD '. implode(' ', $paths),
             $this->path) as $line)
         {
             if (preg_match(
                     "@160000 commit (?<hash>[a-zA-Z0-9]{40})\t(?<path>.*)@",
                     $line, $matches))
             {
-                if (!isset($path_map[$matches['path']])) {
+                if (!in_array($matches['path'], $paths)) {
                     throw new \LogicException("Unexpected path: {$matches['path']}");
                 }
 
-                $submodule = $path_map[$matches['path']];
-                $hashes[$submodule->boost_name] = $matches['hash'];
+                $hashes[$matches['path']] = $matches['hash'];
             }
             else {
                 throw new \LogicException(
