@@ -126,8 +126,8 @@ class LocalMirror {
 
         $child_repos = [];
         foreach(SuperProject::readSubmoduleConfig($dst_dir) as $name => $values) {
-            if (empty($values['path']) { throw \RuntimeException("Missing path.");
-            if (empty($values['url']) { throw \RuntimeException("Missing URL.");
+            if (empty($values['path'])) { throw \RuntimeException("Missing path."); }
+            if (empty($values['url'])) { throw \RuntimeException("Missing URL."); }
             $child_repos[$values['path']] = self::resolveGithubUrl($values['url'], $repo);
         }
 
