@@ -156,8 +156,6 @@ class SuperProject_Submodules {
 
     /**
      * Read $this->submodules from the .gitmodules file.
-     *
-     * @throws \RuntimeException
      */
     function getSubmodules() {
         return $this->submodules;
@@ -178,8 +176,8 @@ class SuperProject_Submodules {
                 '@submodule\.(?<submodule>[\w/]+)\.(?<name>\w+)=(?<value>.*)@',
                 $line, $matches))
             {
-                throw new \RuntimeException(
-                    "Unrecognised submodule setting: {$line}");
+                throw new \LogicException(
+                    "Unable to parse submodule setting: {$line}");
             }
 
             $submodule_config[$matches['submodule']][$matches['name']]
@@ -198,7 +196,6 @@ class SuperProject_Submodules {
      * Get the current hash values of the submodules.
      *
      * @return Array
-     * @throws \RuntimeException
      */
     function currentHashes() {
         $path_map = Array();
@@ -217,15 +214,15 @@ class SuperProject_Submodules {
                     $line, $matches))
             {
                 if (!isset($path_map[$matches['path']]))
-                    throw new \RuntimeException(
+                    throw new \LogicException(
                     "Unexpected path: {$path_map[$matches['path']]}");
 
                 $submodule = $path_map[$matches['path']];
                 $hashes[$submodule->boost_name] = $matches['hash'];
             }
             else {
-                throw new \RuntimeException(
-                    "Unrecognised submodule entry:\n{$line}");
+                throw new \LogicException(
+                    "Unable to parse submodule entry:\n{$line}");
             }
         }
 
