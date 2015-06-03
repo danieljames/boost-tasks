@@ -164,16 +164,16 @@ class SuperProject_Submodules {
      * @throws \RuntimeException
      */
     function getSubmodules() {
-        if (!is_dir($this->path)) {
-            throw new \RuntimeException(
-                    "No directory for repo at {$this->path}");
-        }
-
         if (!$this->submodules) $this->readSubmodules();
         return $this->submodules;
     }
 
     function readSubmodules() {
+        if (!is_dir($this->path)) {
+            throw new \RuntimeException(
+                    "No directory for repo at {$this->path}");
+        }
+
         $submodule_config = array();
         foreach(Process::read_lines("git config -f .gitmodules -l", $this->path)
                 as $line)
