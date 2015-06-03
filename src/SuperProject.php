@@ -140,6 +140,31 @@ class SuperProject extends Repo {
             return true;
         }
     }
+
+    // TODO: Awkward location for this function, but php is pretty bad at organising
+    // free functions. Maybe move somewhere better?
+    // TODO: Duplicates BoostSuperProject::get_modules in the website, which also
+    // supports reading from a bare repo.
+    static function readSubmoduleConfig($repo_path) {
+        $submodule_config = array();
+        foreach(Process::read_lines("git config -f .gitmodules -l", $this->path)
+                as $line)
+        {
+            $matches = null;
+            if (!preg_match(
+                '@submodule\.(?<submodule>[\w/]+)\.(?<name>\w+)=(?<value>.*)@',
+                $line, $matches))
+            {
+                throw new \LogicException(
+                    "Unable to parse submodule setting: {$line}");
+            }
+
+            $submodule_config[$matches['submodule']][$matches['name']]
+                    = $matches['value'];
+        }
+
+        return $submodule_config;
+    }
 }
 
 /**
@@ -167,25 +192,8 @@ class SuperProject_Submodules {
                     "No directory for repo at {$this->path}");
         }
 
-        $submodule_config = array();
-        foreach(Process::read_lines("git config -f .gitmodules -l", $this->path)
-                as $line)
-        {
-            $matches = null;
-            if (!preg_match(
-                '@submodule\.(?<submodule>[\w/]+)\.(?<name>\w+)=(?<value>.*)@',
-                $line, $matches))
-            {
-                throw new \LogicException(
-                    "Unable to parse submodule setting: {$line}");
-            }
-
-            $submodule_config[$matches['submodule']][$matches['name']]
-                    = $matches['value'];
-        }
-
         $this->submodules = array();
-        foreach ($submodule_config as $name => $details) {
+        foreach (SuperProject::readSubmoduleConfig($this->path) as $name => $details) {
             $this->submodules[$name] = new SuperProject_Submodule($name, $details);
         }
 
