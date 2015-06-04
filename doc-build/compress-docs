@@ -58,7 +58,7 @@ compress()
 
     for library in $STANDALONE_DOCUMENTATION
     do
-        if [ -d $boost_root/libs/$library/doc ]
+        if [ -d $boost_root/libs/$library/doc/html ]
         then
             compress_dirs="$compress_dirs libs/$library/doc/html"
         fi
