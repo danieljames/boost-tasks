@@ -30,10 +30,22 @@ build_impl()
     mkdir -p $build_dir
     mkdir -p $exec_dir
 
+    echo
+    echo "Extract docutils"
+    echo
+
+    cd $build_dir
+    tar -xzf $DOC_DATA/tarballs/$DOCUTILS_FILENAME
+
+    echo
+    echo "Create user-config.jam"
+    echo
+
     touch $build_dir/user-config.jam
     echo "using doxygen : $DOXYGEN_BIN ;"  >> $build_dir/user-config.jam
     echo "using $B2_TOOLSET : : $CCACHE_BIN $CXX_BIN $CXX_FLAGS ;" >> $build_dir/user-config.jam
     echo 'using boostbook ;' >> $build_dir/user-config.jam
+    echo "using docutils : $build_dir/docutils-${DOCUTILS_VERSION} ;" >> $build_dir/user-config.jam
 
     echo
     echo "Export repo"

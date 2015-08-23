@@ -27,6 +27,16 @@ download()
         wget -O ${RAPIDXML_FILENAME} \
             http://sourceforge.net/projects/rapidxml/files/rapidxml/rapidxml%20${RAPIDXML_VERSION}/${RAPIDXML_FILENAME}/download
     fi
+
+    if [ ! -f ${DOCUTILS_FILENAME} ]
+    then
+        echo
+        echo "Downloading docutils"
+        echo
+
+        wget -O ${DOCUTILS_FILENAME} \
+            http://prdownloads.sourceforge.net/docutils/${DOCUTILS_FILENAME}?download
+    fi
 }
 
 download $*

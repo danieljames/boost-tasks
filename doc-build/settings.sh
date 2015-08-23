@@ -21,7 +21,9 @@ export B2_TOOLSET="gcc"
 # TODO: Perhaps write a shell script to the bin directory.
 export DOXYGEN_BIN="doxygen"
 export RAPIDXML_VERSION=1.13
+export DOCUTILS_VERSION=0.12
 export SOURCEFORGE_USERNAME=danieljames
 
 export RAPIDXML_FILENAME=rapidxml-${RAPIDXML_VERSION}.zip
+export DOCUTILS_FILENAME=docutils-${DOCUTILS_VERSION}.tar.gz
 export GIT_URL=$DATA_DIR/mirror/
