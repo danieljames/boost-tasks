@@ -8,7 +8,7 @@ export DATA_DIR=$root/../../update-data
 export DOC_DATA=$DATA_DIR/doc
 
 # Libraries to build documentation for
-export STANDALONE_DOCUMENTATION="geometry phoenix fusion spirit spirit/repository crc algorithm context coroutine coroutine2 numeric/odeint log tti functional/factory functional/forward range utility core convert test sort bind tuple python vmd"
+export STANDALONE_DOCUMENTATION="geometry phoenix fusion spirit spirit/repository algorithm context coroutine coroutine2 numeric/odeint log tti functional/factory functional/forward range utility core convert test sort bind tuple python vmd"
 
 # Compiler details, leave ccache blank if you don't use it.
 #export CCACHE_BIN="ccache"
