@@ -106,8 +106,6 @@ build_impl()
     export PATH=$exec_dir:$PATH
     cd $HOME && make all-docs
 
-    exit 1
-
     echo
     echo "Create zipfile"
     echo
