@@ -4,6 +4,7 @@
 
 # Directories
 
+# TODO: Would be better to use the value from config.json
 export DATA_DIR=$root/../../update-data
 export DOC_DATA=$DATA_DIR/doc
 

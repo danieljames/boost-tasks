@@ -18,7 +18,7 @@ class EvilGlobals {
         // Load settings
 
         self::$settings = array(
-            'data' => '../data',
+            'data' => '../update-data',
             'username' => null,
             'password' => null,
             'website-data' => null,
