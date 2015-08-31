@@ -132,7 +132,7 @@ build_impl()
     echo
 
     cd $boost_root/tools/inspect/build
-    $B2_EXEC -q
+    $build_dir/bin/b2 -q
 
     echo
     echo "Extract docs into inspect copy"
