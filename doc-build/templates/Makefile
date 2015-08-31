@@ -6,7 +6,7 @@ all-docs: ${LIBRARY_TARGETS} targets/main-docs targets/asio-docs
 
 targets/libraries/%/build : boost/libs/%/doc doc-build-tools
 	if [ -d $</html ]; then find $</html -name "*.html" -exec rm {} \; ; fi
-	cd $< && b2 -q
+	if ls $</[jJ]amfile*; then cd $< && b2 -q; fi
 	mkdir -p $(@D)
 	touch $@
 
