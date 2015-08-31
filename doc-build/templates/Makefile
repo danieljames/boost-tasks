@@ -1,16 +1,16 @@
 LIBRARIES=__STANDALONE_DOCUMENTATION__
 LIBRARY_PATHS=$(addprefix boost/libs/,${LIBRARIES})
-LIBRARY_TARGETS=$(addprefix targets/libraries/,${LIBRARIES})
+LIBRARY_TARGETS=$(addsuffix /build,$(addprefix targets/libraries/,${LIBRARIES}))
 
 all-docs: targets/main-docs targets/asio-docs ${LIBRARY_TARGETS}
 
-targets/libraries/% : boost/libs/%/doc doc-build-tools
+targets/libraries/%/build : boost/libs/%/doc doc-build-tools
 	find $</html -name "*.html" -exec rm {} \;
 	cd $< && b2 -q
 	mkdir -p $(@D)
 	touch $@
 
-targets/libraries/geometry : boost/libs/geometry/doc doc-build-tools bin/doxygen_xml2qbk
+targets/libraries/geometry/build : boost/libs/geometry/doc doc-build-tools bin/doxygen_xml2qbk
 	cd $< && python ./make_qbk.py
 	rm -r $</generated
 	rm -r $</doxy/doxygen_output
