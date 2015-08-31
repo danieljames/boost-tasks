@@ -17,12 +17,12 @@ targets/libraries/geometry : boost/libs/geometry/doc doc-build-tools bin/doxygen
 	mkdir -p $(@D)
 	touch $@
 
-targets/main-docs : boost/doc doc-build-tools clean-main-docs
+targets/main-docs : boost/doc doc-build-tools targets/clean-main-docs
 	cd $< && b2 -q doc
 	mkdir -p $(@D)
 	touch $@
 
-targets/asio-docs : boost/doc doc-build-tools clean-main-docs
+targets/asio-docs : boost/doc doc-build-tools targets/clean-main-docs
 	cd $< && b2 -q asio
 	mkdir -p $(@D)
 	touch $@

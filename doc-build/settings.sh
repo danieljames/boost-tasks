@@ -14,9 +14,9 @@ export STANDALONE_DOCUMENTATION="geometry phoenix fusion spirit spirit/repositor
 # Compiler details, leave ccache blank if you don't use it.
 #export CCACHE_BIN="ccache"
 export CCACHE_BIN=
-export CXX_BIN="g++"
-export CXX_FLAGS="--std=c++0x"
-export B2_TOOLSET="gcc"
+export CXX_BIN="clang++"
+export CXX_FLAGS="--std=c++11"
+export B2_TOOLSET="clang"
 
 # TODO: Setting DOXYGEN_BIN to anything else won't work for geometry.
 # TODO: Perhaps write a shell script to the bin directory.
