@@ -85,6 +85,8 @@ setup_executables() {
     check_executable dvips
     check_executable dot
     check_executable pax
+    check_executable make
+    check_executable wget
     check_executable $DOXYGEN_BIN
     check_executable $CXX_BIN
     check_file $DOC_DATA/tarballs/rapidxml-1.13.zip
