@@ -5,7 +5,7 @@ LIBRARY_TARGETS=$(addsuffix /build,$(addprefix targets/libraries/,${LIBRARIES}))
 all-docs: targets/main-docs targets/asio-docs ${LIBRARY_TARGETS}
 
 targets/libraries/%/build : boost/libs/%/doc doc-build-tools
-	find $</html -name "*.html" -exec rm {} \;
+	if [ -d $</html ]; then find $</html -name "*.html" -exec rm {} \; ; fi
 	cd $< && b2 -q
 	mkdir -p $(@D)
 	touch $@
