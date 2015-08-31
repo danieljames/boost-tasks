@@ -2,7 +2,7 @@ LIBRARIES=__STANDALONE_DOCUMENTATION__
 LIBRARY_PATHS=$(addprefix boost/libs/,${LIBRARIES})
 LIBRARY_TARGETS=$(addsuffix /build,$(addprefix targets/libraries/,${LIBRARIES}))
 
-all-docs: targets/main-docs targets/asio-docs ${LIBRARY_TARGETS}
+all-docs: ${LIBRARY_TARGETS} targets/main-docs targets/asio-docs
 
 targets/libraries/%/build : boost/libs/%/doc doc-build-tools
 	if [ -d $</html ]; then find $</html -name "*.html" -exec rm {} \; ; fi
