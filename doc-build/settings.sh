@@ -23,8 +23,12 @@ export B2_TOOLSET="clang"
 export DOXYGEN_BIN="doxygen"
 export RAPIDXML_VERSION=1.13
 export DOCUTILS_VERSION=0.12
+export DOCBOOK_XSL_VERSION=1.78.1
+export DOCBOOK_DTD_VERSION=4.2
 export SOURCEFORGE_USERNAME=danieljames
 
 export RAPIDXML_FILENAME=rapidxml-${RAPIDXML_VERSION}.zip
 export DOCUTILS_FILENAME=docutils-${DOCUTILS_VERSION}.tar.gz
+export DOCBOOK_XSL_FILENAME=docbook-xsl-$DOCBOOK_XSL_VERSION.tar.bz2
+export DOCBOOK_DTD_FILENAME=docbook-xml-$DOCBOOK_DTD_VERSION.zip
 export GIT_URL=$DATA_DIR/mirror/

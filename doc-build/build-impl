@@ -45,6 +45,14 @@ build_impl()
     cd $build_dir
     tar -xzf $DOC_DATA/tarballs/$DOCUTILS_FILENAME
 
+    mkdir $build_dir/docbook-xsl
+    cd $build_dir/docbook-xsl
+    tar -xjf $DOC_DATA/tarballs/$DOCBOOK_XSL_FILENAME
+
+    mkdir $build_dir/docbook-dtd
+    cd $build_dir/docbook-dtd
+    unzip $DOC_DATA/tarballs/$DOCBOOK_DTD_FILENAME
+
     echo
     echo "Create user-config.jam"
     echo
@@ -52,7 +60,10 @@ build_impl()
     touch $build_dir/user-config.jam
     echo "using doxygen : $DOXYGEN_BIN ;"  >> $build_dir/user-config.jam
     echo "using $B2_TOOLSET : : $CCACHE_BIN $CXX_BIN $CXX_FLAGS ;" >> $build_dir/user-config.jam
-    echo 'using boostbook ;' >> $build_dir/user-config.jam
+    echo "using boostbook" >> $build_dir/user-config.jam
+    echo "    : $build_dir/docbook-xsl/docbook-xsl-$DOCBOOK_XSL_VERSION" >> $build_dir/user-config.jam
+    echo "    : $build_dir/docbook-dtd" >> $build_dir/user-config.jam
+    echo "    ;" >> $build_dir/user-config.jam
     echo "using docutils : $build_dir/docutils-${DOCUTILS_VERSION} ;" >> $build_dir/user-config.jam
 
     echo
