@@ -4,8 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "e3c0791552b8f3363672b60dc5167705",
-    "content-hash": "579926e9c5207ae9b0b302307e4f6ded",
+    "hash": "8cad0616df85fc513fb59528392195a1",
     "packages": [
         {
             "name": "guzzle/guzzle",
@@ -217,11 +216,11 @@
             "time": "2012-12-21 11:40:51"
         },
         {
-            "name": "redbeanphp",
-            "version": "4.0.4",
+            "name": "redbeanphp/redbeanphp",
+            "version": "4.2.1",
             "dist": {
-                "type": "tar",
-                "url": "http://www.redbeanphp.com/downloadredbean.php",
+                "type": "zip",
+                "url": "https://github.com/gabordemooij/redbean/archive/v4.2.1.zip",
                 "reference": null,
                 "shasum": null
             },
