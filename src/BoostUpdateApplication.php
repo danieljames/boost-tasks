@@ -71,7 +71,6 @@ class BoostUpdateApplication extends Application
         $defaultCommands = parent::getDefaultCommands();
         $defaultCommands[] = new SuperProjectCommand();
         $defaultCommands[] = new MirrorCommand();
-        $defaultCommands[] = new PullRequestReportCommand();
         $defaultCommands[] = new BuildDocCommand();
         $defaultCommands[] = new UpdateDocumentListCommand();
         return $defaultCommands;
@@ -112,15 +111,6 @@ class MirrorCommand extends Command {
             $mirror->refresh();
         }
         $mirror->fetchDirty();
-    }
-}
-
-class PullRequestReportCommand extends Command {
-    protected function configure() { $this->setName('pull-request-report'); }
-
-    protected function execute(InputInterface $input, OutputInterface $output) {
-        $report = new PullRequestReport();
-        $report->run();
     }
 }
 
