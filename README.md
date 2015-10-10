@@ -37,6 +37,10 @@ Example configuration file:
         develop: develop
         master: master
 
+    # Extra configuration files:
+    config-paths:
+        - /home/www/shared/branches.neon
+
 `data` is the path to the directory that will hold data for this script.
 
 `username` and `password` are the GitHub login details for the account that

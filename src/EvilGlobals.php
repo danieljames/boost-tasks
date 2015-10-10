@@ -28,11 +28,9 @@ class EvilGlobals {
             'superproject-branches' => array(),
         );
 
-        if (is_file(self::resolve_path('config.neon'))) {
-            $settings = Neon::decode(file_get_contents(__DIR__."/../config.neon"));
-            if ($settings) {
-                self::$settings = array_merge(self::$settings, $settings);
-            }
+        $path = self::resolve_path('config.neon');
+        if (is_file($path)) {
+            self::$settings = self::read_config($path, self::$settings);
         }
         else {
             echo <<<EOL
@@ -92,5 +90,31 @@ EOL;
         }
         $path = rtrim($path, '/');
         return $path;
+    }
+
+    static function read_config($path, $defaults = array()) {
+        $config = file_get_contents($path);
+        if ($config === false) {
+            throw new RuntimeException("Unable to read config file: {$path}");
+        }
+        $config = Neon::decode($config);
+        $config = $config ? array_merge($defaults, $config) : $defaults;
+
+        if (isset($config['config-paths'])) {
+            $config_paths = $config['config-paths'];
+            unset($config['config-paths']);
+            if (is_string($config_paths)) { $config_paths = Array($config_paths); }
+            foreach ($config_paths as $config_path) {
+                if (!is_string($config_path)) {
+                    throw new RuntimeException("'config-paths' should only contain strings.");
+                }
+                if ($config_path[0] !== '/') {
+                    $config_path = dirname($path).'/'.$config_path;
+                }
+                $config = self::read_config($config_path, $config);
+            }
+        }
+
+        return $config;
     }
 }
