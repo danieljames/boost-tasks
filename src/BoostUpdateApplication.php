@@ -70,10 +70,8 @@ class BoostUpdateApplication extends Application
     {
         $defaultCommands = parent::getDefaultCommands();
         $defaultCommands[] = new CronJobCommand();
-        $defaultCommands[] = new EventListCommand();
         $defaultCommands[] = new SuperProjectCommand();
         $defaultCommands[] = new MirrorCommand();
-        $defaultCommands[] = new MirrorListCommand();
         $defaultCommands[] = new PullRequestReportCommand();
         $defaultCommands[] = new BuildDocCommand();
         $defaultCommands[] = new UpdateDocumentListCommand();
@@ -119,14 +117,6 @@ class CronJobCommand extends Command {
     }
 }
 
-class EventListCommand extends Command {
-    protected function configure() { $this->setName('event-list'); }
-
-    protected function execute(InputInterface $input, OutputInterface $output) {
-        GitHubEventQueue::outputEvents();
-    }
-}
-
 class SuperProjectCommand extends Command {
     protected function configure() {
         $this->setName('superproject')
@@ -161,15 +151,6 @@ class MirrorCommand extends Command {
             $mirror->refresh();
         }
         $mirror->fetchDirty();
-    }
-}
-
-class MirrorListCommand extends Command {
-    protected function configure() { $this->setName('mirror-list'); }
-
-    protected function execute(InputInterface $input, OutputInterface $output) {
-        $mirror = new LocalMirror();
-        $mirror->outputRepos();
     }
 }
 
