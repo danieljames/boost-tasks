@@ -2,6 +2,7 @@
 <?php
 
 require_once(__DIR__.'/vendor/autoload.php');
+CommandLineOptions::cron_job();
 
 // Quick and dirty check if the configuration has changed since last run.
 $settings = \Nette\Neon\Neon::encode(EvilGlobals::safe_settings(), \Nette\Neon\Neon::BLOCK);

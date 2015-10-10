@@ -1,7 +1,6 @@
 <?php
 
 use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
 
 // Set up autoloading.
 
@@ -34,5 +33,3 @@ EvilGlobals::init();
 // Set up the logger.
 
 Log::$log = new Logger('boost update log');
-Log::$log->pushHandler(
-        new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO));
