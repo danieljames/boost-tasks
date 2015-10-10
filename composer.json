@@ -30,6 +30,7 @@
         }
     ],
     "require": {
+        "corneltek/getoptionkit": "*",
         "nette/neon": "*",
         "guzzle/guzzle": "*",
         "symfony/process": "*",

@@ -70,7 +70,6 @@ class BoostUpdateApplication extends Application
     {
         $defaultCommands = parent::getDefaultCommands();
         $defaultCommands[] = new SuperProjectCommand();
-        $defaultCommands[] = new MirrorCommand();
         $defaultCommands[] = new BuildDocCommand();
         $defaultCommands[] = new UpdateDocumentListCommand();
         return $defaultCommands;
@@ -88,29 +87,6 @@ class SuperProjectCommand extends Command {
     protected function execute(InputInterface $input, OutputInterface $output) {
         if (!$input->getOption('no-fetch')) { GitHubEventQueue::downloadEvents(); }
         SuperProject::updateBranches();
-    }
-}
-
-class MirrorCommand extends Command {
-    protected function configure() {
-        $this->setName('mirror')
-            ->setDescription('Creates or updates the GitHub mirror')
-            ->addOption('no-fetch', null, InputOption::VALUE_NONE,
-                    "Don't fetch events from GitHub")
-            ->addOption('all', null, InputOption::VALUE_NONE,
-                    "Update all repos in mirror");
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output) {
-        if (!$input->getOption('no-fetch')) { GitHubEventQueue::downloadEvents(); }
-        GitHubEventQueue::downloadEvents();
-        $mirror = new LocalMirror();
-        if ($input->getOption('all')) {
-            $mirror->refreshAll();
-        } else {
-            $mirror->refresh();
-        }
-        $mirror->fetchDirty();
     }
 }
 
