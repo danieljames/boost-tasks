@@ -53,6 +53,8 @@ class SuperProject extends Repo {
 
     // TODO: Public so that it can be called in a closure in PHP 5.3
     public function getUpdatesFromAll($submodules, $queue) {
+        // TODO: Because this fetches all branches, it requires several fetches
+        // per repo. See if there's something more efficient.
         $updates = array();
         foreach($submodules->getSubmodules() as $submodule) {
             foreach (EvilGlobals::$github_cache->iterate(
