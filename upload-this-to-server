@@ -20,9 +20,9 @@ try {
     mkdir($dst);
 
     Process::run("git archive master | tar -x -C {$dst}", __DIR__);
-    Process::run("rm -r {$dst}/nbproject");
+    #Process::run("rm -r {$dst}/nbproject");
+    Process::run("rm {$dst}/upload-this-to-server");
     Process::run("rsync -az {$dst}/ dnljms@boost.org:boost-tasks/");
-    echo "rsync -az {$dst}/ dnljms@boost.org:boost-tasks/";
 }
 catch (\RuntimeException $e) {
     Log::error("Runtime exception: {$e}");
