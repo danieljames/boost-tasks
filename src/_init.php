@@ -9,10 +9,6 @@ require __DIR__.'/../vendor/autoload.php';
 
 date_default_timezone_set('UTC');
 
-// Initialise global state.
-
-EvilGlobals::init();
-
 // Die on all errors.
 
 function myErrorHandler($errno, $errstr, $errfile, $errline)
@@ -27,3 +23,7 @@ function myErrorHandler($errno, $errstr, $errfile, $errline)
 }
 
 set_error_handler('myErrorHandler');
+
+// Initialise global state.
+
+EvilGlobals::init();
