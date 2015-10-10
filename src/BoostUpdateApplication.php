@@ -94,6 +94,28 @@ class CronJobCommand extends Command {
     protected function configure() { $this->setName('cron'); }
 
     protected function execute(InputInterface $input, OutputInterface $output) {
+        // Quickly and dirty check if the configuration has changed since last run.
+        $settings = \Nette\Neon\Neon::encode(EvilGlobals::safe_settings(), \Nette\Neon\Neon::BLOCK);
+        $record = R::findOne('variable', 'name = "settings"');
+        if (!$record || $settings !== $record->value) {
+            echo "Configuration updated:\n\n{$settings}";
+
+            if (!$record) {
+                $record = R::dispense('variable');
+                $record->name = 'settings';
+            }
+            $record->value = $settings;
+            $record->updated_on = R::isoDateTime();
+            R::store($record);
+
+            $history = R::dispense('history');
+            $history->name = $record->name;
+            $history->value = $record->value;
+            $history->updated_on = $record->updated_on;
+            R::store($history);
+        }
+
+        // Download github events, and update accordingly.
         GitHubEventQueue::downloadEvents();
         //$this->callCommand($input, $output, 'mirror', array('--no-fetch'));
         $this->callCommand($input, $output, 'superproject', array('--no-fetch'));

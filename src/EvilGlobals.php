@@ -117,4 +117,10 @@ EOL;
 
         return $config;
     }
+
+    static function safe_settings() {
+        $settings = EvilGlobals::$settings;
+        if (!empty($settings['password'])) { $settings['password'] = '********'; }
+        return $settings;
+    }
 }
