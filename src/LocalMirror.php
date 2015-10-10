@@ -124,7 +124,7 @@ class LocalMirror {
         $git_dir = "{$this->mirror_root}{$repo}";
         Process::run("git --git-dir='{$git_dir}' archive {$ref} | tar -x -C '${dst_dir}'");
 
-        $child_repos = [];
+        $child_repos = array();
         foreach(SuperProject::readSubmoduleConfig($dst_dir) as $name => $values) {
             if (empty($values['path'])) { throw \RuntimeException("Missing path."); }
             if (empty($values['url'])) { throw \RuntimeException("Missing URL."); }
