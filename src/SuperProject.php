@@ -13,6 +13,14 @@ class SuperProject extends Repo {
     var $submodule_branch;
     var $enable_push;
 
+    static function updateBranches($branches = null) {
+        if (!$branches) { $branches = EvilGlobals::$branch_repos; }
+        foreach ($branches as $x) {
+            $super = new SuperProject($x);
+            $super->checkedUpdateFromEvents();
+        }
+    }
+
     function __construct($settings) {
         parent::__construct('boost',
             $this->get($settings, 'superproject-branch'),

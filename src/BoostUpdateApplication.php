@@ -82,7 +82,6 @@ class BoostUpdateApplication extends Application
         $defaultCommands[] = new SuperProjectCommand();
         $defaultCommands[] = new MirrorCommand();
         $defaultCommands[] = new MirrorListCommand();
-        $defaultCommands[] = new SuperProjectCommand();
         $defaultCommands[] = new PullRequestReportCommand();
         $defaultCommands[] = new BuildDocCommand();
         $defaultCommands[] = new UpdateDocumentListCommand();
@@ -118,7 +117,7 @@ class CronJobCommand extends Command {
         // Download github events, and update accordingly.
         GitHubEventQueue::downloadEvents();
         //$this->callCommand($input, $output, 'mirror', array('--no-fetch'));
-        $this->callCommand($input, $output, 'superproject', array('--no-fetch'));
+        SuperProject::updateBranches();
     }
 
     private function callCommand($input, $output, $name, $arguments) {
@@ -146,10 +145,7 @@ class SuperProjectCommand extends Command {
 
     protected function execute(InputInterface $input, OutputInterface $output) {
         if (!$input->getOption('no-fetch')) { GitHubEventQueue::downloadEvents(); }
-        foreach (EvilGlobals::$branch_repos as $x) {
-            $super = new SuperProject($x);
-            $super->checkedUpdateFromEvents();
-        }
+        SuperProject::updateBranches();
     }
 }
 
