@@ -1,5 +1,7 @@
 <?php
 
+use Nette\Neon\Neon;
+
 class EvilGlobals {
     static $settings;
 
@@ -26,12 +28,19 @@ class EvilGlobals {
             'superproject-branches' => array(),
         );
 
-        if (is_file(self::resolve_path('config.json'))) {
-            self::$settings = array_merge(self::$settings,
-                    json_decode(file_get_contents(__DIR__."/../config.json"), true));
+        if (is_file(self::resolve_path('config.neon'))) {
+            $settings = Neon::decode(file_get_contents(__DIR__."/../config.neon"));
+            if ($settings) {
+                self::$settings = array_merge(self::$settings, $settings);
+            }
         }
         else {
-            echo "Config file not found.\n";
+            echo <<<EOL
+Config file not found.
+
+See README.md for configuration instructions.
+
+EOL;
             exit(1);
         }
 

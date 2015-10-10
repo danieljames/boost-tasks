@@ -13,21 +13,29 @@ and [composer](https://getcomposer.org/).
 
 1. Clone this repo.
 2. Install the dependencies using `composer install`.
-3. Create a `config.json` file in this directory.
+3. Create a `config.neon` configuration file in this directory, using
+   [Neon](http://ne-on.org/) synatx.
 
 Example configuration file:
 
-    {
-        "data": "../data",
-        "username": "your-username",
-        "password": "your-password",
-        "website-data": "path-to-website-data",
-        "push-to-repo": false,
-        "superproject-branches": {
-            "master": "master",
-            "develop": "develop"
-        }
-    }
+    # Path to directory where script stores data
+    data: ../update-data
+
+    # GitHub login details
+    # (remember to restrict read permissions).
+    username: github-username
+    password: github-password
+
+    # Path to directory where website stores data
+    website-data: /home/www/shared/data
+
+    # Set to true to push to github, false when you're testing
+    push-to-repo: false
+
+    # Branches to update (comment out to disable a branch)
+    superproject-branches:
+        develop: develop
+        master: master
 
 `data` is the path to the directory that will hold data for this script.
 
@@ -44,4 +52,3 @@ the script.
 
 The keys in `superproject-branches` specifies the branches in the super
 project to update, the values are the branches to update from.
-

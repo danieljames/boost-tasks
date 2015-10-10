@@ -30,6 +30,7 @@
         }
     ],
     "require": {
+        "nette/neon": "*",
         "guzzle/guzzle": "*",
         "symfony/process": "*",
         "symfony/console": "*",
