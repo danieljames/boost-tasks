@@ -4,6 +4,7 @@ use GetOptionKit\OptionCollection;
 use GetOptionKit\OptionParser;
 use GetOptionKit\OptionPrinter\ConsoleOptionPrinter;
 use GetOptionKit\Exception\InvalidOptionException;
+use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 // Very basic command line options handling thing.
@@ -23,6 +24,8 @@ class CommandLineOptions
         if (!$specs) { $specs = new OptionCollection(); }
         $specs->add('help', "Diplay command line usage.")
             ->defaultValue(false);
+        $specs->add('cron', "Run as cron job.")
+            ->defaultValue(false);
 
         $x = new CommandLineOptions($args, $description, $specs);
 
@@ -37,6 +40,10 @@ class CommandLineOptions
         if ($options['help']) {
             $x->usage();
             exit(0);
+        }
+
+        if ($options['cron']) {
+            self::cron_job();
         }
 
         return $options;
