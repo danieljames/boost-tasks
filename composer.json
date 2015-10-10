@@ -34,9 +34,8 @@
         "nette/neon": "*",
         "guzzle/guzzle": "*",
         "symfony/process": "*",
-        "symfony/console": "*",
-        "symfony/monolog-bridge": "*",
-        "redbeanphp/redbeanphp": "4.2.*"
+        "redbeanphp/redbeanphp": "4.2.*",
+        "monolog/monolog": "*"
     },
     "autoload": {
         "files": [ "vendor/redbeanphp/redbeanphp/rb-p533.php", "src/_init.php" ],

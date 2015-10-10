@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "4c776426043cdd4080fc8b4354141365",
+    "hash": "fbec18c2c7b1721ffc57d3cd5e8f4e47",
     "packages": [
         {
             "name": "corneltek/getoptionkit",
@@ -316,64 +316,6 @@
             "type": "library"
         },
         {
-            "name": "symfony/console",
-            "version": "v2.6.11",
-            "target-dir": "Symfony/Component/Console",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/symfony/console.git",
-                "reference": "0e5e18ae09d3f5c06367759be940e9ed3f568359"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/symfony/console/zipball/0e5e18ae09d3f5c06367759be940e9ed3f568359",
-                "reference": "0e5e18ae09d3f5c06367759be940e9ed3f568359",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=5.3.3"
-            },
-            "require-dev": {
-                "psr/log": "~1.0",
-                "symfony/event-dispatcher": "~2.1",
-                "symfony/phpunit-bridge": "~2.7",
-                "symfony/process": "~2.1"
-            },
-            "suggest": {
-                "psr/log": "For using the console logger",
-                "symfony/event-dispatcher": "",
-                "symfony/process": ""
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "2.6-dev"
-                }
-            },
-            "autoload": {
-                "psr-0": {
-                    "Symfony\\Component\\Console\\": ""
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Fabien Potencier",
-                    "email": "fabien@symfony.com"
-                },
-                {
-                    "name": "Symfony Community",
-                    "homepage": "https://symfony.com/contributors"
-                }
-            ],
-            "description": "Symfony Console Component",
-            "homepage": "https://symfony.com",
-            "time": "2015-07-26 09:08:40"
-        },
-        {
             "name": "symfony/event-dispatcher",
             "version": "v2.6.11",
             "target-dir": "Symfony/Component/EventDispatcher",
@@ -431,65 +373,6 @@
             "description": "Symfony EventDispatcher Component",
             "homepage": "https://symfony.com",
             "time": "2015-05-02 15:18:45"
-        },
-        {
-            "name": "symfony/monolog-bridge",
-            "version": "v2.6.11",
-            "target-dir": "Symfony/Bridge/Monolog",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/symfony/monolog-bridge.git",
-                "reference": "ba66eeabaa004e3ab70764cab59b056b182aa535"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/symfony/monolog-bridge/zipball/ba66eeabaa004e3ab70764cab59b056b182aa535",
-                "reference": "ba66eeabaa004e3ab70764cab59b056b182aa535",
-                "shasum": ""
-            },
-            "require": {
-                "monolog/monolog": "~1.11",
-                "php": ">=5.3.3"
-            },
-            "require-dev": {
-                "symfony/console": "~2.4",
-                "symfony/event-dispatcher": "~2.2",
-                "symfony/http-kernel": "~2.4",
-                "symfony/phpunit-bridge": "~2.7"
-            },
-            "suggest": {
-                "symfony/console": "For the possibility to show log messages in console commands depending on verbosity settings. You need version ~2.3 of the console for it.",
-                "symfony/event-dispatcher": "Needed when using log messages in console commands",
-                "symfony/http-kernel": "For using the debugging handlers together with the response life cycle of the HTTP kernel."
-            },
-            "type": "symfony-bridge",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "2.6-dev"
-                }
-            },
-            "autoload": {
-                "psr-0": {
-                    "Symfony\\Bridge\\Monolog\\": ""
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Fabien Potencier",
-                    "email": "fabien@symfony.com"
-                },
-                {
-                    "name": "Symfony Community",
-                    "homepage": "https://symfony.com/contributors"
-                }
-            ],
-            "description": "Symfony Monolog Bridge",
-            "homepage": "https://symfony.com",
-            "time": "2015-06-25 11:21:15"
         },
         {
             "name": "symfony/process",
