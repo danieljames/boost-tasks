@@ -51,7 +51,8 @@ class SuperProject extends Repo {
         return true;
     }
 
-    private function getUpdatesFromAll($submodules, $queue) {
+    // TODO: Public so that it can be called in a closure in PHP 5.3
+    public function getUpdatesFromAll($submodules, $queue) {
         $updates = array();
         foreach($submodules->getSubmodules() as $submodule) {
             foreach (EvilGlobals::$github_cache->iterate(
@@ -72,7 +73,8 @@ class SuperProject extends Repo {
         return $updates;
     }
 
-    private function getUpdatedFromEventQueue($submodules, $queue) {
+    // TODO: Public so that it can be called in a closure in PHP 5.3
+    public function getUpdatedFromEventQueue($submodules, $queue) {
         $updates = array();
 
         foreach ($queue->getEvents() as $event) {
