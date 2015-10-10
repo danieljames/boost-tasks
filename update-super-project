@@ -3,44 +3,20 @@
 require_once(__DIR__.'/vendor/autoload.php');
 
 use GetOptionKit\OptionCollection;
-use GetOptionKit\OptionParser;
-use GetOptionKit\OptionPrinter\ConsoleOptionPrinter;
-use GetOptionKit\Exception\InvalidOptionException;
 
 function main($args) {
     $specs = new OptionCollection;
-    $specs->add('help', "Diplay command line usage.")
-        ->defaultValue(false);
     $specs->add('no-fetch', "Don't fetch events from GitHub")
         ->defaultValue(false);
-
-    try {
-        $parser = new OptionParser($specs);
-        $options = $parser->parse($args)->toArray();
-    } catch (InvalidOptionException $e) {
-        usage($specs, $e);
-        exit(1);
-    }
-
-    if ($options['help']) {
-        usage($specs);
-        exit(0);
-    }
-
-    // Update the mirror.
+    $options = CommandLineOptions::process($args,
+        'Update the submodules in the super project',
+        $specs);
 
     if (!$options['no-fetch']) {
         GitHubEventQueue::downloadEvents();
     }
 
     SuperProject::updateBranches();
-}
-
-function usage($specs, $message = null) {
-    if ($message) { echo "{$message}\n\n"; }
-    echo "Usage:\n";
-    $printer = new ConsoleOptionPrinter();
-    echo $printer->render($specs);
 }
 
 main($_SERVER['argv']);
