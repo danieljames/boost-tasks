@@ -42,5 +42,10 @@
         "psr-0": { "" : "src/" }
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "config": {
+        "platform": {
+            "php": "5.3.3"
+        }
+    }
 }
