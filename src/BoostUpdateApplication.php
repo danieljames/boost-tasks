@@ -69,51 +69,12 @@ class BoostUpdateApplication extends Application
     protected function getDefaultCommands()
     {
         $defaultCommands = parent::getDefaultCommands();
-        $defaultCommands[] = new CronJobCommand();
         $defaultCommands[] = new SuperProjectCommand();
         $defaultCommands[] = new MirrorCommand();
         $defaultCommands[] = new PullRequestReportCommand();
         $defaultCommands[] = new BuildDocCommand();
         $defaultCommands[] = new UpdateDocumentListCommand();
         return $defaultCommands;
-    }
-}
-
-class CronJobCommand extends Command {
-    protected function configure() { $this->setName('cron'); }
-
-    protected function execute(InputInterface $input, OutputInterface $output) {
-        // Quickly and dirty check if the configuration has changed since last run.
-        $settings = \Nette\Neon\Neon::encode(EvilGlobals::safe_settings(), \Nette\Neon\Neon::BLOCK);
-        $record = R::findOne('variable', 'name = "settings"');
-        if (!$record || $settings !== $record->value) {
-            echo "Configuration updated:\n\n{$settings}";
-
-            if (!$record) {
-                $record = R::dispense('variable');
-                $record->name = 'settings';
-            }
-            $record->value = $settings;
-            $record->updated_on = R::isoDateTime();
-            R::store($record);
-
-            $history = R::dispense('history');
-            $history->name = $record->name;
-            $history->value = $record->value;
-            $history->updated_on = $record->updated_on;
-            R::store($history);
-        }
-
-        // Download github events, and update accordingly.
-        GitHubEventQueue::downloadEvents();
-        //$this->callCommand($input, $output, 'mirror', array('--no-fetch'));
-        SuperProject::updateBranches();
-    }
-
-    private function callCommand($input, $output, $name, $arguments) {
-        $command = $this->getApplication()->find($name);
-        $input = new Symfony\Component\Console\Input\ArrayInput($arguments);
-        return $command->run($input, $output);
     }
 }
 
