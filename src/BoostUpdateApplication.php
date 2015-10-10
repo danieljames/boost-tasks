@@ -69,21 +69,6 @@ class BoostUpdateApplication extends Application
     protected function getDefaultCommands()
     {
         $defaultCommands = parent::getDefaultCommands();
-        $defaultCommands[] = new SuperProjectCommand();
         return $defaultCommands;
-    }
-}
-
-class SuperProjectCommand extends Command {
-    protected function configure() {
-        $this->setName('superproject')
-            ->setDescription('Update the super projects')
-            ->addOption('no-fetch', null, InputOption::VALUE_NONE,
-                    "Don't fetch events from GitHub");
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output) {
-        if (!$input->getOption('no-fetch')) { GitHubEventQueue::downloadEvents(); }
-        SuperProject::updateBranches();
     }
 }
