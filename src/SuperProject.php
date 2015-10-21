@@ -120,7 +120,7 @@ class SuperProject extends Repo {
             $submodule = $submodules->findByBoostName($boost_name);
             if ($old_hashes[$submodule->path] != $hash) {
                 $updates[$submodule->path] = $hash;
-                $names[] = $boost_name;
+                $names[] = preg_replace('@^(libs|tools)/@', '', $boost_name);
             }
         }
 
