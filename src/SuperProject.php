@@ -250,9 +250,9 @@ class SuperProject_Submodules {
         return $this->submodules;
     }
 
-    public function findByBoostName($github_name) {
+    public function findByBoostName($boost_name) {
         $x = $this->getSubmodules();
-        return $x[$github_name];
+        return $x[$boost_name];
     }
 
     public function findByGitHubName($github_name) {
