@@ -37,6 +37,9 @@
         "redbeanphp/redbeanphp": "4.2.*",
         "monolog/monolog": "*"
     },
+    "require-dev": {
+        "nette/tester": "*"
+    },
     "autoload": {
         "files": [ "vendor/redbeanphp/redbeanphp/rb-p533.php", "src/_init.php" ],
         "psr-0": { "" : "src/" }
