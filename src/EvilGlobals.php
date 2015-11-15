@@ -3,7 +3,14 @@
 use Nette\Neon\Neon;
 
 class EvilGlobals {
-    static $settings;
+    static $settings = array(
+        'data' => '../update-data',
+        'username' => null,
+        'password' => null,
+        'website-data' => null,
+        'push-to-repo' => false,
+        'superproject-branches' => array(),
+    );
 
     // Filesystem layout
     static $data_root;
@@ -18,16 +25,6 @@ class EvilGlobals {
 
     static function init() {
         // Load settings
-
-        self::$settings = array(
-            'data' => '../update-data',
-            'username' => null,
-            'password' => null,
-            'website-data' => null,
-            'push-to-repo' => false,
-            'superproject-branches' => array(),
-        );
-
         $path = self::resolve_path('config.neon');
         if (is_file($path)) {
             self::$settings = self::read_config($path, self::$settings);
