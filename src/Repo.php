@@ -20,15 +20,19 @@ class Repo {
         $this->enable_push = EvilGlobals::$settings['push-to-repo'];
     }
 
+    function getModuleBranchName() {
+        return "{$this->module}, branch {$this->branch}";
+    }
+
     function setupCleanCheckout() {
         // Create the repos or update them as required.
 
         if (!is_dir($this->path)) {
-            Log::info("Clone {$this->branch}");
+            Log::info("Clone {$this->getModuleBranchName()}.");
             $this->cloneRepo();
         }
         else {
-            Log::info("Update {$this->branch}");
+            Log::info("Fetch {$this->getModuleBranchName()}.");
             $this->updateRepo();
         }
     }
@@ -63,10 +67,10 @@ class Repo {
         $status = $process->run();
 
         if ($status == 0) {
-            Log::info("No changes.");
+            Log::info("No changes to {$this->getModuleBranchName()}.");
             return false;
         } else if ($status == 1) {
-            Log::info("Committing changes to repo.");
+            Log::info("Committing changes to {$this->getModuleBranchName()}.");
             Process::run('git commit -m "'.$message.'"', $this->path);
             return true;
         } else {
@@ -85,11 +89,11 @@ class Repo {
                 if ($this->pushRepo()) { return true; }
             }
 
-            Log::error("Failed to update too many times.");
+            Log::error("Failed to push to {$this->getModuleBranchName()}.");
             return false;
         }
         catch (\RuntimeException $e) {
-            Log::error($e);
+            Log::error("{$this->getModuleBranchName()}: $e");
             return false;
         }
     }
