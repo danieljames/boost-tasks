@@ -57,6 +57,28 @@ class SuperProjectTest extends Tester\TestCase {
         Assert::same('vmd', $x->boost_name);
         Assert::same('boostorg/vmd', $x->github_name);
     }
+
+    function testSubmoduleWithBoostorgUrl() {
+        $x = new SuperProject_Submodule('flip/flop', [
+            'path' => 'libs/flop',
+            'url' => 'https://github.com/boostorg/flip.git',
+        ]);
+
+        Assert::same('libs/flop', $x->path);
+        Assert::same('flip/flop', $x->boost_name);
+        Assert::same('boostorg/flip', $x->github_name);
+    }
+
+    function testSubmoduleWithRejectedUrl() {
+        $x = new SuperProject_Submodule('flip/flop', [
+            'path' => 'libs/flop',
+            'url' => 'https://github.com/danieljames/flip.git',
+        ]);
+
+        Assert::same('libs/flop', $x->path);
+        Assert::same('flip/flop', $x->boost_name);
+        Assert::null($x->github_name);
+    }
 }
 
 $test = new SuperProjectTest();

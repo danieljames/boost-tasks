@@ -283,7 +283,7 @@ class SuperProject_Submodule {
         $this->path = $values['path'];
 
         $matches = null;
-        if (preg_match('@../(\w+)\.git@', $values['url'], $matches)) {
+        if (preg_match('@^(?:\.\.|https?://github\.com/boostorg)/(\w+)\.git$@', $values['url'], $matches)) {
             $this->github_name = "boostorg/{$matches[1]}";
         }
     }
