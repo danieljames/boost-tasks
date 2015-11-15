@@ -11,7 +11,6 @@ use Guzzle\Http\Url;
 
 class SuperProject extends Repo {
     var $submodule_branch;
-    var $enable_push;
 
     static function updateBranches($branches = null) {
         if (!$branches) { $branches = EvilGlobals::$branch_repos; }
@@ -26,7 +25,6 @@ class SuperProject extends Repo {
             $this->get($settings, 'superproject-branch'),
             $this->get($settings, 'path'));
         $this->submodule_branch = $this->get($settings, 'submodule-branch');
-        $this->enable_push = EvilGlobals::$settings['push-to-repo'];
     }
 
     private function get($settings, $name) {
@@ -140,22 +138,6 @@ class SuperProject extends Repo {
         Process::run("git commit -m '{$message}'", $this->path);
 
         return true;
-    }
-
-    /**
-     * Push the repo.
-     *
-     * @return bool True if the push succeeded.
-     */
-
-    public function push() {
-        if ($this->enable_push) {
-            return $this->pushRepo();
-        }
-        else {
-            echo "{$this->path} processed, not configured to push to repo.\n";
-            return true;
-        }
     }
 
     // TODO: Awkward location for this function, but php is pretty bad at organising

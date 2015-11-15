@@ -11,11 +11,13 @@ class Repo {
     var $module;
     var $branch;
     var $path;
+    var $enable_push;
 
     function __construct($module, $branch, $path) {
         $this->module = $module;
         $this->branch = $branch;
         $this->path = $path;
+        $this->enable_push = EvilGlobals::$settings['push-to-repo'];
     }
 
     function setupCleanCheckout() {
@@ -93,17 +95,22 @@ class Repo {
     }
 
     function pushRepo() {
-        // TODO: Maybe I should parse the output from git push to check exactly
-        // what succeeded/failed.
+        if ($this->enable_push) {
+            // TODO: Maybe I should parse the output from git push to check exactly
+            // what succeeded/failed.
 
-        $process = new \Symfony\Component\Process\Process(
-            'git push -q --porcelain', $this->path);
-        $status = $process->run();
+            $process = new \Symfony\Component\Process\Process(
+                'git push -q --porcelain', $this->path);
+            $status = $process->run();
 
-        if ($status > 1) {
-            throw new \RuntimeException("Push failed: {$process->getErrorOutput()}");
+            if ($status > 1) {
+                throw new \RuntimeException("Push failed: {$process->getErrorOutput()}");
+            }
+
+            return $status == 0;
+        } else {
+            echo "{$this->path} processed, not configured to push to repo.\n";
+            return true;
         }
-
-        return $status == 0;
     }
 }
