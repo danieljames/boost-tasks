@@ -25,6 +25,7 @@ class WebsiteRepo extends Repo {
             // Update the documentation list
             passthru('php '.
                 $website_repo->path.'/site-tools/update-doc-list.php '.
+                '--quiet '.
                 $mirror->mirror_root.'/boostorg/boost.git '.
                 $version);
 
