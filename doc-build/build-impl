@@ -31,6 +31,15 @@ build_impl()
     mkdir -p $exec_dir
 
     echo
+    echo "Configure git"
+    echo
+
+    echo "[url \"$DATA_DIR/mirror/boostorg/\"]" >> $build_dir/.gitconfig
+    echo "    insteadOf = git@github.com:boostorg/" >> $build_dir/.gitconfig
+    echo "[url \"$DATA_DIR/mirror/boostorg/\"]" >> $build_dir/.gitconfig
+    echo "    insteadOf = https://github.com/boostorg/" >> $build_dir/.gitconfig
+
+    echo
     echo "Create Makefile"
     echo
 

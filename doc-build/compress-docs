@@ -64,7 +64,11 @@ compress()
         fi
     done
 
-    7za a $target $compress_dirs
+    temp_dir=$(mktemp -d 2>/dev/null || mktemp -d -t 'boost-doc-build')
+    echo .git >> $temp_dir/ignore
+    7za a -xr@$temp_dir/ignore $target $compress_dirs
+    rm $temp_dir/ignore
+    rmdir $temp_dir
 }
 
 main $*
