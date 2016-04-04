@@ -64,6 +64,7 @@ class GitHubCache {
                 // Hopefully guzzle will deal with redirects.
                 assert(false);
             default:
+                // TODO: Seems that guzzle throws errors for 4xx codes.
                 if ($response->getBody()) {
                     throw new \RuntimeException(
                         json_decode($response->getBody()));
@@ -100,17 +101,17 @@ class GitHubCache_Iterator implements Iterator
     {
         $this->cache = $cache;
         $this->next_url = $url;
+        $this->fetch_to_line(0);
     }
 
     function rewind()
     {
         $this->line_index = 0;
-        $this->fetch_if_required();
     }
 
     public function valid()
     {
-        return $this->line_index < count($this->lines);
+        return array_key_exists($this->line_index, $this->lines);
     }
 
     public function current()
@@ -125,21 +126,17 @@ class GitHubCache_Iterator implements Iterator
 
     public function next()
     {
-        ++$this->line_index;
-        $this->fetch_if_required();
+        $this->fetch_to_line($this->line_index + 1);
+        $this->line_index = $this->line_index + 1;
     }
 
-    private function fetch_if_required() {
-        if ($this->line_index < count($this->lines) || !$this->next_url) {
-            return;
+    private function fetch_to_line($line_index) {
+        while ($line_index >= count($this->lines) && $this->next_url) {
+            $response = $this->cache->get($this->next_url);
+
+            $this->lines = array_merge($this->lines ?: [],
+                \json_decode($response->body));
+            $this->next_url = $response->next_url;
         }
-
-        $url = $this->next_url;
-        $this->next_url = null;
-        $response = $this->cache->get($url);
-
-        $this->lines = array_merge($this->lines,
-            \json_decode($response->body));
-        $this->next_url = $response->next_url;
     }
 }
