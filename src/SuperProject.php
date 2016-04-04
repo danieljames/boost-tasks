@@ -68,6 +68,7 @@ class SuperProject extends Repo {
                     "/repos/{$submodule->github_name}/branches") as $branch) {
                 if ($branch->name === $this->submodule_branch) {
                     $updates[$submodule->boost_name] = $branch->commit->sha;
+                    break;
                 }
             }
         }
