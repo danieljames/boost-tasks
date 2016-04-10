@@ -134,7 +134,7 @@ class GitHubCache_Iterator implements Iterator
         while ($line_index >= count($this->lines) && $this->next_url) {
             $response = $this->cache->get($this->next_url);
 
-            $this->lines = array_merge($this->lines ?: [],
+            $this->lines = array_merge($this->lines ?: array(),
                 \json_decode($response->body));
             $this->next_url = $response->next_url;
         }
