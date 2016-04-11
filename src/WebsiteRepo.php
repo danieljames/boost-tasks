@@ -45,7 +45,7 @@ class WebsiteRepo extends Repo {
         return $super->attemptAndPush(function() use ($super, $website_repo) {
             // Update the maintainer list.
             passthru('php '.
-                $website_repo->path.'/site-tools/update-maintainers.php '.
+                $website_repo->path.'/site-tools/update-repo.php '.
                 $super->path.' '.
                 $super->branch);
 
