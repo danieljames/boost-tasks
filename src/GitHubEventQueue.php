@@ -8,17 +8,30 @@
  */
 
 class GitHubEventQueue {
+    // Contains details and status of individual queues.
     static $queue_table = 'queue';
-    static $event_table = 'event';
-    static $event_state_table = 'eventstate';
-    static $event_queue_status;
-    var $queue;
 
-    function __construct($name) {
+    // Contains events pulled from GitHub.
+    static $event_table = 'event';
+
+    // Contains the overall state of the GitHub event queue.
+    static $event_state_table = 'eventstate';
+
+    // Cache of the data from self::$event_state_table.
+    static $event_queue_status;
+
+    var $queue;
+    var $type;
+
+    function __construct($name, $type = 'PushEvent') {
         $this->queue = R::findOne(self::$queue_table, 'name = ?', array($name));
-        if (!$this->queue) {
+        if ($this->queue) {
+            assert($this->queue->type === $type);
+        }
+        else {
             $this->queue = R::dispense(self::$queue_table);
             $this->queue->name = $name;
+            $this->queue->type = $type;
             $this->queue->last_github_id = 0;
             R::store($this->queue);
         }
@@ -26,8 +39,8 @@ class GitHubEventQueue {
 
     function getEvents() {
         return R::find(self::$event_table,
-                'github_id > ? ORDER BY github_id',
-                array($this->queue->last_github_id));
+                'github_id > ? AND type = ? ORDER BY github_id',
+                array($this->queue->last_github_id, $this->type));
     }
 
     function catchUp() {
@@ -48,6 +61,7 @@ class GitHubEventQueue {
     static function outputEvents() {
         foreach(R::findAll(self::$event_table) as $event) {
             echo "GitHub id: {$event->github_id}\n";
+            echo "Type: {$event->type}\n";
             echo "Branch: {$event->branch}\n";
             echo "Repo: {$event->repo}\n";
             echo "Created: {$event->created}\n";
@@ -88,7 +102,7 @@ class GitHubEventQueue {
     }
 
     private static function addGitHubEvent($event) {
-        if ($event->type != 'PushEvent') { return; }
+        if ($event->type != 'PushEvent' && $event->type != 'CreateEvent') { return; }
 
         if (!preg_match('@^refs/heads/(.*)$@',
                 $event->payload->ref, $matches)) { return; }
@@ -100,6 +114,7 @@ class GitHubEventQueue {
 
         $event_row = R::dispense(self::$event_table);
         $event_row->github_id = $event->id;
+        $event_row->type = $event->type;
         $event_row->branch = $branch;
         $event_row->repo = $event->repo->name;
         $event_row->payload = json_encode($event->payload);
@@ -121,5 +136,12 @@ class GitHubEventQueue {
         }
 
         return self::$event_queue_status;
+    }
+
+    // Migrations
+
+    static function migration_AddType() {
+        Migrations::newColumn(self::$queue_table, 'type', 'PushEvent');
+        Migrations::newColumn(self::$event_table, 'type', 'PushEvent');
     }
 }

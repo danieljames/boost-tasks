@@ -2,6 +2,7 @@
 
 class Migrations {
     static $versions = array(
+        'GitHubEventQueue::migration_AddType',
     );
 
     static function migrate() {
@@ -18,5 +19,15 @@ class Migrations {
             ++$version->version;
             R::store($version);
         }
+    }
+
+    static function newColumn($table, $column, $initial_value) {
+        if (!array_key_exists($column, R::getColumns($table))) {
+            $x = R::findOne($table);
+            $x->{$column} = $initial_value;
+            R::store($x);
+        }
+        R::exec("UPDATE {$table} SET {$column} = ? WHERE {$column} IS NULL",
+            array($initial_value));
     }
 }
