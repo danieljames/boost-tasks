@@ -62,6 +62,7 @@ EOL;
         // Set up the database
 
         R::setup("sqlite:{$data_root}/cache.db", 'user', 'password');
+        Migrations::migrate();
 
         // Set up repos
 
