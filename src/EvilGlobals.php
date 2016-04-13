@@ -81,6 +81,7 @@ EOL;
 
         R::setup("sqlite:".self::$data_root."/cache.db", 'user', 'password');
         Migrations::migrate();
+        R::freeze(true);
     }
 
     static function resolve_path($path) {
