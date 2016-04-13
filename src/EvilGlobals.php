@@ -58,12 +58,6 @@ EOL;
             self::$website_data = self::resolve_path(self::$settings['website-data']);
         }
 
-
-        // Set up the database
-
-        R::setup("sqlite:{$data_root}/cache.db", 'user', 'password');
-        Migrations::migrate();
-
         // Set up repos
 
         foreach(self::$settings['superproject-branches'] as $branch => $submodule_branch) {
@@ -80,6 +74,13 @@ EOL;
                 self::$settings['username'],
                 self::$settings['password']);
 
+    }
+
+    static function setup() {
+        // Set up the database
+
+        R::setup("sqlite:".self::$data_root."/cache.db", 'user', 'password');
+        Migrations::migrate();
     }
 
     static function resolve_path($path) {

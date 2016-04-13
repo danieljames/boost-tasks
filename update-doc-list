@@ -10,6 +10,7 @@ function main($args) {
     $options = CommandLineOptions::process($args,
         'Update the documentation list',
         $specs);
+    EvilGlobals::setup();
 
     // TODO: For some reason 'hasArgument' is always true, even when
     // there isn't a version. Am I misunderstanding it? Doesn't really
