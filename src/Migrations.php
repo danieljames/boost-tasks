@@ -15,8 +15,10 @@ class Migrations {
 
         $num_versions = count(self::$versions);
         while ($version->version < $num_versions) {
+            Log::info("Call migration {$version->version}: ".self::$versions[$version->version]);
             call_user_func(self::$versions[$version->version]);
             ++$version->version;
+            Log::info("Migration success, now at version {$version->version}");
             R::store($version);
         }
     }
