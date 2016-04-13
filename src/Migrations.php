@@ -7,17 +7,20 @@ class Migrations {
     );
 
     static function migrate() {
-        $num_versions = count(self::$versions);
-        while(true) {
-            $version = R::getCell('PRAGMA user_version');
-            if ($version >= $num_versions) { return; }
+        while(R::transaction('Migrations::single_migration')) {}
+    }
 
+    static function single_migration() {
+        $num_versions = count(self::$versions);
+        $version = R::getCell('PRAGMA user_version');
+        if ($version < $num_versions) {
             Log::info("Call migration {$version}: ".self::$versions[$version]);
             call_user_func(self::$versions[$version]);
             ++$version;
             Log::info("Migration success, now at version {$version}");
             R::exec("PRAGMA user_version = {$version}");
         }
+        return $version < $num_versions;
     }
 
     static function newColumn($table, $column, $initial_value) {
