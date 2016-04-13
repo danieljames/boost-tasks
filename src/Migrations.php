@@ -14,7 +14,7 @@ class Migrations {
         }
 
         $num_versions = count(self::$versions);
-        if ($version->version < $num_versions) {
+        while ($version->version < $num_versions) {
             call_user_func(self::$versions[$version->version]);
             ++$version->version;
             R::store($version);
