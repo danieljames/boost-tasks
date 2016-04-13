@@ -25,6 +25,7 @@ class GitHubEventQueue {
 
     function __construct($name, $type = 'PushEvent') {
         $this->queue = R::findOne(self::$queue_table, 'name = ?', array($name));
+        $this->type = $type;
         if ($this->queue) {
             assert($this->queue->type === $type);
         }
