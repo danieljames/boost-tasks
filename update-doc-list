@@ -36,6 +36,14 @@ function main($args) {
     foreach (EvilGlobals::$branch_repos as $x) {
         $website_repo->updateSuperProject(new SuperProject($x));
     }
+
+    // Library list.
+    if (array_key_exists('library-file', EvilGlobals::$settings)) {
+        $library_list_path = EvilGlobals::$settings['library-file'];
+        ob_start();
+        passthru('php '.$website_repo->path.'/common/code/templates/libraries.php');
+        file_put_contents($library_list_path, ob_get_clean());
+    }
 }
 
 main($_SERVER['argv']);
