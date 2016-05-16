@@ -103,11 +103,19 @@ class GitHubEventQueue {
     }
 
     private static function addGitHubEvent($event) {
-        if ($event->type != 'PushEvent' && $event->type != 'CreateEvent') { return; }
-
-        if (!preg_match('@^refs/heads/(.*)$@',
-                $event->payload->ref, $matches)) { return; }
-        $branch = $matches[1];
+        switch ($event->type) {
+        case 'PushEvent':
+            if (!preg_match('@^refs/heads/(.*)$@',
+                    $event->payload->ref, $matches)) { return; }
+            $branch = $matches[1];
+            break;
+        case 'CreateEvent':
+            // Tags don't have a branch...
+            $branch = null;
+            break;
+        default:
+            return;
+        }
 
         if (R::findOne(self::$event_table, 'github_id = ?', array($event->id))) {
             return;
