@@ -7,7 +7,8 @@ php:
     - '5.3'
 
 install:
-    - composer install --no-interaction --prefer-source
+    - composer install
+    - touch config.neon
 
 script:
     - ./vendor/bin/tester -p php tests
