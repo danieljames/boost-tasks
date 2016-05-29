@@ -38,6 +38,7 @@ try {
             break;
         }
     }
+    Process::run("git tag -f last-upload");
 }
 catch (\RuntimeException $e) {
     Log::error("Runtime exception: {$e}");
