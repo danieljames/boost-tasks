@@ -7,7 +7,7 @@ php:
     - '5.3'
 
 install:
-    - composer install
+    - composer install --no-interaction --prefer-source
     - touch config.neon
 
 script:
