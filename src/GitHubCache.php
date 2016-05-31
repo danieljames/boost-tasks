@@ -134,10 +134,16 @@ class GitHubCache_Iterator implements Iterator
     private function fetch_to_line($line_index) {
         while ($line_index >= count($this->lines) && $this->next_url) {
             $response = $this->cache->get($this->next_url);
-
+            $response_body = \json_decode(trim($response->body));
+            if (!is_array($response_body)) {
+                throw new \RuntimeException("Invalid github response");
+            }
             $this->lines = array_merge($this->lines ?: array(),
-                \json_decode($response->body));
-            $this->next_url = $response->next_url;
+                $response_body);
+            // Assuming that if there's no 'next_url' it's the end,
+            // but maybe it should be an exception?
+            $this->next_url = property_exists($response, 'next_url') ?
+                $response->next_url : null;
         }
     }
 }

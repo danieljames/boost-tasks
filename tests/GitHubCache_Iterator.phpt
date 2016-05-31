@@ -32,6 +32,9 @@ class MockCache {
             'next_url' => 'error_on_page2_2',
         ),
         'error_on_page2_2' => "error message",
+        'no_next_url' => Array(
+            'body' => Array('one'),
+        ),
     );
 
     function get($url) {
@@ -45,6 +48,27 @@ class MockCache {
             else {
                 throw new \RuntimeException($x);
             }
+        }
+        else {
+            throw new \RuntimeException("Pretend this is a 404, okay?");
+        }
+    }
+}
+
+class MockInvalidCache {
+    var $requests = Array(
+        'null_response' => 'null',
+        'number_response' => '25',
+        'string_response' => '"[1,2,3]"',
+        'object_response' => '{"a":1,"b":2}',
+        'invalid_json_response' => '{a:1,b:2}',
+    );
+
+    function get($url) {
+        if (array_key_exists($url, $this->requests)) {
+            $x = new stdClass();
+            $x->body = $this->requests[$url];
+            return $x;
         }
         else {
             throw new \RuntimeException("Pretend this is a 404, okay?");
@@ -120,6 +144,24 @@ class GitHubCache_IteratorTest extends Tester\TestCase {
 
         for($i = 1; $i < 1000; $i *= 2) {
             $this->checkArray(range(0, $i), 20);
+        }
+    }
+
+    function testNoNextUrl() {
+        $x = new GitHubCache_Iterator(new MockCache, 'no_next_url');
+        Assert::true($x->valid());
+        Assert::same('one', $x->current());
+        $x->next();
+        Assert::false($x->valid());
+    }
+
+    function testInvalidResponses() {
+        $mock_cache = new MockInvalidCache();
+        foreach(array_keys($mock_cache->requests) as $request) {
+            $x = new GitHubCache_Iterator($mock_cache, $request);
+            Assert::exception(function() use($x) {
+                $x->valid();
+            }, 'RuntimeException');
         }
     }
 
