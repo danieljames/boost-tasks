@@ -86,8 +86,9 @@ class GitHubCache_IteratorTest extends Tester\TestCase {
     }
 
     function testError() {
-        Assert::exception(function() {
-            $x = new GitHubCache_Iterator(new MockCache, 'error');
+        $x = new GitHubCache_Iterator(new MockCache, 'error');
+        Assert::exception(function() use($x) {
+            $x->valid();
         }, 'RuntimeException');
     }
 

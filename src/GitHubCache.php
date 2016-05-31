@@ -89,7 +89,7 @@ class GitHubCache_Iterator implements Iterator
     /** @var string */
     private $next_url;
     /** @var array */
-    private $lines = Array();
+    private $lines = null;
     /** @var int */
     private $line_index = 0;
 
@@ -101,7 +101,6 @@ class GitHubCache_Iterator implements Iterator
     {
         $this->cache = $cache;
         $this->next_url = $url;
-        $this->fetch_to_line(0);
     }
 
     function rewind()
@@ -111,11 +110,13 @@ class GitHubCache_Iterator implements Iterator
 
     public function valid()
     {
+        $this->fetch_to_line($this->line_index);
         return array_key_exists($this->line_index, $this->lines);
     }
 
     public function current()
     {
+        $this->fetch_to_line($this->line_index);
         return $this->lines[$this->line_index];
     }
 
