@@ -5,6 +5,7 @@ require_once(__DIR__.'/vendor/autoload.php');
 use GetOptionKit\OptionCollection;
 
 function main($args) {
+    EvilGlobals::init();
     $specs = new OptionCollection;
     $specs->add('no-fetch', "Don't fetch events from GitHub")
         ->defaultValue(false);

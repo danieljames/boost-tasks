@@ -48,10 +48,6 @@ register_shutdown_function(function() {
     }
 });
 
-// Initialise global state.
-
-EvilGlobals::init();
-
 // Set up the logger.
 
 Log::$log = new Logger('boost update log');
