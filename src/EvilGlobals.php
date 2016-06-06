@@ -93,7 +93,7 @@ EOL;
     }
 
     static function read_config($path, $defaults = array()) {
-        $config = file_get_contents($path);
+        $config = is_readable($path) ? file_get_contents($path) : false;
         if ($config === false) {
             throw new RuntimeException("Unable to read config file: {$path}");
         }
