@@ -2,7 +2,7 @@
 <?php
 
 require_once(__DIR__.'/vendor/autoload.php');
-EvilGlobals::init();
+EvilGlobals::init('config.neon');
 CommandLineOptions::cron_job();
 EvilGlobals::setup();
 

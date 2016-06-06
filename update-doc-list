@@ -5,7 +5,7 @@ require_once(__DIR__.'/vendor/autoload.php');
 use GetOptionKit\OptionCollection;
 
 function main($args) {
-    EvilGlobals::init();
+    EvilGlobals::init('config.neon');
     $specs = new OptionCollection;
     $specs->add('version:', "Version of update (e.g. develop, 1.57.0)");
     $options = CommandLineOptions::process($args,

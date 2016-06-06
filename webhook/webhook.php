@@ -7,7 +7,7 @@ use Monolog\Handler\StreamHandler;
 
 function webhook() {
     header("Content-Type: text/plain");
-    EvilGlobals::init();
+    EvilGlobals::init('webhook.neon');
     Log::$log->pushHandler(
         new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO));
     $event = get_webhook_event();

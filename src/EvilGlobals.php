@@ -23,9 +23,9 @@ class EvilGlobals {
     static $branch_repos = array();
     static $github_cache;
 
-    static function init() {
+    static function init($path) {
         // Load settings
-        $path = self::resolve_path('config.neon');
+        $path = self::resolve_path($path);
         if (is_file($path)) {
             self::$settings = self::read_config($path, self::$settings);
         }
