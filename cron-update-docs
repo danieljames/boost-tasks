@@ -1,0 +1,214 @@
+#!/usr/bin/env php
+<?php
+
+require_once(__DIR__.'/vendor/autoload.php');
+
+function main() {
+    EvilGlobals::init('config.neon');
+    CommandLineOptions::cron_job();
+    EvilGlobals::setup();
+
+    // TODO: Resolve path
+    $archives_path = EvilGlobals::$settings['website-archives'];
+    if (!$archives_path) {
+        die("Archive location not set.\n");
+    }
+    if (!is_dir($archives_path)) {
+        die("Archive location not a directory.\n");
+    }
+    $archives_path = rtrim($archives_path, '/');
+
+    foreach(array('master', 'develop') as $branch) {
+        // Download file from bintray...
+        $cache = new BinTrayCache;
+        $file = $cache->fetch_latest($branch, '.tar.bz2');
+
+        $destination_path = "{$archives_path}/{$branch}";
+        $version = is_file("{$destination_path}/.bintray-version") ?
+            file_get_contents("{$destination_path}/.bintray-version") :
+            '';
+
+        if ($version != $file->version) {
+            if (!extract_documentation($destination_path, $file,
+                    "{$archives_path}/tmp")) {
+                die("Extact failed.\n");
+            }
+        }
+    }
+}
+
+function extract_documentation($destination_path, $file, $temp_root) {
+    Log::info("Extracting {$file->download_path} to {$destination_path}.");
+    $file_path = $file->download_path;
+
+    $temp_directory = new TemporaryDirectory($temp_root);
+    $temp_name = $temp_directory->path;
+
+    // Paths to use in temporary directory.
+    // TODO: Do this better?
+    $extract_path = pathinfo($file_path, PATHINFO_BASENAME);
+    $extract_path = preg_replace('@[.]tar[.]bz2$@', '', $extract_path);
+    $extract_path = "{$temp_name}/{$extract_path}";
+
+    // Extract the archive.
+    // TODO: Check for errors here.
+    syscall("tar -xjf '{$file_path}'", $temp_name);
+
+    if (!is_dir($extract_path)) {
+        Log::error("Something went wrong extracting archive");
+        return false;
+    }
+
+    file_put_contents("{$extract_path}/.bintray-version", $file->version);
+
+    // Would be nice to overwrite old archive in a cleaner manner...
+    if (realpath($destination_path)) { rename($destination_path, "{$temp_name}/old"); }
+    rename($extract_path, $destination_path);
+    return true;
+}
+
+class TemporaryDirectory {
+    var $path;
+
+    function __construct($tmp_root = null) {
+        if (is_null($tmp_root)) { $tmp_root = sys_get_temp_dir(); }
+
+        // Create temporary directory.
+        // Race condition here, but seems unlikely to be a real problem.
+        $temp_name = tempnam($tmp_root, "download");
+        if (!$temp_name) { return false; }
+        if (strpos($temp_name, "{$tmp_root}/") !== 0) {
+            die("Incorrect location for temporary directory.");
+        }
+        unlink($temp_name);
+        mkdir($temp_name);
+        $temp_name = realpath($temp_name);
+        if (!$temp_name || !is_dir($temp_name) || strpos($temp_name, "{$tmp_root}/") !== 0) {
+            die("Something went wrong creating temporary directory.");
+        }
+
+        $this->path = $temp_name;
+    }
+
+    function __destruct() {
+        if ($this->path) { recursive_remove($this->path); }
+    }
+
+    function getPath() {
+        return $this->path;
+    }
+}
+
+// TODO: Better error handling.
+function recursive_remove($path) {
+    if (is_file($path) || is_link($path)) {
+        unlink($path);
+    }
+    else if (is_dir($path)) {
+        foreach(scandir($path) as $child) {
+            if ($child == '.' || $child == '..') { continue; }
+            $child_path = "{$path}/{$child}";
+            recursive_remove($child_path);
+        }
+        rmdir($path);
+    }
+}
+
+function syscall($cmd, $cwd) {
+    $descriptorspec = array(
+        1 => array('pipe', 'w') // stdout is a pipe that the child will write to
+    );
+    $resource = proc_open($cmd, $descriptorspec, $pipes, $cwd);
+    if (is_resource($resource)) {
+        // TODO: Error pipe
+        $output = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        proc_close($resource);
+        return $output;
+    }
+}
+
+class BinTrayCache {
+    var $path;
+
+    function __construct() {
+        // TODO: Should setting up this path by in EvilGlobals.
+        $this->path = EvilGlobals::$data_root.'/bintray';
+        if (!is_dir($this->path)) { mkdir($this->path); }
+    }
+
+    function fetch_latest($branch, $extension) {
+        $extension = '.'.ltrim($extension, '.');
+
+        // Download the file list from bintray.
+        $files = file_get_contents(
+            "https://api.bintray.com/packages/boostorg/{$branch}/snapshot/files");
+        if (!$files) {
+            die("Error downloading file details from bintray.");
+        }
+
+        $files = json_decode($files);
+        if (!$files) {
+            die("Error parsing latest details.");
+        }
+
+        $file = null;
+        foreach($files as $x) {
+            if (preg_match('@'.preg_quote($extension, '@').'$@', $x->name)) {
+                if ($file) {
+                    die("More than one file found.");
+                }
+                $file = $x;
+            }
+        }
+        if (!$file) {
+            die("Unable to find file to download.");
+        }
+
+        $date = date('Y-m-d', strtotime($file->created));
+        $download_dir = "{$this->path}/{$date}/{$file->sha1}";
+        $download_path = "{$download_dir}/{$file->name}";
+
+        $file->download_path = $download_path;
+        $file->is_new = !is_file($download_path);
+
+        if ($file->is_new) {
+            mkdir($download_dir, 0777, true);
+            if (!$this->download_file(
+                "http://dl.bintray.com/boostorg/{$file->repo}/{$file->name}",
+                $download_path))
+            {
+                die("Error downloading file from bintray.\n");
+            }
+        }
+
+        if (hash_file('sha256', $download_path) != $file->sha256) {
+            Log::error("File signature doesn't match: {$download_path}");
+            die("File signature doesn't match.\n");
+        }
+
+        return $file;
+    }
+
+    // TODO: Download to temporary file and move into position.
+    function download_file($url, $dst_path) {
+        Log::info("Downloading {$url} to {$dst_path}.");
+        $download_fh = fopen($url, 'rb');
+        if (!$download_fh) { return false; }
+
+        $save_fh = fopen($dst_path, "wb");
+        if (!$save_fh) { return false; }
+
+        $failed = false;
+        while (!feof($download_fh)) {
+            $chunk = fread($download_fh, 8192);
+            if ($chunk === false) { $failed = true; break; }
+            if (fwrite($save_fh, $chunk) === false) { $failed = true; break; }
+        }
+        $chunk = null;
+
+        return true;
+    }
+}
+
+main();
