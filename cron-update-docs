@@ -73,6 +73,14 @@ class TemporaryDirectory {
     function __construct($tmp_root = null) {
         if (is_null($tmp_root)) { $tmp_root = sys_get_temp_dir(); }
 
+        if (!is_dir($tmp_root)) {
+            die("Temporary directory doesn't exists.\n");
+        }
+
+        if (!is_writable($tmp_root)) {
+            die("Temporary directory isn't writable.\n");
+        }
+
         // Create temporary directory.
         // Race condition here, but seems unlikely to be a real problem.
         $temp_name = tempnam($tmp_root, "download");
