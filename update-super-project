@@ -5,14 +5,13 @@ require_once(__DIR__.'/vendor/autoload.php');
 use GetOptionKit\OptionCollection;
 
 function main($args) {
-    EvilGlobals::init('config.neon');
     $specs = new OptionCollection;
     $specs->add('no-fetch', "Don't fetch events from GitHub")
         ->defaultValue(false);
     $options = CommandLineOptions::process($args,
         'Update the submodules in the super project',
         $specs);
-    EvilGlobals::setup();
+    EvilGlobals::init('config.neon', $options);
 
     if ($options['cron']) {
         // Quick and dirty check if the configuration has changed since last run.

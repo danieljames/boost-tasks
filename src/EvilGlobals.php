@@ -1,6 +1,8 @@
 <?php
 
 use Nette\Neon\Neon;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 
 class EvilGlobals {
     static $settings = array(
@@ -23,7 +25,7 @@ class EvilGlobals {
     static $branch_repos = array();
     static $github_cache;
 
-    static function init($path) {
+    static function init($path, $options) {
         // Load settings
         $path = self::resolve_path($path);
         if (is_file($path)) {
@@ -37,6 +39,20 @@ See README.md for configuration instructions.
 
 EOL;
             exit(1);
+        }
+
+        // Set up logging
+
+        if (array_key_exists('cron', $options) && $options['cron']) {
+            Log::$log->pushHandler(
+                new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO));
+        }
+        else if (array_key_exists('webhook', $options) && $options['webhook']) {
+            Log::$log->pushHandler(
+                new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO));
+        }
+        else {
+            // Default logging at command line?
         }
 
         // Set up repo directory.
@@ -74,9 +90,6 @@ EOL;
                 self::$settings['username'],
                 self::$settings['password']);
 
-    }
-
-    static function setup() {
         // Set up the database
 
         R::setup("sqlite:".self::$data_root."/cache.db", 'user', 'password');

@@ -2,14 +2,9 @@
 
 require_once(__DIR__.'/../vendor/autoload.php');
 
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
-
 function webhook() {
     header("Content-Type: text/plain");
-    EvilGlobals::init('webhook.neon');
-    Log::$log->pushHandler(
-        new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO));
+    EvilGlobals::init('webhook.neon', array('webhook' => true));
     $event = get_webhook_event();
 
     switch($event->event_type) {

@@ -4,8 +4,6 @@ use GetOptionKit\OptionCollection;
 use GetOptionKit\OptionParser;
 use GetOptionKit\OptionPrinter\ConsoleOptionPrinter;
 use GetOptionKit\Exception\InvalidOptionException;
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
 
 // Very basic command line options handling thing.
 class CommandLineOptions
@@ -42,16 +40,7 @@ class CommandLineOptions
             exit(0);
         }
 
-        if ($options['cron']) {
-            self::cron_job();
-        }
-
         return $options;
-    }
-
-    static function cron_job() {
-        Log::$log->pushHandler(
-                new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO));
     }
 
     function usage($message = null) {
