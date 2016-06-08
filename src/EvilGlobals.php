@@ -26,7 +26,16 @@ class EvilGlobals {
     static $github_cache;
 
     static function init($path, $options) {
+        // Initial logging settings, for loading configuration.
+        // Q: Should this be done before handling command line options?
+
+        Log::$log = new Logger('boost update log');
+        Log::$log->setHandlers(array(
+            new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::WARNING),
+        ));
+
         // Load settings
+
         $path = self::resolve_path($path);
         if (is_file($path)) {
             self::$settings = self::read_config($path, self::$settings);
@@ -41,18 +50,19 @@ EOL;
             exit(1);
         }
 
-        // Set up logging
+        // Set up logging again.
 
         if (array_key_exists('cron', $options) && $options['cron']) {
-            Log::$log->pushHandler(
-                new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO));
-        }
-        else if (array_key_exists('webhook', $options) && $options['webhook']) {
-            Log::$log->pushHandler(
-                new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO));
+            Log::$log->setHandlers(array(
+                new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO),
+                new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::ERROR)
+            ));
         }
         else {
-            // Default logging at command line?
+            Log::$log->setHandlers(array(
+                new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO),
+                new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::INFO)
+            ));
         }
 
         // Set up repo directory.

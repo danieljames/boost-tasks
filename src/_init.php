@@ -1,7 +1,5 @@
 <?php
 
-use Monolog\Logger;
-
 // Set up autoloading.
 
 require_once __DIR__.'/../vendor/autoload.php';
@@ -50,8 +48,8 @@ register_shutdown_function(function() {
     }
 });
 
-// Set up the logger.
+// Utility functions
 
-// TODO: Write errors to stdout by default, it currently goes to stderr,
-//       and that goes to the wrong log file on the server.
-Log::$log = new Logger('boost update log');
+function array_get($array, $key, $default= null) {
+    return array_key_exists($key, $array) ? $array[$key] : $default;
+}
