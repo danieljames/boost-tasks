@@ -14,6 +14,29 @@ function main($args) {
         $specs);
     EvilGlobals::setup();
 
+    if ($options['cron']) {
+        // Quick and dirty check if the configuration has changed since last run.
+        $settings = \Nette\Neon\Neon::encode(EvilGlobals::safe_settings(), \Nette\Neon\Neon::BLOCK);
+        $record = R::findOne('variable', 'name = "settings"');
+        if (!$record || $settings !== $record->value) {
+            echo "Configuration updated:\n\n{$settings}";
+
+            if (!$record) {
+                $record = R::dispense('variable');
+                $record->name = 'settings';
+            }
+            $record->value = $settings;
+            $record->updated_on = R::isoDateTime();
+            R::store($record);
+
+            $history = R::dispense('history');
+            $history->name = $record->name;
+            $history->value = $record->value;
+            $history->updated_on = $record->updated_on;
+            R::store($history);
+        }
+    }
+
     if (!$options['no-fetch']) {
         GitHubEventQueue::downloadEvents();
     }
