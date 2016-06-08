@@ -25,7 +25,7 @@ function myErrorHandler($message) {
         echo htmlentities($message),"\n";
     }
     else if (defined('STDERR')) {
-        fputs(STDERR, $message);
+        fputs(STDERR, "{$message}\n");
     }
     else {
         echo("{$message}\n");
