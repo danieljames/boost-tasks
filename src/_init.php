@@ -12,13 +12,15 @@ require __DIR__.'/../vendor/autoload.php';
 date_default_timezone_set('UTC');
 
 // Die on all errors.
-
 function myErrorHandler($message) {
+    if (array_key_exists('SERVER_PROTOCOL', $_SERVER)) {
+        @header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
+    }
+
     if (Log::$log) {
         Log::error($message);
     }
     else if (array_key_exists('SERVER_PROTOCOL', $_SERVER)) {
-        header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
         // TODO: Don't html encode message if writing text.
         echo htmlentities($message),"\n";
     }
