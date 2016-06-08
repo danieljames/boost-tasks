@@ -4,7 +4,7 @@ use Monolog\Logger;
 
 // Set up autoloading.
 
-require __DIR__.'/../vendor/autoload.php';
+require_once __DIR__.'/../vendor/autoload.php';
 
 // Set timezone to UTC, php sometimes complains if timezone isn't set, and
 // it saves me from having to think about the server's timezone.
