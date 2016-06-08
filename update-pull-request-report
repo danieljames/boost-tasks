@@ -3,7 +3,8 @@
 
 require_once(__DIR__.'/vendor/autoload.php');
 EvilGlobals::init('config.neon');
-CommandLineOptions::cron_job();
+$options = CommandLineOptions::process($_SERVER['argv'],
+    'Update the pull request report from GitHub.');
 EvilGlobals::setup();
 
 $report = new PullRequestReport();

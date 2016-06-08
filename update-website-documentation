@@ -5,7 +5,8 @@ require_once(__DIR__.'/vendor/autoload.php');
 
 function main() {
     EvilGlobals::init('config.neon');
-    CommandLineOptions::cron_job();
+    $options = CommandLineOptions::process($_SERVER['argv'],
+        'Update the website development documentation from BinTray.');
     EvilGlobals::setup();
 
     // TODO: Resolve path
