@@ -21,7 +21,7 @@ class EvilGlobals {
     // Filesystem layout
     var $data_root;
     var $website_data;
-    var $branch_repos = array();
+    var $branch_repos;
     var $github_cache;
 
     static function init($path, $options) {
@@ -62,9 +62,7 @@ EOL;
             // Set up repo directory.
 
             $data_root = self::resolve_path($this->settings['data']);
-            $super_root = "{$data_root}/super";
             if (!is_dir($data_root)) { mkdir($data_root); }
-            if (!is_dir($super_root)) { mkdir($super_root); }
             $this->data_root = $data_root;
 
             // Set up logging again.
@@ -86,16 +84,6 @@ EOL;
 
             if ($this->settings['website-data']) {
                 $this->website_data = self::resolve_path($this->settings['website-data']);
-            }
-
-            // Set up repos
-
-            foreach($this->settings['superproject-branches'] as $branch => $submodule_branch) {
-                $this->branch_repos[] = array(
-                    'path' => "{$super_root}/{$branch}",
-                    'superproject-branch' => $branch,
-                    'submodule-branch' => $submodule_branch,
-                );
             }
 
             // Set up the database
@@ -124,8 +112,28 @@ EOL;
 
     }
 
-    static function website_data() { return self::$instance->website_data; }
-    static function branch_repos() { return self::$instance->branch_repos; }
+    static function website_data() {
+        return self::$instance->website_data;
+    }
+
+    static function branch_repos() {
+        if (!is_array(self::$instance->branch_repos)) {
+            $super_root = self::data_path('super');
+
+            $branch_repos = array();
+            foreach(self::settings('superproject-branches', array()) as $branch => $submodule_branch) {
+                $branch_repos[] = array(
+                    'path' => "{$super_root}/{$branch}",
+                    'superproject-branch' => $branch,
+                    'submodule-branch' => $submodule_branch,
+                );
+            }
+
+            self::$instance->branch_repos = $branch_repos;
+        }
+
+        return self::$instance->branch_repos;
+    }
 
     static function github_cache() {
         if (!self::$instance->github_cache) {
