@@ -9,7 +9,7 @@ function main() {
     EvilGlobals::init('config.neon', $options);
 
     // TODO: Resolve path
-    $archives_path = EvilGlobals::$settings['website-archives'];
+    $archives_path = EvilGlobals::settings('website-archives');
     if (!$archives_path) {
         die("Archive location not set.\n");
     }
@@ -141,7 +141,7 @@ class BinTrayCache {
 
     function __construct() {
         // TODO: Should setting up this path by in EvilGlobals.
-        $this->path = EvilGlobals::$data_root.'/bintray';
+        $this->path = EvilGlobals::data_root().'/bintray';
         if (!is_dir($this->path)) { mkdir($this->path); }
     }
 

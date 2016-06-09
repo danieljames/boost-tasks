@@ -88,10 +88,11 @@ class GitHubWebHookEvent {
 }
 
 function get_webhook_event() {
-    if (!array_key_exists('github-webhook-secret', EvilGlobals::$settings)) {
+    $secret_key = EvilGlobals::settings('github-webhook-secret');
+    if (!$secret_key) {
         die("github-webhook-secret not set.");
     }
-    $secret_key = EvilGlobals::$settings['github-webhook-secret'];
+
     $post_body = file_get_contents('php://input');
 
     // Check the signature

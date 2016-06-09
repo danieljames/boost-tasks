@@ -111,6 +111,18 @@ EOL;
         }
     }
 
+    static function settings($key, $default = null) {
+        return array_get(self::$settings, $key, $default);
+    }
+
+    static function data_root() { return self::$data_root; }
+    static function mirror_root() { return self::$mirror_root; }
+    static function super_root() { return self::$super_root; }
+    static function repos_root() { return self::$repos_root; }
+
+    static function website_data() { return self::$website_data; }
+    static function branch_repos() { return self::$branch_repos; }
+
     static function github_cache() {
         if (!self::$github_cache) {
             self::$github_cache = new \GitHubCache(

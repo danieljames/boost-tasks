@@ -35,8 +35,8 @@ class PullRequestReport {
 
         $json = json_encode($json_data);
 
-        if (\EvilGlobals::$website_data) {
-            file_put_contents(\EvilGlobals::$website_data.'/pull-requests.json', $json);
+        if (\EvilGlobals::website_data()) {
+            file_put_contents(\EvilGlobals::website_data().'/pull-requests.json', $json);
         }
         else {
             echo $json;

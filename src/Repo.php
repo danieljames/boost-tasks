@@ -17,7 +17,7 @@ class Repo {
         $this->module = $module;
         $this->branch = $branch;
         $this->path = $path;
-        $this->enable_push = EvilGlobals::$settings['push-to-repo'];
+        $this->enable_push = EvilGlobals::settings('push-to-repo');
     }
 
     function getModuleBranchName() {

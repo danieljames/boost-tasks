@@ -13,7 +13,7 @@ class SuperProject extends Repo {
     var $submodule_branch;
 
     static function updateBranches($branches = null) {
-        if (!$branches) { $branches = EvilGlobals::$branch_repos; }
+        if (!$branches) { $branches = EvilGlobals::branch_repos(); }
         foreach ($branches as $x) {
             $super = new SuperProject($x);
             $super->checkedUpdateFromEvents();

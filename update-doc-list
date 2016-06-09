@@ -33,13 +33,12 @@ function main($args) {
     }
 
     // Update maintainer lists.
-    foreach (EvilGlobals::$branch_repos as $x) {
+    foreach (EvilGlobals::branch_repos() as $x) {
         $website_repo->updateSuperProject(new SuperProject($x));
     }
 
     // Library list.
-    if (array_key_exists('library-file', EvilGlobals::$settings)) {
-        $library_list_path = EvilGlobals::$settings['library-file'];
+    if ($library_list_path = EvilGlobals::settings('library-file')) {
         file_put_contents($library_list_path, file_get_contents(
             'http://www.boost.org/doc/generate.php?page=libs/libraries.htm&version=master'
         ));
