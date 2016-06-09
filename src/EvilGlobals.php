@@ -5,7 +5,7 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 class EvilGlobals {
-    static $settings = array(
+    static $default_settings = array(
         'data' => '../update-data',
         'username' => null,
         'password' => null,
@@ -14,22 +14,31 @@ class EvilGlobals {
         'superproject-branches' => array(),
     );
 
+    static $instance = null;
+
+    var $settings;
+
     // Filesystem layout
-    static $data_root;
-    static $mirror_root;
-    static $super_root;
-    static $repos_root;
+    var $data_root;
+    var $mirror_root;
+    var $super_root;
+    var $repos_root;
 
-    static $website_data;
+    var $website_data;
 
-    static $branch_repos = array();
-    static $github_cache;
+    var $branch_repos = array();
+    var $github_cache;
 
     static function init($path, $options) {
+        self::$instance = new EvilGlobals($path, $options);
+    }
+
+    private function __construct($path, $options) {
         Log::$log = new Logger('boost update log');
         if (array_get($options, 'testing')) {
             // Just skipping configuration completely for now, will certainly
             // have to do something better in the future.
+            $this->settings = self::$default_settings;
         }
         else {
             // Initial logging settings, for loading configuration.
@@ -43,7 +52,7 @@ class EvilGlobals {
 
             $path = self::resolve_path($path);
             if (is_file($path)) {
-                self::$settings = self::read_config($path, self::$settings);
+                $this->settings = self::read_config($path, self::$default_settings);
             }
             else {
                 echo <<<EOL
@@ -57,80 +66,77 @@ EOL;
 
             // Set up repo directory.
 
-            $data_root = self::resolve_path(self::$settings['data']);
-            self::$data_root = $data_root;
-            self::$mirror_root = "{$data_root}/mirror";
-            self::$super_root = "{$data_root}/super";
-            self::$repos_root = "{$data_root}/repos";
+            $data_root = self::resolve_path($this->settings['data']);
+            $this->data_root = $data_root;
+            $this->mirror_root = "{$data_root}/mirror";
+            $this->super_root = "{$data_root}/super";
+            $this->repos_root = "{$data_root}/repos";
 
-            if (!is_dir(self::$data_root)) { mkdir(self::$data_root); }
-            if (!is_dir(self::$mirror_root)) { mkdir(self::$mirror_root); }
-            if (!is_dir(self::$super_root)) { mkdir(self::$super_root); }
-            if (!is_dir(self::$repos_root)) { mkdir(self::$repos_root); }
+            if (!is_dir($this->data_root)) { mkdir($this->data_root); }
+            if (!is_dir($this->mirror_root)) { mkdir($this->mirror_root); }
+            if (!is_dir($this->super_root)) { mkdir($this->super_root); }
+            if (!is_dir($this->repos_root)) { mkdir($this->repos_root); }
 
             // Set up logging again.
 
             if (array_get($options, 'cron')) {
                 Log::$log->setHandlers(array(
-                    new StreamHandler(self::$data_root."/log.txt", Logger::INFO),
+                    new StreamHandler("{$this->data_root}/log.txt", Logger::INFO),
                     new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::ERROR)
                 ));
             }
             else {
                 Log::$log->setHandlers(array(
-                    new StreamHandler(self::$data_root."/log.txt", Logger::INFO),
+                    new StreamHandler("{$this->data_root}/log.txt", Logger::INFO),
                     new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::INFO)
                 ));
             }
 
             // Set up website data directory.
 
-            if (self::$settings['website-data']) {
-                self::$website_data = self::resolve_path(self::$settings['website-data']);
+            if ($this->settings['website-data']) {
+                $this->website_data = self::resolve_path($this->settings['website-data']);
             }
 
             // Set up repos
 
-            foreach(self::$settings['superproject-branches'] as $branch => $submodule_branch) {
-                self::$branch_repos[] = array(
-                    'path' => self::$super_root."/".$branch,
+            foreach($this->settings['superproject-branches'] as $branch => $submodule_branch) {
+                $this->branch_repos[] = array(
+                    'path' => $this->super_root."/".$branch,
                     'superproject-branch' => $branch,
                     'submodule-branch' => $submodule_branch,
                 );
             }
 
             // Set up the database
+            // TODO: This doesn't repeat well.
 
-            R::setup("sqlite:".self::$data_root."/cache.db", 'user', 'password');
+            R::setup("sqlite:{$this->data_root}/cache.db");
             Migrations::migrate();
             R::freeze(true);
-
-            // Clear cached data
-
-            self::$github_cache = null;
         }
     }
 
     static function settings($key, $default = null) {
-        return array_get(self::$settings, $key, $default);
+        return array_get(self::$instance->settings, $key, $default);
     }
 
-    static function data_root() { return self::$data_root; }
-    static function mirror_root() { return self::$mirror_root; }
-    static function super_root() { return self::$super_root; }
-    static function repos_root() { return self::$repos_root; }
+    static function data_root() { return self::$instance->data_root; }
+    static function mirror_root() { return self::$instance->mirror_root; }
+    static function super_root() { return self::$instance->super_root; }
+    static function repos_root() { return self::$instance->repos_root; }
 
-    static function website_data() { return self::$website_data; }
-    static function branch_repos() { return self::$branch_repos; }
+    static function website_data() { return self::$instance->website_data; }
+    static function branch_repos() { return self::$instance->branch_repos; }
 
     static function github_cache() {
-        if (!self::$github_cache) {
-            self::$github_cache = new \GitHubCache(
-                self::$settings['username'],
-                self::$settings['password']);
+        if (!self::$instance->github_cache) {
+            self::$instance->github_cache = new \GitHubCache(
+                self::$instance->settings['username'],
+                self::$instance->settings['password']);
         }
 
-        return self::$github_cache;
+        return self::$instance->github_cache;
     }
 
     static function resolve_path($path) {
