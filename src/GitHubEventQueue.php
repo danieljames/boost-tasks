@@ -78,7 +78,7 @@ class GitHubEventQueue {
         $new_last_id = null;
         $event_row = null;
 
-        foreach(EvilGlobals::$github_cache->iterate('/orgs/boostorg/events')
+        foreach(EvilGlobals::github_cache()->iterate('/orgs/boostorg/events')
                 as $event) {
             if ($event->id <= $last_id) { break; }
             if (!$new_last_id) { $new_last_id = $event->id; }

@@ -45,7 +45,7 @@ class LocalMirror {
     }
 
     function refreshAll($dirty = true) {
-        foreach (EvilGlobals::$github_cache->iterate('/orgs/boostorg/repos') as $repo) {
+        foreach (EvilGlobals::github_cache()->iterate('/orgs/boostorg/repos') as $repo) {
             $url = $repo->clone_url;
             $this->update($repo->clone_url, $dirty);
         }

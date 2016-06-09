@@ -99,18 +99,26 @@ EOL;
                 );
             }
 
-            // Set up cache
-
-            self::$github_cache = new \GitHubCache(
-                    self::$settings['username'],
-                    self::$settings['password']);
-
             // Set up the database
 
             R::setup("sqlite:".self::$data_root."/cache.db", 'user', 'password');
             Migrations::migrate();
             R::freeze(true);
+
+            // Clear cached data
+
+            self::$github_cache = null;
         }
+    }
+
+    static function github_cache() {
+        if (!self::$github_cache) {
+            self::$github_cache = new \GitHubCache(
+                self::$settings['username'],
+                self::$settings['password']);
+        }
+
+        return self::$github_cache;
     }
 
     static function resolve_path($path) {
