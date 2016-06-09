@@ -20,12 +20,7 @@ class EvilGlobals {
 
     // Filesystem layout
     var $data_root;
-    var $mirror_root;
-    var $super_root;
-    var $repos_root;
-
     var $website_data;
-
     var $branch_repos = array();
     var $github_cache;
 
@@ -67,15 +62,10 @@ EOL;
             // Set up repo directory.
 
             $data_root = self::resolve_path($this->settings['data']);
+            $super_root = "{$data_root}/super";
+            if (!is_dir($data_root)) { mkdir($data_root); }
+            if (!is_dir($super_root)) { mkdir($super_root); }
             $this->data_root = $data_root;
-            $this->mirror_root = "{$data_root}/mirror";
-            $this->super_root = "{$data_root}/super";
-            $this->repos_root = "{$data_root}/repos";
-
-            if (!is_dir($this->data_root)) { mkdir($this->data_root); }
-            if (!is_dir($this->mirror_root)) { mkdir($this->mirror_root); }
-            if (!is_dir($this->super_root)) { mkdir($this->super_root); }
-            if (!is_dir($this->repos_root)) { mkdir($this->repos_root); }
 
             // Set up logging again.
 
@@ -102,7 +92,7 @@ EOL;
 
             foreach($this->settings['superproject-branches'] as $branch => $submodule_branch) {
                 $this->branch_repos[] = array(
-                    'path' => $this->super_root."/".$branch,
+                    'path' => "{$super_root}/{$branch}",
                     'superproject-branch' => $branch,
                     'submodule-branch' => $submodule_branch,
                 );
@@ -121,10 +111,18 @@ EOL;
         return array_get(self::$instance->settings, $key, $default);
     }
 
-    static function data_root() { return self::$instance->data_root; }
-    static function mirror_root() { return self::$instance->mirror_root; }
-    static function super_root() { return self::$instance->super_root; }
-    static function repos_root() { return self::$instance->repos_root; }
+    static function data_path($thing = null) {
+        $data_root = self::$instance->data_root;
+        if (is_null($thing)) {
+            return $data_root;
+        }
+        else {
+            $path = "{$data_root}/{$thing}";
+            if (!is_dir($path)) { mkdir($path); }
+            return $path;
+        }
+
+    }
 
     static function website_data() { return self::$instance->website_data; }
     static function branch_repos() { return self::$instance->branch_repos; }

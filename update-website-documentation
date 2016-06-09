@@ -140,9 +140,7 @@ class BinTrayCache {
     var $path;
 
     function __construct() {
-        // TODO: Should setting up this path by in EvilGlobals.
-        $this->path = EvilGlobals::data_root().'/bintray';
-        if (!is_dir($this->path)) { mkdir($this->path); }
+        $this->path = EvilGlobals::data_path('bintray');
     }
 
     function fetch_latest($branch, $extension) {
