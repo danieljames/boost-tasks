@@ -146,11 +146,4 @@ class GitHubEventQueue {
 
         return self::$event_queue_status;
     }
-
-    // Migrations
-
-    static function migration_AddType() {
-        Migrations::newColumn(self::$queue_table, 'type', 'PushEvent');
-        Migrations::newColumn(self::$event_table, 'type', 'PushEvent');
-    }
 }
