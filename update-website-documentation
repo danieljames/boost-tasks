@@ -4,12 +4,12 @@
 require_once(__DIR__.'/vendor/autoload.php');
 
 function main() {
-    EvilGlobals::init('config.neon');
-    CommandLineOptions::cron_job();
-    EvilGlobals::setup();
+    $options = CommandLineOptions::process($_SERVER['argv'],
+        'Update the website development documentation from BinTray.');
+    EvilGlobals::init('config.neon', $options);
 
     // TODO: Resolve path
-    $archives_path = EvilGlobals::$settings['website-archives'];
+    $archives_path = EvilGlobals::settings('website-archives');
     if (!$archives_path) {
         die("Archive location not set.\n");
     }
@@ -140,9 +140,7 @@ class BinTrayCache {
     var $path;
 
     function __construct() {
-        // TODO: Should setting up this path by in EvilGlobals.
-        $this->path = EvilGlobals::$data_root.'/bintray';
-        if (!is_dir($this->path)) { mkdir($this->path); }
+        $this->path = EvilGlobals::data_path('bintray');
     }
 
     function fetch_latest($branch, $extension) {

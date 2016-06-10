@@ -13,7 +13,7 @@ class SuperProject extends Repo {
     var $submodule_branch;
 
     static function updateBranches($branches = null) {
-        if (!$branches) { $branches = EvilGlobals::$branch_repos; }
+        if (!$branches) { $branches = EvilGlobals::branch_repos(); }
         foreach ($branches as $x) {
             $super = new SuperProject($x);
             $super->checkedUpdateFromEvents();
@@ -64,7 +64,7 @@ class SuperProject extends Repo {
         $updates = array();
         foreach($submodules->getSubmodules() as $submodule) {
             // TODO: github_name can be null.
-            foreach (EvilGlobals::$github_cache->iterate(
+            foreach (EvilGlobals::github_cache()->iterate(
                     "/repos/{$submodule->github_name}/branches") as $branch) {
                 if ($branch->name === $this->submodule_branch) {
                     $updates[$submodule->boost_name] = $branch->commit->sha;

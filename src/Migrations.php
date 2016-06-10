@@ -2,8 +2,8 @@
 
 class Migrations {
     static $versions = array(
-        'GitHubEventQueue::migration_AddType',
-        'Migrations::migration_DropVersionTable',
+        'Migrations::migration_Initialise',
+        'Migrations::migration_Null',
     );
 
     static function migrate() {
@@ -23,17 +23,26 @@ class Migrations {
         return $version < $num_versions;
     }
 
-    static function newColumn($table, $column, $initial_value) {
-        if (!array_key_exists($column, R::getColumns($table))) {
-            $x = R::findOne($table);
-            $x->{$column} = $initial_value;
-            R::store($x);
-        }
-        R::exec("UPDATE {$table} SET {$column} = ? WHERE {$column} IS NULL",
-            array($initial_value));
+    static function migration_Null() {
     }
 
-    static function migration_DropVersionTable() {
-        R::exec("DROP TABLE version");
+    static function migration_Initialise() {
+        $schema = "
+            CREATE TABLE `event` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `github_id` TEXT, `branch` TEXT, `repo` TEXT, `payload` TEXT, `created` NUMERIC, `sequence_start` INTEGER, `type` TEXT);
+            CREATE TABLE `eventstate` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `start_id` TEXT, `last_id` TEXT, `name` TEXT);
+            CREATE TABLE `githubcache` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `url` TEXT, `next_url` TEXT, `etag` TEXT, `body` TEXT);
+            CREATE TABLE `history` (id INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT, `value` TEXT, `updated_on` NUMERIC);
+            CREATE TABLE `mirror` (id INTEGER PRIMARY KEY AUTOINCREMENT, `path` TEXT, `dirty` INTEGER, `url` TEXT);
+            CREATE TABLE `queue` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT, `last_github_id` TEXT, `type` TEXT);
+            CREATE TABLE `variable` (id INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT, `value` TEXT, `updated_on` NUMERIC);
+            CREATE INDEX index_foreignkey_event_github ON `event` (github_id);
+            CREATE INDEX index_foreignkey_eventstate_last ON `eventstate` (last_id);
+            CREATE INDEX index_foreignkey_eventstate_start ON `eventstate` (start_id);
+            CREATE INDEX index_foreignkey_queue_last_github ON `queue` (last_github_id);
+        ";
+
+        foreach(explode(';', $schema) as $command) {
+            R::exec($command);
+        }
     }
 }

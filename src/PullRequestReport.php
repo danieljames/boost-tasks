@@ -13,8 +13,8 @@ class PullRequestReport {
         // echo date("r\n", strtotime("2014-01-27T05:26:41Z"));
 
         $pull_requests = Array();
-        foreach (EvilGlobals::$github_cache->iterate('/orgs/boostorg/repos') as $repo) {
-            foreach (EvilGlobals::$github_cache->iterate("/repos/{$repo->full_name}/pulls") as $pull) {
+        foreach (EvilGlobals::github_cache()->iterate('/orgs/boostorg/repos') as $repo) {
+            foreach (EvilGlobals::github_cache()->iterate("/repos/{$repo->full_name}/pulls") as $pull) {
                 $data = new \stdClass();
                 $data->id = $pull->id;
                 $data->html_url = $pull->html_url;
@@ -35,8 +35,8 @@ class PullRequestReport {
 
         $json = json_encode($json_data);
 
-        if (\EvilGlobals::$website_data) {
-            file_put_contents(\EvilGlobals::$website_data.'/pull-requests.json', $json);
+        if (\EvilGlobals::website_data()) {
+            file_put_contents(\EvilGlobals::website_data().'/pull-requests.json', $json);
         }
         else {
             echo $json;

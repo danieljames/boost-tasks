@@ -78,7 +78,7 @@ class GitHubEventQueue {
         $new_last_id = null;
         $event_row = null;
 
-        foreach(EvilGlobals::$github_cache->iterate('/orgs/boostorg/events')
+        foreach(EvilGlobals::github_cache()->iterate('/orgs/boostorg/events')
                 as $event) {
             if ($event->id <= $last_id) { break; }
             if (!$new_last_id) { $new_last_id = $event->id; }
@@ -145,12 +145,5 @@ class GitHubEventQueue {
         }
 
         return self::$event_queue_status;
-    }
-
-    // Migrations
-
-    static function migration_AddType() {
-        Migrations::newColumn(self::$queue_table, 'type', 'PushEvent');
-        Migrations::newColumn(self::$event_table, 'type', 'PushEvent');
     }
 }

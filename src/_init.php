@@ -1,10 +1,8 @@
 <?php
 
-use Monolog\Logger;
-
 // Set up autoloading.
 
-require __DIR__.'/../vendor/autoload.php';
+require_once __DIR__.'/../vendor/autoload.php';
 
 // Set timezone to UTC, php sometimes complains if timezone isn't set, and
 // it saves me from having to think about the server's timezone.
@@ -12,18 +10,20 @@ require __DIR__.'/../vendor/autoload.php';
 date_default_timezone_set('UTC');
 
 // Die on all errors.
-
 function myErrorHandler($message) {
+    if (array_key_exists('SERVER_PROTOCOL', $_SERVER)) {
+        @header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
+    }
+
     if (Log::$log) {
         Log::error($message);
     }
     else if (array_key_exists('SERVER_PROTOCOL', $_SERVER)) {
-        header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
         // TODO: Don't html encode message if writing text.
         echo htmlentities($message),"\n";
     }
     else if (defined('STDERR')) {
-        fputs(STDERR, $message);
+        fputs(STDERR, "{$message}\n");
     }
     else {
         echo("{$message}\n");
@@ -48,8 +48,8 @@ register_shutdown_function(function() {
     }
 });
 
-// Set up the logger.
+// Utility functions
 
-// TODO: Write errors to stdout by default, it currently goes to stderr,
-//       and that goes to the wrong log file on the server.
-Log::$log = new Logger('boost update log');
+function array_get($array, $key, $default= null) {
+    return array_key_exists($key, $array) ? $array[$key] : $default;
+}

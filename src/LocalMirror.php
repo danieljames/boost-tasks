@@ -14,7 +14,7 @@ class LocalMirror {
     var $queue;
 
     function __construct() {
-        $this->mirror_root = EvilGlobals::$mirror_root;
+        $this->mirror_root = EvilGlobals::data_path('mirror');
         $this->queue = new GitHubEventQueue('mirror');
     }
 
@@ -45,7 +45,7 @@ class LocalMirror {
     }
 
     function refreshAll($dirty = true) {
-        foreach (EvilGlobals::$github_cache->iterate('/orgs/boostorg/repos') as $repo) {
+        foreach (EvilGlobals::github_cache()->iterate('/orgs/boostorg/repos') as $repo) {
             $url = $repo->clone_url;
             $this->update($repo->clone_url, $dirty);
         }

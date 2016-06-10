@@ -2,14 +2,9 @@
 
 require_once(__DIR__.'/../vendor/autoload.php');
 
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
-
 function webhook() {
     header("Content-Type: text/plain");
-    EvilGlobals::init('webhook.neon');
-    Log::$log->pushHandler(
-        new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO));
+    EvilGlobals::init('webhook.neon', array('webhook' => true));
     $event = get_webhook_event();
 
     switch($event->event_type) {
@@ -93,10 +88,11 @@ class GitHubWebHookEvent {
 }
 
 function get_webhook_event() {
-    if (!array_key_exists('github-webhook-secret', EvilGlobals::$settings)) {
+    $secret_key = EvilGlobals::settings('github-webhook-secret');
+    if (!$secret_key) {
         die("github-webhook-secret not set.");
     }
-    $secret_key = EvilGlobals::$settings['github-webhook-secret'];
+
     $post_body = file_get_contents('php://input');
 
     // Check the signature
