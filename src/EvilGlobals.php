@@ -50,21 +50,6 @@ EOL;
             exit(1);
         }
 
-        // Set up logging again.
-
-        if (array_key_exists('cron', $options) && $options['cron']) {
-            Log::$log->setHandlers(array(
-                new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO),
-                new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::ERROR)
-            ));
-        }
-        else {
-            Log::$log->setHandlers(array(
-                new StreamHandler(EvilGlobals::$data_root."/log.txt", Logger::INFO),
-                new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::INFO)
-            ));
-        }
-
         // Set up repo directory.
 
         $data_root = self::resolve_path(self::$settings['data']);
@@ -77,6 +62,21 @@ EOL;
         if (!is_dir(self::$mirror_root)) { mkdir(self::$mirror_root); }
         if (!is_dir(self::$super_root)) { mkdir(self::$super_root); }
         if (!is_dir(self::$repos_root)) { mkdir(self::$repos_root); }
+
+        // Set up logging again.
+
+        if (array_key_exists('cron', $options) && $options['cron']) {
+            Log::$log->setHandlers(array(
+                new StreamHandler(self::$data_root."/log.txt", Logger::INFO),
+                new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::ERROR)
+            ));
+        }
+        else {
+            Log::$log->setHandlers(array(
+                new StreamHandler(self::$data_root."/log.txt", Logger::INFO),
+                new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::INFO)
+            ));
+        }
 
         // Set up website data directory.
 
