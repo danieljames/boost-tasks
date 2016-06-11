@@ -9,16 +9,16 @@
     "packages": [
         {
             "name": "corneltek/getoptionkit",
-            "version": "2.2.4",
+            "version": "2.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/c9s/GetOptionKit.git",
-                "reference": "c7170525314b587019c0b2a7b0354432b64b48e0"
+                "reference": "2854975f76e633267c3ec3e52b189cdc5472942a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/c9s/GetOptionKit/zipball/c7170525314b587019c0b2a7b0354432b64b48e0",
-                "reference": "c7170525314b587019c0b2a7b0354432b64b48e0",
+                "url": "https://api.github.com/repos/c9s/GetOptionKit/zipball/2854975f76e633267c3ec3e52b189cdc5472942a",
+                "reference": "2854975f76e633267c3ec3e52b189cdc5472942a",
                 "shasum": ""
             },
             "require": {
@@ -26,12 +26,17 @@
             },
             "require-dev": {
                 "corneltek/phpunit-testmore": "dev-master",
-                "satooshi/php-coveralls": "dev-master"
+                "satooshi/php-coveralls": "^1"
             },
             "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "2.4.x-dev"
+                }
+            },
             "autoload": {
                 "psr-4": {
-                    "GetOptionKit\\": "src/GetOptionKit/"
+                    "GetOptionKit\\": "src/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -41,13 +46,12 @@
             "authors": [
                 {
                     "name": "Yo-An Lin",
-                    "email": "cornelius.howl@gmail.com",
-                    "homepage": "http://c9s.me"
+                    "email": "cornelius.howl@gmail.com"
                 }
             ],
             "description": "Powerful command-line option toolkit",
             "homepage": "http://github.com/c9s/GetOptionKit",
-            "time": "2015-10-02 07:53:43"
+            "time": "2016-06-10 07:20:04"
         },
         {
             "name": "guzzle/guzzle",
@@ -146,16 +150,16 @@
         },
         {
             "name": "monolog/monolog",
-            "version": "1.17.2",
+            "version": "1.19.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Seldaek/monolog.git",
-                "reference": "bee7f0dc9c3e0b69a6039697533dca1e845c8c24"
+                "reference": "5f56ed5212dc509c8dc8caeba2715732abb32dbf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/bee7f0dc9c3e0b69a6039697533dca1e845c8c24",
-                "reference": "bee7f0dc9c3e0b69a6039697533dca1e845c8c24",
+                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/5f56ed5212dc509c8dc8caeba2715732abb32dbf",
+                "reference": "5f56ed5212dc509c8dc8caeba2715732abb32dbf",
                 "shasum": ""
             },
             "require": {
@@ -170,13 +174,13 @@
                 "doctrine/couchdb": "~1.0@dev",
                 "graylog2/gelf-php": "~1.0",
                 "jakub-onderka/php-parallel-lint": "0.9",
+                "php-amqplib/php-amqplib": "~2.4",
                 "php-console/php-console": "^3.1.3",
                 "phpunit/phpunit": "~4.5",
                 "phpunit/phpunit-mock-objects": "2.3.0",
                 "raven/raven": "^0.13",
                 "ruflin/elastica": ">=0.90 <3.0",
-                "swiftmailer/swiftmailer": "~5.3",
-                "videlalvaro/php-amqplib": "~2.4"
+                "swiftmailer/swiftmailer": "~5.3"
             },
             "suggest": {
                 "aws/aws-sdk-php": "Allow sending log messages to AWS services like DynamoDB",
@@ -184,16 +188,17 @@
                 "ext-amqp": "Allow sending log messages to an AMQP server (1.0+ required)",
                 "ext-mongo": "Allow sending log messages to a MongoDB server",
                 "graylog2/gelf-php": "Allow sending log messages to a GrayLog2 server",
+                "mongodb/mongodb": "Allow sending log messages to a MongoDB server via PHP Driver",
+                "php-amqplib/php-amqplib": "Allow sending log messages to an AMQP server using php-amqplib",
                 "php-console/php-console": "Allow sending log messages to Google Chrome",
                 "raven/raven": "Allow sending log messages to a Sentry server",
                 "rollbar/rollbar": "Allow sending log messages to Rollbar",
-                "ruflin/elastica": "Allow sending log messages to an Elastic Search server",
-                "videlalvaro/php-amqplib": "Allow sending log messages to an AMQP server using php-amqplib"
+                "ruflin/elastica": "Allow sending log messages to an Elastic Search server"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "1.16.x-dev"
+                    "dev-master": "2.0.x-dev"
                 }
             },
             "autoload": {
@@ -219,20 +224,20 @@
                 "logging",
                 "psr-3"
             ],
-            "time": "2015-10-14 12:51:02"
+            "time": "2016-04-12 18:29:35"
         },
         {
             "name": "nette/neon",
-            "version": "v2.3.3",
+            "version": "v2.3.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/neon.git",
-                "reference": "12bbb0e85ba8521dd291f4df0fe20a1b79aae32c"
+                "reference": "0042f72a2c51b24f5de3ca5f365494cd9b0d45f0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/neon/zipball/12bbb0e85ba8521dd291f4df0fe20a1b79aae32c",
-                "reference": "12bbb0e85ba8521dd291f4df0fe20a1b79aae32c",
+                "url": "https://api.github.com/repos/nette/neon/zipball/0042f72a2c51b24f5de3ca5f365494cd9b0d45f0",
+                "reference": "0042f72a2c51b24f5de3ca5f365494cd9b0d45f0",
                 "shasum": ""
             },
             "require": {
@@ -257,16 +262,16 @@
             "authors": [
                 {
                     "name": "David Grudl",
-                    "homepage": "http://davidgrudl.com"
+                    "homepage": "https://davidgrudl.com"
                 },
                 {
                     "name": "Nette Community",
-                    "homepage": "http://nette.org/contributors"
+                    "homepage": "https://nette.org/contributors"
                 }
             ],
             "description": "Nette NEON: parser & generator for Nette Object Notation",
             "homepage": "http://ne-on.org",
-            "time": "2015-08-22 15:23:30"
+            "time": "2016-01-13 14:20:27"
         },
         {
             "name": "psr/log",
@@ -319,7 +324,7 @@
         },
         {
             "name": "symfony/event-dispatcher",
-            "version": "v2.6.12",
+            "version": "v2.6.13",
             "target-dir": "Symfony/Component/EventDispatcher",
             "source": {
                 "type": "git",
@@ -378,7 +383,7 @@
         },
         {
             "name": "symfony/process",
-            "version": "v2.6.12",
+            "version": "v2.6.13",
             "target-dir": "Symfony/Component/Process",
             "source": {
                 "type": "git",
@@ -430,16 +435,16 @@
     "packages-dev": [
         {
             "name": "nette/tester",
-            "version": "v1.6.1",
+            "version": "v1.7.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/tester.git",
-                "reference": "b0f312e7ab9a70bbd5c92568e2a20dd46be9a529"
+                "reference": "d97534578e8cf66eabe081e7d5eaa4dd527ab0c8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/tester/zipball/b0f312e7ab9a70bbd5c92568e2a20dd46be9a529",
-                "reference": "b0f312e7ab9a70bbd5c92568e2a20dd46be9a529",
+                "url": "https://api.github.com/repos/nette/tester/zipball/d97534578e8cf66eabe081e7d5eaa4dd527ab0c8",
+                "reference": "d97534578e8cf66eabe081e7d5eaa4dd527ab0c8",
                 "shasum": ""
             },
             "require": {
@@ -451,7 +456,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "1.6-dev"
+                    "dev-master": "1.7-dev"
                 }
             },
             "autoload": {
@@ -482,7 +487,7 @@
                 "testing",
                 "unit"
             ],
-            "time": "2015-10-26 05:38:30"
+            "time": "2016-03-19 14:34:02"
         }
     ],
     "aliases": [],
