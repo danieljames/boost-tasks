@@ -32,6 +32,7 @@
     "require": {
         "corneltek/getoptionkit": "*",
         "nette/neon": "*",
+        "nette/utils": "*",
         "guzzle/guzzle": "*",
         "symfony/process": "*",
         "redbeanphp/redbeanphp": "4.2.*",

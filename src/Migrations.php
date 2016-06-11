@@ -1,6 +1,8 @@
 <?php
 
-class Migrations {
+use Nette\Object;
+
+class Migrations extends Object {
     static $versions = array(
         'Migrations::migration_Initialise',
         'Migrations::migration_Null',

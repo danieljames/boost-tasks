@@ -7,8 +7,10 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+use Nette\Object;
+
 /** Maintains a local mirror of the boostorg repos. */
-class LocalMirror {
+class LocalMirror extends Object {
     static $mirror_table = 'mirror';
     var $mirror_root;
     var $queue;

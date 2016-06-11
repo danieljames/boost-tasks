@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "9edd996f0cf7967622c12083889299e1",
-    "content-hash": "1be3f9874f2145a54e1ed8bc663c8498",
+    "hash": "91a11cbecdfc97498b48ca71d0eb9d78",
+    "content-hash": "a7f3a7e604791ffce1ed20a796b246a6",
     "packages": [
         {
             "name": "corneltek/getoptionkit",
@@ -272,6 +272,61 @@
             "description": "Nette NEON: parser & generator for Nette Object Notation",
             "homepage": "http://ne-on.org",
             "time": "2016-01-13 14:20:27"
+        },
+        {
+            "name": "nette/utils",
+            "version": "v2.3.9",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nette/utils.git",
+                "reference": "f6586f827292bd35c8593df943437f2247ba5337"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nette/utils/zipball/f6586f827292bd35c8593df943437f2247ba5337",
+                "reference": "f6586f827292bd35c8593df943437f2247ba5337",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.1"
+            },
+            "conflict": {
+                "nette/nette": "<2.2"
+            },
+            "require-dev": {
+                "nette/tester": "~1.0"
+            },
+            "suggest": {
+                "ext-gd": "to use Image",
+                "ext-iconv": "to use Strings::webalize() and toAscii()",
+                "ext-intl": "for script transliteration in Strings::webalize() and toAscii()",
+                "ext-mbstring": "to use Strings::lower() etc..."
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "src/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause",
+                "GPL-2.0",
+                "GPL-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "David Grudl",
+                    "homepage": "https://davidgrudl.com"
+                },
+                {
+                    "name": "Nette Community",
+                    "homepage": "https://nette.org/contributors"
+                }
+            ],
+            "description": "Nette Utility Classes",
+            "homepage": "https://nette.org",
+            "time": "2016-04-21 09:36:23"
         },
         {
             "name": "psr/log",

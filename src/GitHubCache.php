@@ -1,12 +1,13 @@
 <?php
 
 use Guzzle\Http\Client;
+use Nette\Object;
 
 /**
  * Download github api pages using etags and stuff.
  */
 
-class GitHubCache {
+class GitHubCache extends Object {
     static $table_name = 'githubcache';
     var $client;
     var $username;
@@ -82,7 +83,7 @@ class GitHubCache {
     }
 }
 
-class GitHubCache_Iterator implements Iterator
+class GitHubCache_Iterator extends Object implements Iterator
 {
     /** @var GitHubCache */
     private $cache;

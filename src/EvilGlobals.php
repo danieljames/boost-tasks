@@ -1,10 +1,11 @@
 <?php
 
 use Nette\Neon\Neon;
+use Nette\Object;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
-class EvilGlobals {
+class EvilGlobals extends Object {
     static $default_settings = array(
         'data' => '../update-data',
         'username' => null,

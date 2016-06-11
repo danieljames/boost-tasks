@@ -4,9 +4,10 @@ use GetOptionKit\OptionCollection;
 use GetOptionKit\OptionParser;
 use GetOptionKit\OptionPrinter\ConsoleOptionPrinter;
 use GetOptionKit\Exception\InvalidOptionException;
+use Nette\Object;
 
 // Very basic command line options handling thing.
-class CommandLineOptions
+class CommandLineOptions extends Object
 {
     var $args;
     var $description;

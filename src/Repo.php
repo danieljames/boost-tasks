@@ -1,5 +1,7 @@
 <?php
 
+use Nette\Object;
+
 /*
  * Copyright 2013-2015 Daniel James <daniel@calamity.org.uk>.
  *
@@ -7,7 +9,7 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-class Repo {
+class Repo extends Object {
     var $module;
     var $branch;
     var $path;

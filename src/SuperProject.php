@@ -8,6 +8,7 @@
  */
 
 use Guzzle\Http\Url;
+use Nette\Object;
 
 class SuperProject extends Repo {
     var $submodule_branch;
@@ -203,7 +204,7 @@ class SuperProject extends Repo {
 /**
  * The super project's submodules.
  */
-class SuperProject_Submodules {
+class SuperProject_Submodules extends Object {
     var $path;
     var $submodules;
 
@@ -251,7 +252,7 @@ class SuperProject_Submodules {
 /**
  * A submodule.
  */
-class SuperProject_Submodule {
+class SuperProject_Submodule extends Object {
     /** The relative path of the submodule from boost root. */
     var $path;
 

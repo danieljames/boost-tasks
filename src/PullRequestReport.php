@@ -7,7 +7,9 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-class PullRequestReport {
+use Nette\Object;
+
+class PullRequestReport extends Object {
     public function run() {
         // Date parsing:
         // echo date("r\n", strtotime("2014-01-27T05:26:41Z"));

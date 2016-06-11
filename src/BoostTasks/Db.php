@@ -5,6 +5,7 @@ namespace BoostTasks;
 use PDO;
 use stdClass;
 use RuntimeException;
+use Nette\Object;
 
 // This is an incredibly crude little library for database stuff that I
 // threw together when I had issues with RedBean in another project.
@@ -49,6 +50,9 @@ class Db {
 
 // A database entity.
 // Fields are dynamically added.
+// Note: Not extending Nette\Object because it has fields
+//       dynamically added. Need to think about doing that
+//       in a safer manner.
 class Db_Entity {
     var $__meta;
 
@@ -62,7 +66,7 @@ class Db_Entity {
 }
 
 // A little bit of extra data about the entity.
-class Db_EntityMetaData {
+class Db_EntityMetaData extends Object {
     var $connection;
     var $table_name;
     var $is_new;
@@ -77,13 +81,13 @@ class Db_EntityMetaData {
 // Used for automatically filled in fields.
 // TODO: Could do a lot better by tracking when a field is set, or perhaps
 //       even by not setting such fields in a new entity.
-class Db_Default {
+class Db_Default extends Object {
     static $instance;
 }
 Db_Default::$instance = new Db_Default();
 
 // All the work is done here.
-class Db_Impl {
+class Db_Impl extends Object {
     static $entity_object = 'BoostTasks\\Db_Entity';
     var $pdo_connection;
 
