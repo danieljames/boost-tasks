@@ -12,7 +12,7 @@ function webhook() {
         webhook_push_handler($event);
         break;
     default:
-        die("Unrecognized event: {$event->event_type}.\n");
+        throw new RuntimeException("Unrecognized event: {$event->event_type}");
     }
 }
 
@@ -90,7 +90,7 @@ class GitHubWebHookEvent {
 function get_webhook_event() {
     $secret_key = EvilGlobals::settings('github-webhook-secret');
     if (!$secret_key) {
-        die("github-webhook-secret not set.");
+        throw new RuntimeException("github-webhook-secret not set.");
     }
 
     $post_body = file_get_contents('php://input');
@@ -101,12 +101,12 @@ function get_webhook_event() {
         $_SERVER['HTTP_X_HUB_SIGNATURE'] : false;
 
     if (!preg_match('@^(\w+)=(\w+)$@', $signature, $match)) {
-        die("Unable to parse signature.\n");
+        throw new RuntimeException("Unable to parse signature");
     }
 
     $check_signature = hash_hmac($match[1], $post_body, $secret_key);
     if ($check_signature != $match[2]) {
-        die("Signature doesn't match.\n");
+        throw new RuntimeException("Signature doesn't match");
     }
 
     // Get the payload
@@ -117,23 +117,23 @@ function get_webhook_event() {
         break;
     case 'application/x-www-form-urlencoded':
         if (!array_key_exists('payload', $_POST)) {
-            die("Unable to find payload.\n");
+            throw new RuntimeException("Unable to find payload");
         }
         $payload_text = $_POST['payload'];
         break;
     default:
-        die("Unexpected content_type: ".$_SERVER['CONTENT_TYPE']);
+        throw new RuntimeException("Unexpected content_type: ".$_SERVER['CONTENT_TYPE']);
     }
 
     $payload = json_decode($payload_text);
     if (!$payload) {
-        die("Error decoding payload.");
+        throw new RuntimeException("Error decoding payload.");
     }
 
     // Get the event type
  
     if (!array_key_exists('HTTP_X_GITHUB_EVENT', $_SERVER)) {
-        die("No event found.");
+        throw new RuntimeException("No event found.");
     }
     $event_type = $_SERVER['HTTP_X_GITHUB_EVENT'];
 

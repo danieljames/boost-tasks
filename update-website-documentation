@@ -11,10 +11,10 @@ function main() {
     // TODO: Resolve path
     $archives_path = EvilGlobals::settings('website-archives');
     if (!$archives_path) {
-        die("Archive location not set.\n");
+        throw new RuntimeException("Archive location not set");
     }
     if (!is_dir($archives_path)) {
-        die("Archive location not a directory.\n");
+        throw new RuntimeException("Archive location not a directory");
     }
     $archives_path = rtrim($archives_path, '/');
 
@@ -31,7 +31,7 @@ function main() {
         if ($version != $file->version) {
             if (!extract_documentation($destination_path, $file,
                     "{$archives_path}/tmp")) {
-                die("Extact failed.\n");
+                throw new RuntimeException("Extact failed");
             }
         }
     }
@@ -73,11 +73,11 @@ class TemporaryDirectory {
         if (is_null($tmp_root)) { $tmp_root = sys_get_temp_dir(); }
 
         if (!is_dir($tmp_root)) {
-            die("Temporary directory doesn't exists.\n");
+            throw new RuntimeException("Temporary directory doesn't exists");
         }
 
         if (!is_writable($tmp_root)) {
-            die("Temporary directory isn't writable.\n");
+            throw new RuntimeException("Temporary directory isn't writable");
         }
 
         // Create temporary directory.
@@ -85,13 +85,13 @@ class TemporaryDirectory {
         $temp_name = tempnam($tmp_root, "download");
         if (!$temp_name) { return false; }
         if (strpos($temp_name, "{$tmp_root}/") !== 0) {
-            die("Incorrect location for temporary directory.");
+            throw new RuntimeException("Incorrect location for temporary directory.");
         }
         unlink($temp_name);
         mkdir($temp_name);
         $temp_name = realpath($temp_name);
         if (!$temp_name || !is_dir($temp_name) || strpos($temp_name, "{$tmp_root}/") !== 0) {
-            die("Something went wrong creating temporary directory.");
+            throw new RuntimeException("Something went wrong creating temporary directory.");
         }
 
         $this->path = $temp_name;
@@ -135,25 +135,25 @@ class BinTrayCache {
         $files = file_get_contents(
             "https://api.bintray.com/packages/boostorg/{$branch}/snapshot/files");
         if (!$files) {
-            die("Error downloading file details from bintray.");
+            throw new RuntimeException("Error downloading file details from bintray.");
         }
 
         $files = json_decode($files);
         if (!$files) {
-            die("Error parsing latest details.");
+            throw new RuntimeException("Error parsing latest details.");
         }
 
         $file = null;
         foreach($files as $x) {
             if (preg_match('@'.preg_quote($extension, '@').'$@', $x->name)) {
                 if ($file) {
-                    die("More than one file found.");
+                    throw new RuntimeException("More than one file found.");
                 }
                 $file = $x;
             }
         }
         if (!$file) {
-            die("Unable to find file to download.");
+            throw new RuntimeException("Unable to find file to download.");
         }
 
         $date = date('Y-m-d', strtotime($file->created));
@@ -169,13 +169,13 @@ class BinTrayCache {
                 "http://dl.bintray.com/boostorg/{$file->repo}/{$file->name}",
                 $download_path))
             {
-                die("Error downloading file from bintray.\n");
+                throw new RuntimeException("Error downloading file from bintray");
             }
         }
 
         if (hash_file('sha256', $download_path) != $file->sha256) {
             Log::error("File signature doesn't match: {$download_path}");
-            die("File signature doesn't match.\n");
+            throw new RuntimeException("File signature doesn't match");
         }
 
         return $file;
