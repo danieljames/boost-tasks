@@ -19,20 +19,25 @@ function main() {
     $archives_path = rtrim($archives_path, '/');
 
     foreach(array('master', 'develop') as $branch) {
-        // Download file from bintray...
-        $cache = new BinTrayCache;
-        $file = $cache->fetch_latest($branch, '.tar.bz2');
+        try {
+            // Download file from bintray...
+            $cache = new BinTrayCache;
+            $file = $cache->fetch_latest($branch, '.tar.bz2');
 
-        $destination_path = "{$archives_path}/{$branch}";
-        $version = is_file("{$destination_path}/.bintray-version") ?
-            file_get_contents("{$destination_path}/.bintray-version") :
-            '';
+            $destination_path = "{$archives_path}/{$branch}";
+            $version = is_file("{$destination_path}/.bintray-version") ?
+                file_get_contents("{$destination_path}/.bintray-version") :
+                '';
 
-        if ($version != $file->version) {
-            if (!extract_documentation($destination_path, $file,
-                    "{$archives_path}/tmp")) {
-                throw new RuntimeException("Extact failed");
+            if ($version != $file->version) {
+                if (!extract_documentation($destination_path, $file,
+                        "{$archives_path}/tmp")) {
+                    throw new RuntimeException("Extact failed");
+                }
             }
+        }
+        catch(RuntimeException $e) {
+            Log::error($e);
         }
     }
 }
