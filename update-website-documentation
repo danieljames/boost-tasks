@@ -30,41 +30,35 @@ function main() {
                 '';
 
             if ($version != $file->version) {
-                $file->download_path = $cache->cached_download($file);
-                extract_documentation($destination_path, $file, "{$archives_path}/tmp"));
+                $file_path = $cache->cached_download($file);
+                Log::info("Extracting {$file_path} to {$destination_path}.");
+
+                $temp_directory = new TemporaryDirectory("{$archives_path}/tmp");
+
+                // Paths to use in temporary directory.
+                // TODO: Do this better?
+                $extract_path = pathinfo($file_path, PATHINFO_BASENAME);
+                $extract_path = preg_replace('@[.]tar[.]bz2$@', '', $extract_path);
+                $extract_path = "{$temp_directory->path}/{$extract_path}";
+
+                // Extract the archive.
+                Process::run("tar -xjf '{$file_path}'", $temp_directory->path, null, null, 60*10);
+
+                if (!is_dir($extract_path)) {
+                    throw new RuntimeException("Something went wrong extracting archive");
+                }
+
+                file_put_contents("{$extract_path}/.bintray-version", $file->version);
+
+                // Would be nice to overwrite old archive in a cleaner manner...
+                if (realpath($destination_path)) { rename($destination_path, "{$temp_directory->path}/old"); }
+                rename($extract_path, $destination_path);
             }
         }
         catch(RuntimeException $e) {
             Log::error($e);
         }
     }
-}
-
-function extract_documentation($destination_path, $file, $temp_root) {
-    Log::info("Extracting {$file->download_path} to {$destination_path}.");
-    $file_path = $file->download_path;
-
-    $temp_directory = new TemporaryDirectory($temp_root);
-    $temp_name = $temp_directory->path;
-
-    // Paths to use in temporary directory.
-    // TODO: Do this better?
-    $extract_path = pathinfo($file_path, PATHINFO_BASENAME);
-    $extract_path = preg_replace('@[.]tar[.]bz2$@', '', $extract_path);
-    $extract_path = "{$temp_name}/{$extract_path}";
-
-    // Extract the archive.
-    Process::run("tar -xjf '{$file_path}'", $temp_name, null, null, 60*10);
-
-    if (!is_dir($extract_path)) {
-        throw new RuntimeException("Something went wrong extracting archive");
-    }
-
-    file_put_contents("{$extract_path}/.bintray-version", $file->version);
-
-    // Would be nice to overwrite old archive in a cleaner manner...
-    if (realpath($destination_path)) { rename($destination_path, "{$temp_name}/old"); }
-    rename($extract_path, $destination_path);
 }
 
 class TemporaryDirectory {
