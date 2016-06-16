@@ -31,10 +31,7 @@ function main() {
 
             if ($version != $file->version) {
                 $file->download_path = $cache->cached_download($file);
-                if (!extract_documentation($destination_path, $file,
-                        "{$archives_path}/tmp")) {
-                    throw new RuntimeException("Extact failed");
-                }
+                extract_documentation($destination_path, $file, "{$archives_path}/tmp"));
             }
         }
         catch(RuntimeException $e) {
@@ -60,8 +57,7 @@ function extract_documentation($destination_path, $file, $temp_root) {
     Process::run("tar -xjf '{$file_path}'", $temp_name, null, null, 60*10);
 
     if (!is_dir($extract_path)) {
-        Log::error("Something went wrong extracting archive");
-        return false;
+        throw new RuntimeException("Something went wrong extracting archive");
     }
 
     file_put_contents("{$extract_path}/.bintray-version", $file->version);
@@ -69,7 +65,6 @@ function extract_documentation($destination_path, $file, $temp_root) {
     // Would be nice to overwrite old archive in a cleaner manner...
     if (realpath($destination_path)) { rename($destination_path, "{$temp_name}/old"); }
     rename($extract_path, $destination_path);
-    return true;
 }
 
 class TemporaryDirectory {
