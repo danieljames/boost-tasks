@@ -34,19 +34,14 @@ function main() {
                 Log::info("Extracting {$file_path} to {$destination_path}.");
 
                 $temp_directory = new TemporaryDirectory("{$archives_path}/tmp");
-
-                // Paths to use in temporary directory.
-                // TODO: Do this better?
-                $extract_path = pathinfo($file_path, PATHINFO_BASENAME);
-                $extract_path = preg_replace('@[.]tar[.]bz2$@', '', $extract_path);
-                $extract_path = "{$temp_directory->path}/{$extract_path}";
-
-                // Extract the archive.
                 Process::run("tar -xjf '{$file_path}'", $temp_directory->path, null, null, 60*10);
 
-                if (!is_dir($extract_path)) {
+                // Find the extracted tarball in the temporary directory.
+                $new_directories = array_filter(scandir($temp_directory->path), function($x) { return $x[0] != '.'; });
+                if (count($new_directories) != 1) {
                     throw new RuntimeException("Something went wrong extracting archive");
                 }
+                $extract_path = "{$temp_directory->path}/".reset($new_directories);
 
                 file_put_contents("{$extract_path}/.bintray-version", $file->version);
 
