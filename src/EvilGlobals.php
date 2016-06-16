@@ -188,7 +188,7 @@ EOL;
     }
 
     static function safe_settings() {
-        $settings = EvilGlobals::$settings;
+        $settings = EvilGlobals::$instance->settings;
         if (!empty($settings['password'])) { $settings['password'] = '********'; }
         return $settings;
     }
