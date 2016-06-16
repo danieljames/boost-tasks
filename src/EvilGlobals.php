@@ -25,11 +25,11 @@ class EvilGlobals extends Object {
     var $branch_repos;
     var $github_cache;
 
-    static function init($path, $options) {
-        self::$instance = new EvilGlobals($path, $options);
+    static function init($options = array()) {
+        self::$instance = new EvilGlobals($options);
     }
 
-    private function __construct($path, $options) {
+    private function __construct($options = array()) {
         Log::$log = new Logger('boost update log');
         if (array_get($options, 'testing')) {
             // Just skipping configuration completely for now, will certainly
@@ -46,6 +46,11 @@ class EvilGlobals extends Object {
 
             // Load settings
 
+            // TODO: $options normally comes from the command line and are
+            //       resolved relative to the cwd, this resolves them to
+            //       the source directory. Need to improve configuration file
+            //       handling.
+            $path = array_get($options, 'path', 'config.neon');
             $path = self::resolve_path($path);
             if (is_file($path)) {
                 $this->settings = self::read_config($path, self::$default_settings);

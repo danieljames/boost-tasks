@@ -11,7 +11,7 @@ function main($args) {
     $options = CommandLineOptions::process($args,
         'Update the submodules in the super project',
         $specs);
-    EvilGlobals::init('config.neon', $options);
+    EvilGlobals::init($options);
 
     if ($options['cron']) {
         // Quick and dirty check if the configuration has changed since last run.

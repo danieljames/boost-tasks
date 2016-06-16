@@ -9,7 +9,7 @@
  */
 
 require_once(__DIR__.'/vendor/autoload.php');
-EvilGlobals::init('config.neon');
+EvilGlobals::init();
 
 try {
     $dst = EvilGlobals::data_path().'/upload';
