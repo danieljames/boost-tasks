@@ -36,7 +36,7 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
 });
 
 set_exception_handler(function($e) {
-    myErrorHandler($e->getMessage());
+    myErrorHandler($e);
 });
 
 register_shutdown_function(function() {

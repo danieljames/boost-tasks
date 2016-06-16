@@ -4,6 +4,7 @@ use Nette\Neon\Neon;
 use Nette\Object;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
+use Monolog\Formatter\LineFormatter;
 
 class EvilGlobals extends Object {
     static $default_settings = array(
@@ -31,6 +32,9 @@ class EvilGlobals extends Object {
 
     private function __construct($options = array()) {
         Log::$log = new Logger('boost update log');
+        $formatter = new LineFormatter;
+        $formatter->includeStacktraces();
+
         if (array_get($options, 'testing')) {
             // Just skipping configuration completely for now, will certainly
             // have to do something better in the future.
@@ -40,9 +44,10 @@ class EvilGlobals extends Object {
             // Initial logging settings, for loading configuration.
             // Q: Should this be done before handling command line options?
 
-            Log::$log->setHandlers(array(
-                new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::WARNING),
-            ));
+            $stdout_handler = new StreamHandler("php://stdout",
+                array_get($options, 'verbose') ? Logger::DEBUG : Logger::WARNING);
+            $stdout_handler->setFormatter($formatter);
+            Log::$log->setHandlers(array($stdout_handler));
 
             // Load settings
 
@@ -73,18 +78,15 @@ EOL;
 
             // Set up logging again.
 
-            if (array_get($options, 'cron')) {
-                Log::$log->setHandlers(array(
-                    new StreamHandler("{$this->data_root}/log.txt", Logger::INFO),
-                    new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::ERROR)
-                ));
-            }
-            else {
-                Log::$log->setHandlers(array(
-                    new StreamHandler("{$this->data_root}/log.txt", Logger::INFO),
-                    new StreamHandler("php://stdout", array_get($options, 'verbose') ? Logger::DEBUG : Logger::INFO)
-                ));
-            }
+            $stdout_level = array_get($options, 'verbose') ? Logger::DEBUG :
+                (array_get($options, 'cron') ? Logger::ERROR : Logger::INFO);
+
+            $log_handler = new StreamHandler("{$this->data_root}/log.txt", Logger::INFO);
+            $log_handler->setFormatter($formatter);
+            $stdout_handler = new StreamHandler("php://stdout", $stdout_level);
+            $stdout_handler->setFormatter($formatter);
+
+            Log::$log->setHandlers(array($log_handler, $stdout_handler));
 
             // Set up website data directory.
 
