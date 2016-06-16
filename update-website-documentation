@@ -23,7 +23,6 @@ function main() {
             // Download file from bintray...
             $cache = new BinTrayCache;
             $file = $cache->fetch_details($branch, '.tar.bz2');
-            $file->download_path = $cache->cached_download($file);
 
             $destination_path = "{$archives_path}/{$branch}";
             $version = is_file("{$destination_path}/.bintray-version") ?
@@ -31,6 +30,7 @@ function main() {
                 '';
 
             if ($version != $file->version) {
+                $file->download_path = $cache->cached_download($file);
                 if (!extract_documentation($destination_path, $file,
                         "{$archives_path}/tmp")) {
                     throw new RuntimeException("Extact failed");
