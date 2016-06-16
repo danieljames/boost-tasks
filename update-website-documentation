@@ -22,7 +22,8 @@ function main() {
         try {
             // Download file from bintray...
             $cache = new BinTrayCache;
-            $file = $cache->fetch_latest($branch, '.tar.bz2');
+            $file = $cache->fetch_details($branch, '.tar.bz2');
+            $file->download_path = $cache->cached_download($file);
 
             $destination_path = "{$archives_path}/{$branch}";
             $version = is_file("{$destination_path}/.bintray-version") ?
@@ -78,11 +79,11 @@ class TemporaryDirectory {
         if (is_null($tmp_root)) { $tmp_root = sys_get_temp_dir(); }
 
         if (!is_dir($tmp_root)) {
-            throw new RuntimeException("Temporary directory doesn't exists");
+            throw new RuntimeException("Temporary directory doesn't exist: {$tmp_root}");
         }
 
         if (!is_writable($tmp_root)) {
-            throw new RuntimeException("Temporary directory isn't writable");
+            throw new RuntimeException("Temporary directory isn't writable: {$tmp_root}");
         }
 
         // Create temporary directory.
@@ -133,7 +134,7 @@ class BinTrayCache {
         $this->path = EvilGlobals::data_path('bintray');
     }
 
-    function fetch_latest($branch, $extension) {
+    function fetch_details($branch, $extension) {
         $extension = '.'.ltrim($extension, '.');
 
         // Download the file list from bintray.
@@ -161,14 +162,15 @@ class BinTrayCache {
             throw new RuntimeException("Unable to find file to download.");
         }
 
+        return $file;
+    }
+
+    function cached_download($file) {
         $date = date('Y-m-d', strtotime($file->created));
         $download_dir = "{$this->path}/{$date}/{$file->sha1}";
         $download_path = "{$download_dir}/{$file->name}";
 
-        $file->download_path = $download_path;
-        $file->is_new = !is_file($download_path);
-
-        if ($file->is_new) {
+        if (!is_file($download_path)) {
             mkdir($download_dir, 0777, true);
             if (!$this->download_file(
                 "http://dl.bintray.com/boostorg/{$file->repo}/{$file->name}",
@@ -183,7 +185,7 @@ class BinTrayCache {
             throw new RuntimeException("File signature doesn't match");
         }
 
-        return $file;
+        return $download_path;
     }
 
     // TODO: Download to temporary file and move into position.
