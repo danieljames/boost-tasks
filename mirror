@@ -5,7 +5,6 @@ require_once(__DIR__.'/vendor/autoload.php');
 use GetOptionKit\OptionCollection;
 
 function main($args) {
-    EvilGlobals::init('config.neon');
     $specs = new OptionCollection;
     $specs->add('no-fetch', "Don't fetch events from GitHub")
         ->defaultValue(false);
@@ -14,7 +13,7 @@ function main($args) {
     $options = CommandLineOptions::process($args,
         'Creates or updates the GitHub mirror',
         $specs);
-    EvilGlobals::setup();
+    EvilGlobals::init('config.neon', $options);
 
     if (!$options['no-fetch']) {
         GitHubEventQueue::downloadEvents();
