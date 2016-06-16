@@ -30,9 +30,11 @@ function main() {
                 '';
 
             if ($version != $file->version) {
+                // Download tarball.
                 $file_path = $cache->cached_download($file);
                 Log::info("Extracting {$file_path} to {$destination_path}.");
 
+                // Extract into a temporary directory.
                 $temp_directory = new TemporaryDirectory("{$archives_path}/tmp");
                 Process::run("tar -xjf '{$file_path}'", $temp_directory->path, null, null, 60*10);
 
@@ -43,8 +45,10 @@ function main() {
                 }
                 $extract_path = "{$temp_directory->path}/".reset($new_directories);
 
+                // Add the version details.
                 file_put_contents("{$extract_path}/.bintray-version", $file->version);
 
+                // Replace the old documentation.
                 // Would be nice to overwrite old archive in a cleaner manner...
                 if (realpath($destination_path)) { rename($destination_path, "{$temp_directory->path}/old"); }
                 rename($extract_path, $destination_path);
