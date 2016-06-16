@@ -95,11 +95,15 @@ EOL;
             }
 
             // Set up the database
-            // TODO: This doesn't repeat well.
+            // TODO: This doesn't work if the configuration changes.
 
-            R::setup("sqlite:{$this->data_root}/cache.db");
-            Migrations::migrate();
-            R::freeze(true);
+            static $previously_setup_database = false;
+            if (!$previously_setup_database) {
+                R::setup("sqlite:{$this->data_root}/cache.db");
+                Migrations::migrate();
+                R::freeze(true);
+                $previously_setup_database = true;
+            }
         }
     }
 
