@@ -32,6 +32,7 @@ function main() {
             if ($version != $file->version) {
                 // Download tarball.
                 $file_path = $cache->cached_download($file);
+                $cache->cleanup($branch);
                 Log::info("Extracting {$file_path} to {$destination_path}.");
 
                 // Extract into a temporary directory.
@@ -154,7 +155,7 @@ class BinTrayCache {
     }
 
     function cached_download($file) {
-        $date = date('Y-m-d', strtotime($file->created));
+        $date = date('Y-m-d\TH:i', strtotime($file->created));
         // 'repo' is actually the branch, that's just the way bintray is organised.
         $download_dir = "{$this->path}/{$file->repo}/{$date}/{$file->sha1}";
         $download_path = "{$download_dir}/{$file->name}";
@@ -195,6 +196,43 @@ class BinTrayCache {
         $chunk = null;
 
         return true;
+    }
+
+    function cleanup($branch = null) {
+        $dirs = array();
+        if (is_null($branch)) {
+            foreach(scandir($this->path) as $dir) {
+                if ($dir[0] === '.') { continue; }
+                $dirs[] = realpath("{$this->path}/{$dir}");
+            }
+        }
+        else {
+            // Error if branch doesn't exist?
+            $path = realpath("{$this->path}/{$branch}");
+            if ($path) { $dirs[] = $path; }
+        }
+
+        foreach($dirs as $dir) {
+            $children = array();
+            foreach(scandir($dir) as $child) {
+                if ($child[0] === '.') { continue; }
+                // Q: Accept any time? Or just the ones that are generated.
+                $timestamp = strtotime($child);
+                if ($timestamp === FALSE) {
+                    Log::warning("Invalid cache dir: {$dir}/{$child}");
+                }
+                else {
+                    $children[$child] = $timestamp;
+                }
+            }
+
+            $delete_before = max($children) - 5*60*60;
+            foreach($children as $child_dir => $timestamp) {
+                if ($timestamp < $delete_before) {
+                    recursive_remove("{$dir}/{$child_dir}");
+                }
+            }
+        }
     }
 }
 
