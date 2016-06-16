@@ -155,7 +155,8 @@ class BinTrayCache {
 
     function cached_download($file) {
         $date = date('Y-m-d', strtotime($file->created));
-        $download_dir = "{$this->path}/{$date}/{$file->sha1}";
+        // 'repo' is actually the branch, that's just the way bintray is organised.
+        $download_dir = "{$this->path}/{$file->repo}/{$date}/{$file->sha1}";
         $download_path = "{$download_dir}/{$file->name}";
 
         if (!is_file($download_path)) {
