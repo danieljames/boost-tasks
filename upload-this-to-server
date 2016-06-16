@@ -20,7 +20,7 @@ try {
 
     mkdir($dst);
 
-    Process::run("git archive master | tar -x -C {$dst}", __DIR__);
+    Process::run("git archive HEAD | tar -x -C {$dst}", __DIR__);
     Process::run("git rev-parse HEAD > {$dst}/commit_hash.txt", __DIR__);
 
     #Process::run("rm -r {$dst}/nbproject");
