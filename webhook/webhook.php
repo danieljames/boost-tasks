@@ -57,9 +57,9 @@ function webhook_push_handler($event) {
     $result .= "Pull\n";
     $result .= "====\n";
     $result .= "\n";
-    $result .= syscall('git stash', $repo_path);
-    $result .= syscall('git pull -q', $repo_path);
-    $result .= syscall('git stash pop', $repo_path);
+    $result .= Process::run('git stash', $repo_path);
+    $result .= Process::run('git pull -q', $repo_path);
+    $result .= Process::run('git stash pop', $repo_path);
     $result .= "\n";
 
     echo "Done, emailing results.\n";
@@ -142,18 +142,3 @@ function get_webhook_event() {
     $x->payload = $payload;
     return $x;
 }
-
-function syscall($cmd, $cwd) {
-    $descriptorspec = array(
-        1 => array('pipe', 'w') // stdout is a pipe that the child will write to
-    );
-    $resource = proc_open($cmd, $descriptorspec, $pipes, $cwd);
-    if (is_resource($resource)) {
-        // TODO: Error pipe
-        $output = stream_get_contents($pipes[1]);
-        fclose($pipes[1]);
-        proc_close($resource);
-        return $output;
-    }
-}
-
