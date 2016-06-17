@@ -60,7 +60,7 @@ class EvilGlobals extends Object {
             //       resolved relative to the cwd, this resolves them to
             //       the source directory. Need to improve configuration file
             //       handling.
-            $path = array_get($options, 'path', 'config.neon');
+            $path = array_get($options, 'path', 'var/config.neon');
             $path = self::resolve_path($path);
             if (is_file($path)) {
                 $settings = self::initial_settings();

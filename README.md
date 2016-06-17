@@ -13,13 +13,14 @@ and [composer](https://getcomposer.org/).
 
 1. Clone this repo.
 2. Install the dependencies using `composer install`.
-3. Create a `config.neon` configuration file in this directory, using
+3. Create a `config.neon` configuration file in the 'var' directory, using
    [Neon](http://ne-on.org/) synatx.
 
 Example configuration file:
 
     # Path to directory where script stores data
-    data: ../update-data
+    # (Paths resolve relative to config file)
+    data: data
 
     # GitHub login details
     # (remember to restrict read permissions).
