@@ -25,7 +25,7 @@ try {
 
     #Process::run("rm -r {$dst}/nbproject");
     Process::run("rm {$dst}/upload-this-to-server");
-    Process::run("rsync -az {$dst}/ dnljms@boost.org:boost-tasks/");
+    Process::run("rsync --exclude var --exclude vendor -azv --delete-after {$dst}/ dnljms@boost.org:boost-tasks/");
 
     // Tag the upload.
     $tags = array();
