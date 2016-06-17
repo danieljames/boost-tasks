@@ -51,15 +51,25 @@ function webhook_push_handler($event) {
         return false;
     }
 
-    echo "Pulling...\n";
+    echo "Pulling {$repo_path}\n";
 
     $result = '';
     $result .= "Pull\n";
     $result .= "====\n";
     $result .= "\n";
-    $result .= Process::run('git stash', $repo_path);
-    $result .= Process::run('git pull -q', $repo_path);
-    $result .= Process::run('git stash pop', $repo_path);
+    $result .= Process::run('git stash', $repo_path)->getOutput();
+    try {
+        $result .= Process::run('git pull -q', $repo_path)->getOutput();
+    }
+    catch (\RuntimeException $e) {
+        $result .= "git pull failed\n";
+    }
+    try {
+        $result .= Process::run('git stash pop', $repo_path)->getOutput();
+    }
+    catch (\RuntimeException $e) {
+        $result .= "git stash pop failed\n";
+    }
     $result .= "\n";
 
     echo "Done, emailing results.\n";
