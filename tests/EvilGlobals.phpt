@@ -8,6 +8,8 @@ class EvilGlobalsTest extends Tester\TestCase {
     function testSettings() {
         EvilGlobals::init(array('path' => __DIR__.'/test-config1.neon'));
         Assert::same('name', EvilGlobals::settings('username'));
+        Assert::null(EvilGlobals::settings('website-data'));
+        Assert::same(realpath(__DIR__.'/data'), realpath(EvilGlobals::settings('data')));
         Assert::null(EvilGlobals::settings('non-existant'));
         Assert::same('default', EvilGlobals::settings('non-existant', 'default'));
     }

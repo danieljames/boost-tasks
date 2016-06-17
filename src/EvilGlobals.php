@@ -7,22 +7,27 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
 
 class EvilGlobals extends Object {
-    static $default_settings = array(
-        'data' => '../update-data',
-        'username' => null,
-        'password' => null,
-        'website-data' => null,
-        'push-to-repo' => false,
-        'superproject-branches' => array(),
+    static $settings_types = array(
+        'data' => array('type' => 'path', 'default' => '../update-data'),
+        'username' => array('type' => 'string'),
+        'password' => array('type' => 'string'),
+        'website-data' => array('type' => 'path'),
+        'website-archives' => array('type' => 'path'),
+        'push-to-repo' => array('type' => 'boolean', 'default' => false),
+        'superproject-branches' => array('type' => 'map', 'default' => array(),
+            'sub' => array('type' => 'string'),
+        ),
+        'config-paths' => array('type' => 'array', 'default' => array(),
+            'sub' => array('type' => 'path'),
+        ),
     );
 
     static $instance = null;
 
-    var $settings;
+    private $settings;
 
     // Filesystem layout
     var $data_root;
-    var $website_data;
     var $branch_repos;
     var $github_cache;
 
@@ -38,7 +43,7 @@ class EvilGlobals extends Object {
         if (array_get($options, 'testing')) {
             // Just skipping configuration completely for now, will certainly
             // have to do something better in the future.
-            $this->settings = self::$default_settings;
+            $this->settings = self::initial_settings();
         }
         else {
             // Initial logging settings, for loading configuration.
@@ -58,7 +63,8 @@ class EvilGlobals extends Object {
             $path = array_get($options, 'path', 'config.neon');
             $path = self::resolve_path($path);
             if (is_file($path)) {
-                $this->settings = self::read_config($path, self::$default_settings);
+                $settings = self::initial_settings();
+                $this->settings = self::read_config($path, $settings);
             }
             else {
                 echo <<<EOL
@@ -72,7 +78,7 @@ EOL;
 
             // Set up repo directory.
 
-            $data_root = self::resolve_path($this->settings['data']);
+            $data_root = $this->settings['data'];
             if (!is_dir($data_root)) { mkdir($data_root); }
             $this->data_root = $data_root;
 
@@ -87,12 +93,6 @@ EOL;
             $stdout_handler->setFormatter($formatter);
 
             Log::$log->setHandlers(array($log_handler, $stdout_handler));
-
-            // Set up website data directory.
-
-            if ($this->settings['website-data']) {
-                $this->website_data = self::resolve_path($this->settings['website-data']);
-            }
 
             // Set up the database
             // TODO: This doesn't work if the configuration changes.
@@ -124,10 +124,6 @@ EOL;
 
     }
 
-    static function website_data() {
-        return self::$instance->website_data;
-    }
-
     static function branch_repos() {
         if (!is_array(self::$instance->branch_repos)) {
             $super_root = self::data_path('super');
@@ -157,26 +153,51 @@ EOL;
         return self::$instance->github_cache;
     }
 
-    static function resolve_path($path) {
+    static function resolve_path($path, $base = null) {
         if ($path[0] != '/') {
-            $path = __DIR__.'/../'.$path;
+            if (is_null($base)) {
+                $path = __DIR__.'/../'.$path;
+            }
+            else {
+                $path = rtrim($base, '/')."/{$path}";
+            }
         }
         $path = rtrim($path, '/');
         return $path;
     }
 
-    static function read_config($path, $defaults = array()) {
+    static function initial_settings() {
+        $settings = array();
+        foreach(self::$settings_types as $key => $details) {
+            $settings[$key] = array_get($details, 'default');
+            if (!is_null($settings[$key]) && $details['type'] == 'path') {
+                $settings[$key] = self::resolve_path($settings[$key]);
+            }
+        }
+        return $settings;
+    }
+
+    static function read_config($path, $settings = array()) {
         $config = is_readable($path) ? file_get_contents($path) : false;
         if ($config === false) {
             throw new RuntimeException("Unable to read config file: {$path}");
         }
         $config = Neon::decode($config);
-        $config = $config ? array_merge($defaults, $config) : $defaults;
+        if ($config) {
+            foreach ($config as $key => $value) {
+                $details = array_get(self::$settings_types, $key);
+                if (!$details) {
+                    Log::warning("Unknown setting: {$key}.");
+                    continue;
+                }
 
-        if (isset($config['config-paths'])) {
-            $config_paths = $config['config-paths'];
-            unset($config['config-paths']);
-            if (is_string($config_paths)) { $config_paths = Array($config_paths); }
+                $settings[$key] = self::check_setting($key, $value, $details, dirname($path));
+            }
+        }
+
+        if (isset($settings['config-paths'])) {
+            $config_paths = $settings['config-paths'];
+            unset($settings['config-paths']);
             foreach ($config_paths as $config_path) {
                 if (!is_string($config_path)) {
                     throw new RuntimeException("'config-paths' should only contain strings.");
@@ -184,11 +205,51 @@ EOL;
                 if ($config_path[0] !== '/') {
                     $config_path = dirname($path).'/'.$config_path;
                 }
-                $config = self::read_config($config_path, $config);
+                $settings = self::read_config($config_path, $settings);
             }
         }
 
-        return $config;
+        return $settings;
+    }
+
+    static function check_setting($key, $value, $setting_details, $path) {
+        switch($setting_details['type']) {
+        case 'string':
+            if (is_array($value) || is_object($value) ) {
+                throw new RuntimeException("Invalid string for setting: {$key}");
+            }
+            return (string) $value;
+        case 'path':
+            if (!is_string($value)) {
+                throw new RuntimeException("Invalid path for setting: {$key}");
+            }
+            return self::resolve_path($value, $path);
+        case 'boolean':
+            // TODO: Maybe accept 1/0/"true"/"false'?
+            if (!is_bool($value) ) {
+                throw new RuntimeException("Invalid boolean for setting: {$key}");
+            }
+            return $value;
+        case 'array':
+            if (!is_array($value)) { $value = array($value); }
+
+            $result = array();
+            foreach($value as $child) {
+                $result[] = self::check_setting($key, $child, $setting_details['sub'], $path);
+            }
+            return $result;
+        case 'map':
+            if (!is_array($value)) {
+                throw new RuntimeException("Invalid map for setting: {$key}");
+            }
+
+            $result = array();
+            foreach($value as $child_key => $child) {
+                $result[$child_key] =
+                    self::check_setting("{$key}/{$child_key}", $child, $setting_details['sub'], $path);
+            }
+            return $result;
+        }
     }
 
     static function safe_settings() {

@@ -37,7 +37,7 @@ class PullRequestReport extends Object {
 
         $json = json_encode($json_data);
 
-        if (\EvilGlobals::website_data()) {
+        if (\EvilGlobals::settings('website-data')) {
             file_put_contents(\EvilGlobals::website_data().'/pull-requests.json', $json);
         }
         else {
