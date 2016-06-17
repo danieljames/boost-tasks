@@ -9,6 +9,7 @@ use Monolog\Formatter\LineFormatter;
 class EvilGlobals extends Object {
     static $settings_types = array(
         'data' => array('type' => 'path', 'default' => '../update-data'),
+        'log' => array('type' => 'path', 'default' => null),
         'username' => array('type' => 'string'),
         'password' => array('type' => 'string'),
         'github-webhook-secret' => array('type' => 'string'),
@@ -85,7 +86,8 @@ class EvilGlobals extends Object {
             $stdout_level = array_get($options, 'verbose') ? Logger::DEBUG :
                 (array_get($options, 'cron') ? Logger::ERROR : Logger::INFO);
 
-            $log_handler = new StreamHandler("{$this->data_root}/log.txt", Logger::INFO);
+            $log_file = array_get($this->settings, 'log') ?: "{$this->data_root}/log.txt";
+            $log_handler = new StreamHandler($log_file, Logger::INFO);
             $log_handler->setFormatter($formatter);
             $stdout_handler = new StreamHandler("php://stdout", $stdout_level);
             $stdout_handler->setFormatter($formatter);
