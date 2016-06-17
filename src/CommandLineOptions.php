@@ -4,6 +4,7 @@ use GetOptionKit\OptionCollection;
 use GetOptionKit\OptionParser;
 use GetOptionKit\OptionPrinter\ConsoleOptionPrinter;
 use GetOptionKit\Exception\InvalidOptionException;
+use GetOptionKit\InvalidOptionValue;
 use Nette\Object;
 
 // Very basic command line options handling thing.
@@ -25,6 +26,8 @@ class CommandLineOptions extends Object
             ->defaultValue(false);
         $specs->add('cron', "Run as cron job.")
             ->defaultValue(false);
+        $specs->add('config-file:', "Configuration file.")
+            ->isa('file');
 
         $x = new CommandLineOptions($args, $description, $specs);
 
@@ -32,7 +35,10 @@ class CommandLineOptions extends Object
             $parser = new OptionParser($specs);
             $options = $parser->parse($args)->toArray();
         } catch (InvalidOptionException $e) {
-            $x->usage($e);
+            $x->usage($e->getMessage());
+            exit(1);
+        } catch (InvalidOptionValue $e) {
+            $x->usage($e->getMessage());
             exit(1);
         }
 
@@ -46,7 +52,7 @@ class CommandLineOptions extends Object
 
     function usage($message = null) {
         if ($message) { echo "{$message}\n\n"; }
-        echo "{$this->description}\n\n";
+        else { echo "{$this->description}\n\n"; }
         echo "Usage:\n";
         $printer = new ConsoleOptionPrinter();
         echo $printer->render($this->specs);

@@ -56,25 +56,22 @@ class EvilGlobals extends Object {
 
             // Load settings
 
-            // TODO: $options normally comes from the command line and are
-            //       resolved relative to the cwd, this resolves them to
-            //       the source directory. Need to improve configuration file
-            //       handling.
-            $path = array_get($options, 'path', 'var/config.neon');
-            $path = self::resolve_path($path);
-            if (is_file($path)) {
-                $settings = self::initial_settings();
-                $this->settings = self::read_config($path, $settings);
+            if (array_key_exists('config-file', $options)) {
+                $path = $options['config-file'];
+                if ($path instanceof SplFileInfo) { $path = $path->getRealPath(); }
             }
             else {
-                echo <<<EOL
-Config file not found.
-
-See README.md for configuration instructions.
-
-EOL;
-                exit(1);
+                $path = __DIR__.'/../var/config.neon';
+                if (!is_file($path)) {
+                    echo "Config file not found.\n\n";
+                    echo "See README.md for configuration instructions.\n";
+                    exit(1);
+                }
+                $path = realpath($path);
             }
+
+            $settings = self::initial_settings();
+            $this->settings = self::read_config($path, $settings);
 
             // Set up repo directory.
 

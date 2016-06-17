@@ -6,14 +6,14 @@ require_once(__DIR__.'/bootstrap.php');
 
 class EvilGlobalsTest extends Tester\TestCase {
     function testSettings() {
-        EvilGlobals::init(array('path' => __DIR__.'/test-config1.neon'));
+        EvilGlobals::init(array('config-file' => __DIR__.'/test-config1.neon'));
         Assert::same('name', EvilGlobals::settings('username'));
         Assert::null(EvilGlobals::settings('website-data'));
         Assert::same(realpath(__DIR__.'/data'), realpath(EvilGlobals::settings('data')));
     }
 
     function testSafeSettings() {
-        EvilGlobals::init(array('path' => __DIR__.'/test-config1.neon'));
+        EvilGlobals::init(array('config-file' => __DIR__.'/test-config1.neon'));
 
         $safe_settings = EvilGlobals::safe_settings();
         Assert::same('name', $safe_settings['username']);
@@ -22,7 +22,7 @@ class EvilGlobalsTest extends Tester\TestCase {
     }
 
     function testGithubCache() {
-        EvilGlobals::init(array('path' => __DIR__.'/test-config1.neon'));
+        EvilGlobals::init(array('config-file' => __DIR__.'/test-config1.neon'));
 
         $github_cache = EvilGlobals::github_cache();
         Assert::same('name', $github_cache->username);

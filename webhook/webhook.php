@@ -4,7 +4,7 @@ require_once(__DIR__.'/../vendor/autoload.php');
 
 function webhook() {
     header("Content-Type: text/plain");
-    EvilGlobals::init(array('path' => 'webhook.neon', 'webhook' => true));
+    EvilGlobals::init(array('config-file' => __DIR__.'/../var/webhook.neon', 'webhook' => true));
     $event = get_webhook_event();
 
     switch($event->event_type) {
