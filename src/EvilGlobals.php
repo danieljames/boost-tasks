@@ -108,7 +108,12 @@ EOL;
     }
 
     static function settings($key, $default = null) {
-        return array_get(self::$instance->settings, $key, $default);
+        if (array_key_exists($key, self::$instance->settings)) {
+            return self::$instance->settings[$key];
+        }
+        else {
+            throw new LogicException("Unknown settings key: {$key}");
+        }
     }
 
     static function data_path($thing = null) {
