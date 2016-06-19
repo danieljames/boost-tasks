@@ -7,6 +7,8 @@ function webhook() {
     EvilGlobals::init(array('config-file' => __DIR__.'/../var/webhook.neon', 'webhook' => true));
     $event = get_webhook_event();
 
+    Log::info("Handling event {$event->event_type}");
+
     switch($event->event_type) {
     case 'push':
         webhook_push_handler($event);
