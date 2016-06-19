@@ -41,6 +41,7 @@ function webhook_push_handler($event) {
         $branches = $repos[$payload->repository->name];
     }
     else {
+        echo "Nothing to do for repository: {$payload->repository->name}.\n";
         return false;
     }
 
@@ -48,8 +49,10 @@ function webhook_push_handler($event) {
         $repo_path = $branches[$payload->ref];
     }
     else {
-        echo "Ignoring ref: ".htmlentities($payload->ref)."\n";
-        mail('dnljms@gmail.com', "Not updateding ref: {$payload->ref}): ".date('j M Y'), print_r($payload, true));
+        echo "Ignoring repository {$payload->repository->name}, ref: {$payload->ref}\n";
+        mail('dnljms@gmail.com',
+            "Not updateding repo: {$payload->repository->name}, ref: {$payload->ref}): ".date('j M Y'),
+            print_r($payload, true));
         return false;
     }
 
