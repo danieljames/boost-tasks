@@ -180,7 +180,9 @@ class BinTrayCache {
         $download_path = "{$download_dir}/{$file->name}";
 
         if (!is_file($download_path)) {
-            mkdir($download_dir, 0777, true);
+            if (!is_dir($download_dir)) {
+                mkdir($download_dir, 0777, true);
+            }
             if (!$this->download_file(
                 "http://dl.bintray.com/boostorg/{$file->repo}/{$file->name}",
                 $download_path))
