@@ -22,7 +22,7 @@ function main() {
         try {
             // Download file from bintray...
             $cache = new BinTrayCache;
-            $file = $cache->fetch_details($branch, '.tar.bz2');
+            $file = $cache->fetch_details($branch);
 
             $destination_path = "{$archives_path}/{$branch}";
             $version = is_file("{$destination_path}/.bintray-version") ?
@@ -37,7 +37,22 @@ function main() {
 
                 // Extract into a temporary directory.
                 $temp_directory = new TemporaryDirectory("{$archives_path}/tmp");
-                Process::run("tar -xjf '{$file_path}'", $temp_directory->path, null, null, 60*10);
+                switch($file->extension) {
+                case 'tar.bz2':
+                    Process::run("tar -xjf '{$file_path}'", $temp_directory->path, null, null, 60*10);
+                    break;
+                case 'tar.gz':
+                    Process::run("tar -xzf '{$file_path}'", $temp_directory->path, null, null, 60*10);
+                    break;
+                case '7z':
+                    Process::run("7z x '{$file_path}'", $temp_directory->path, null, null, 60*10);
+                    break;
+                case 'zip':
+                    Process::run("unzip '{$file_path}'", $temp_directory->path, null, null, 60*10);
+                    break;
+                default:
+                    assert(false);
+                }
 
                 // Find the extracted tarball in the temporary directory.
                 $new_directories = array_filter(scandir($temp_directory->path), function($x) { return $x[0] != '.'; });
@@ -123,8 +138,10 @@ class BinTrayCache {
         $this->path = EvilGlobals::data_path('bintray');
     }
 
-    function fetch_details($branch, $extension) {
-        $extension = '.'.ltrim($extension, '.');
+    function fetch_details($branch) {
+        // Not using 7zip files because 7z doesn't seem to be installed on the server.
+        $extension_priorities = array_flip(array('tar.bz2', 'tar.gz', 'zip'));
+        $low_priority = 100;
 
         // Download the file list from bintray.
         $files = file_get_contents(
@@ -139,12 +156,14 @@ class BinTrayCache {
         }
 
         $file = null;
+        $priority = $low_priority;
         foreach($files as $x) {
-            if (preg_match('@'.preg_quote($extension, '@').'$@', $x->name)) {
-                if ($file) {
-                    throw new RuntimeException("More than one file found.");
-                }
+            list($x_base_name, $x_extension) = explode('.', $x->name, 2);
+            $x_priority = array_get($extension_priorities, $x_extension, $low_priority);
+            if ($x_priority < $priority) {
+                $priority = $x_priority;
                 $file = $x;
+                $file->extension = $x_extension;
             }
         }
         if (!$file) {
