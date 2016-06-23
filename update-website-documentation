@@ -22,17 +22,23 @@ function main() {
         try {
             // Download file from bintray...
             $cache = new BinTrayCache;
-            $file = $cache->fetch_details($branch);
+            $file_list = $cache->fetch_details($branch);
 
+            // TODO: Store date instead of version?
             $destination_path = "{$archives_path}/{$branch}";
             $version = is_file("{$destination_path}/.bintray-version") ?
                 file_get_contents("{$destination_path}/.bintray-version") :
                 '';
 
-            if ($version != $file->version) {
+            foreach($file_list as $file) {
+                if ($version == $file->version) { break; }
+
                 // Download tarball.
                 $file_path = $cache->cached_download($file);
+                if (!$file_path) { continue; }
+
                 $cache->cleanup($branch);
+
                 Log::info("Extracting {$file_path} to {$destination_path}.");
 
                 // Extract into a temporary directory.
@@ -68,7 +74,11 @@ function main() {
                 // Would be nice to overwrite old archive in a cleaner manner...
                 if (realpath($destination_path)) { rename($destination_path, "{$temp_directory->path}/old"); }
                 rename($extract_path, $destination_path);
+
+                return;
             }
+
+            throw new RuntimeException("Unable to download any of the files.");
         }
         catch(RuntimeException $e) {
             Log::error($e);
@@ -155,22 +165,29 @@ class BinTrayCache {
             throw new RuntimeException("Error parsing latest details.");
         }
 
-        $file = null;
-        $priority = $low_priority;
+        $file_list = array();
         foreach($files as $x) {
             list($x_base_name, $x_extension) = explode('.', $x->name, 2);
-            $x_priority = array_get($extension_priorities, $x_extension, $low_priority);
-            if ($x_priority < $priority) {
-                $priority = $x_priority;
-                $file = $x;
-                $file->extension = $x_extension;
+            if (array_key_exists($x_extension, $extension_priorities)) {
+                $x->priority = $extension_priorities[$x_extension];
+                $x->extension = $x_extension;
+                $file_list[] = $x;
             }
         }
-        if (!$file) {
+        if (!$file_list) {
             throw new RuntimeException("Unable to find file to download.");
         }
 
-        return $file;
+        // If two files have different versions, use most recent.
+        // Otherwise sort by priority.
+        usort($file_list, function($x, $y) {
+            return
+                -($x->version != $y->version
+                    ? strtotime($x->created) - strtotime($y->created) : 0) ?:
+                ($x->priority - $y->priority);
+        });
+
+        return $file_list;
     }
 
     function cached_download($file) {
