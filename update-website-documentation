@@ -31,7 +31,7 @@ function main() {
                 '';
 
             foreach($file_list as $file) {
-                if ($version == $file->version) { break; }
+                if ($version == $file->version) { return; }
 
                 // Download tarball.
                 $file_path = $cache->cached_download($file);
