@@ -19,6 +19,7 @@ function main() {
 }
 
 function update_documentation($branch) {
+    // Get archive path setting.
     $archives_path = EvilGlobals::settings('website-archives');
     if (!$archives_path) {
         throw new RuntimeException("website-archives not set");
@@ -28,23 +29,22 @@ function update_documentation($branch) {
     }
     $archives_path = rtrim($archives_path, '/');
 
-    // Download file from bintray...
-    $cache = new BinTrayCache;
-    $file_list = $cache->fetch_details($branch);
-
+    // Check the location we'll install the documentation at.
     // TODO: Store date instead of version?
     $destination_path = "{$archives_path}/{$branch}";
     $version = is_file("{$destination_path}/.bintray-version") ?
         file_get_contents("{$destination_path}/.bintray-version") :
         '';
 
-    foreach($file_list as $file) {
+    // Download file details from bintray...
+    $cache = new BinTrayCache;
+    foreach($cache->fetch_details($branch) as $file) {
         if ($version == $file->version) {
             Log::info("{$branch} documentation: Already installed: {$file->name}, version {$file->version}.");
             return;
         }
 
-        Log::info("{$branch} documentation: Attempt to download {$file->name}, version {$file->version}.");
+        Log::info("{$branch} documentation: Attempt to install {$file->name}, version {$file->version}.");
 
         // Download tarball.
         $file_path = $cache->cached_download($file);
