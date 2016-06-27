@@ -46,8 +46,6 @@ function update_documentation($branch) {
         $file_path = $cache->cached_download($file);
         if (!$file_path) { continue; }
 
-        $cache->cleanup($branch);
-
         Log::info("Extracting {$file_path} to {$destination_path}.");
 
         // Extract into a temporary directory.
@@ -62,6 +60,7 @@ function update_documentation($branch) {
         if (realpath($destination_path)) { rename($destination_path, "{$temp_directory->path}/old"); }
         rename($extract_path, $destination_path);
 
+        $cache->cleanup($branch);
         return;
     }
 
