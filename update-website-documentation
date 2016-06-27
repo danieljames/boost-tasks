@@ -8,6 +8,17 @@ function main() {
         'Update the website development documentation from BinTray.');
     EvilGlobals::init($options);
 
+    foreach(array('master', 'develop') as $branch) {
+        try {
+            update_documentation($branch);
+        }
+        catch(RuntimeException $e) {
+            Log::error($e);
+        }
+    }
+}
+
+function update_documentation($branch) {
     // TODO: Resolve path
     $archives_path = EvilGlobals::settings('website-archives');
     if (!$archives_path) {
@@ -18,72 +29,65 @@ function main() {
     }
     $archives_path = rtrim($archives_path, '/');
 
-    foreach(array('master', 'develop') as $branch) {
-        try {
-            // Download file from bintray...
-            $cache = new BinTrayCache;
-            $file_list = $cache->fetch_details($branch);
+    // Download file from bintray...
+    $cache = new BinTrayCache;
+    $file_list = $cache->fetch_details($branch);
 
-            // TODO: Store date instead of version?
-            $destination_path = "{$archives_path}/{$branch}";
-            $version = is_file("{$destination_path}/.bintray-version") ?
-                file_get_contents("{$destination_path}/.bintray-version") :
-                '';
+    // TODO: Store date instead of version?
+    $destination_path = "{$archives_path}/{$branch}";
+    $version = is_file("{$destination_path}/.bintray-version") ?
+        file_get_contents("{$destination_path}/.bintray-version") :
+        '';
 
-            foreach($file_list as $file) {
-                if ($version == $file->version) { return; }
+    foreach($file_list as $file) {
+        if ($version == $file->version) { return; }
 
-                // Download tarball.
-                $file_path = $cache->cached_download($file);
-                if (!$file_path) { continue; }
+        // Download tarball.
+        $file_path = $cache->cached_download($file);
+        if (!$file_path) { continue; }
 
-                $cache->cleanup($branch);
+        $cache->cleanup($branch);
 
-                Log::info("Extracting {$file_path} to {$destination_path}.");
+        Log::info("Extracting {$file_path} to {$destination_path}.");
 
-                // Extract into a temporary directory.
-                $temp_directory = new TemporaryDirectory("{$archives_path}/tmp");
-                switch($file->extension) {
-                case 'tar.bz2':
-                    Process::run("tar -xjf '{$file_path}'", $temp_directory->path, null, null, 60*10);
-                    break;
-                case 'tar.gz':
-                    Process::run("tar -xzf '{$file_path}'", $temp_directory->path, null, null, 60*10);
-                    break;
-                case '7z':
-                    Process::run("7z x '{$file_path}'", $temp_directory->path, null, null, 60*10);
-                    break;
-                case 'zip':
-                    Process::run("unzip '{$file_path}'", $temp_directory->path, null, null, 60*10);
-                    break;
-                default:
-                    assert(false);
-                }
-
-                // Find the extracted tarball in the temporary directory.
-                $new_directories = array_filter(scandir($temp_directory->path), function($x) { return $x[0] != '.'; });
-                if (count($new_directories) != 1) {
-                    throw new RuntimeException("Something went wrong extracting archive");
-                }
-                $extract_path = "{$temp_directory->path}/".reset($new_directories);
-
-                // Add the version details.
-                file_put_contents("{$extract_path}/.bintray-version", $file->version);
-
-                // Replace the old documentation.
-                // Would be nice to overwrite old archive in a cleaner manner...
-                if (realpath($destination_path)) { rename($destination_path, "{$temp_directory->path}/old"); }
-                rename($extract_path, $destination_path);
-
-                return;
-            }
-
-            throw new RuntimeException("Unable to download any of the files.");
+        // Extract into a temporary directory.
+        $temp_directory = new TemporaryDirectory("{$archives_path}/tmp");
+        switch($file->extension) {
+        case 'tar.bz2':
+            Process::run("tar -xjf '{$file_path}'", $temp_directory->path, null, null, 60*10);
+            break;
+        case 'tar.gz':
+            Process::run("tar -xzf '{$file_path}'", $temp_directory->path, null, null, 60*10);
+            break;
+        case '7z':
+            Process::run("7z x '{$file_path}'", $temp_directory->path, null, null, 60*10);
+            break;
+        case 'zip':
+            Process::run("unzip '{$file_path}'", $temp_directory->path, null, null, 60*10);
+            break;
+        default:
+            assert(false);
         }
-        catch(RuntimeException $e) {
-            Log::error($e);
+
+        // Find the extracted tarball in the temporary directory.
+        $new_directories = array_filter(scandir($temp_directory->path), function($x) { return $x[0] != '.'; });
+        if (count($new_directories) != 1) {
+            throw new RuntimeException("Something went wrong extracting archive");
         }
+        $extract_path = "{$temp_directory->path}/".reset($new_directories);
+
+        // Add the version details.
+        file_put_contents("{$extract_path}/.bintray-version", $file->version);
+
+        // Replace the old documentation.
+        // Would be nice to overwrite old archive in a cleaner manner...
+        if (realpath($destination_path)) { rename($destination_path, "{$temp_directory->path}/old"); }
+        rename($extract_path, $destination_path);
+
+        return;
     }
+
+    throw new RuntimeException("Unable to download any of the files.");
 }
 
 class TemporaryDirectory {
