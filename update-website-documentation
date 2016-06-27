@@ -19,7 +19,6 @@ function main() {
 }
 
 function update_documentation($branch) {
-    // TODO: Resolve path
     $archives_path = EvilGlobals::settings('website-archives');
     if (!$archives_path) {
         throw new RuntimeException("website-archives not set");
