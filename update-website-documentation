@@ -39,13 +39,21 @@ function update_documentation($branch) {
         '';
 
     foreach($file_list as $file) {
-        if ($version == $file->version) { return; }
+        if ($version == $file->version) {
+            Log::info("{$branch} documentation: Already installed: {$file->name}, version {$file->version}.");
+            return;
+        }
+
+        Log::info("{$branch} documentation: Attempt to download {$file->name}, version {$file->version}.");
 
         // Download tarball.
         $file_path = $cache->cached_download($file);
-        if (!$file_path) { continue; }
+        if (!$file_path) {
+            Log::info("Download failed.");
+            continue;
+        }
 
-        Log::info("Extracting {$file_path} to {$destination_path}.");
+        Log::debug("{$branch} documentation: Extracting to {$destination_path}.");
 
         // Extract into a temporary directory.
         $temp_directory = new TemporaryDirectory("{$archives_path}/tmp");
@@ -60,6 +68,7 @@ function update_documentation($branch) {
         rename($extract_path, $destination_path);
 
         $cache->cleanup($branch);
+        Log::info("{$branch} documentation: Successfully installed documentation.");
         return;
     }
 
@@ -225,8 +234,7 @@ class BinTrayCache {
         }
 
         if (hash_file('sha256', $download_path) != $file->sha256) {
-            Log::error("File signature doesn't match: {$download_path}");
-            throw new RuntimeException("File signature doesn't match");
+            throw new RuntimeException("File signature doesn't match.");
         }
 
         return $download_path;
@@ -235,7 +243,6 @@ class BinTrayCache {
     // TODO: Download to temporary file and move into position.
     // TODO: Better error handling, what to do if there's a failure during download?
     function download_file($url, $dst_path) {
-        Log::info("Downloading {$url} to {$dst_path}.");
         $download_fh = fopen($url, 'rb');
         if (!$download_fh) { return false; }
 
