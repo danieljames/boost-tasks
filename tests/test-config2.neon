@@ -1,0 +1,3 @@
+username: overwritten-by-config-paths
+config-paths: test-config1.neon
+data: overwrite-config-paths

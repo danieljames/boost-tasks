@@ -9,7 +9,15 @@ class EvilGlobalsTest extends Tester\TestCase {
         EvilGlobals::init(array('config-file' => __DIR__.'/test-config1.neon'));
         Assert::same('name', EvilGlobals::settings('username'));
         Assert::null(EvilGlobals::settings('website-data'));
+        // Q: Do I really need to use realpath here?
         Assert::same(realpath(__DIR__.'/data'), realpath(EvilGlobals::settings('data')));
+    }
+
+    function testConfigPaths() {
+        EvilGlobals::init(array('config-file' => __DIR__.'/test-config2.neon'));
+        Assert::same('name', EvilGlobals::settings('username'));
+        Assert::null(EvilGlobals::settings('website-data'));
+        Assert::same(__DIR__.'/overwrite-config-paths', EvilGlobals::settings('data'));
     }
 
     function testSafeSettings() {

@@ -196,21 +196,24 @@ class EvilGlobals extends Object {
                     continue;
                 }
 
-                $settings[$key] = self::check_setting($key, $value, $details, dirname($path));
-            }
-        }
+                $value = self::check_setting($key, $value, $details, dirname($path));
 
-        if (isset($settings['config-paths'])) {
-            $config_paths = $settings['config-paths'];
-            unset($settings['config-paths']);
-            foreach ($config_paths as $config_path) {
-                if (!is_string($config_path)) {
-                    throw new RuntimeException("'config-paths' should only contain strings.");
+                switch($key) {
+                case 'config-paths':
+                    foreach ($value as $config_path) {
+                        if (!is_string($config_path)) {
+                            throw new RuntimeException("'config-paths' should only contain strings.");
+                        }
+                        if ($config_path[0] !== '/') {
+                            $config_path = dirname($path).'/'.$config_path;
+                        }
+                        $settings = self::read_config($config_path, $settings);
+                    }
+                    break;
+                default:
+                    $settings[$key] = $value;
+                    break;
                 }
-                if ($config_path[0] !== '/') {
-                    $config_path = dirname($path).'/'.$config_path;
-                }
-                $settings = self::read_config($config_path, $settings);
             }
         }
 
