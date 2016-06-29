@@ -19,6 +19,7 @@ function main($args) {
         $record = R::findOne('variable', 'name = "settings"');
         if (!$record || $settings !== $record->value) {
             echo "Configuration updated:\n\n{$settings}";
+            if ($record) { echo "\n\nOld configuration:\n\n{$record->value}"; }
 
             if (!$record) {
                 $record = R::dispense('variable');
