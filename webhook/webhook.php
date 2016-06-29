@@ -58,10 +58,27 @@ function webhook_push_handler($event) {
 
     echo "Pulling {$repo_path}\n";
 
+    $git_output = update_git_checkout($repo_path);
+
+    echo "Done, emailing results.\n";
+
+    $git_commits = commit_details($payload);
+
     $result = '';
     $result .= "Pull\n";
     $result .= "====\n";
     $result .= "\n";
+    $result .= $git_output;
+    $result .= "\n";
+    $result .= "Commits\n";
+    $result .= "=======\n";
+    $result .= $git_commits;
+
+    // Email the result
+    mail('dnljms@gmail.com', 'Boost website update: '.date('j M Y'), $result);
+}
+
+function update_git_checkout($repo_path) {
     $result .= Process::run('git stash', $repo_path)->getOutput();
     try {
         $result .= Process::run('git pull -q', $repo_path)->getOutput();
@@ -75,13 +92,13 @@ function webhook_push_handler($event) {
     catch (\RuntimeException $e) {
         $result .= "git stash pop failed\n";
     }
-    $result .= "\n";
 
-    echo "Done, emailing results.\n";
+    return $result;
+}
 
-    // Add the commit details.
-    $result .= "Commits\n";
-    $result .= "=======\n";
+function commit_details($payload) {
+    $result = '';
+
     $result .= "Branch: {$payload->ref}\n";
     $result .= $payload->forced ? "Force pushed " : "Pushed ";
     $result .= "by: {$payload->pusher->name} <{$payload->pusher->email}>\n";
@@ -93,8 +110,7 @@ function webhook_push_handler($event) {
         $result .= "{$commit->message}\n";
     }
 
-    // Email the result
-    mail('dnljms@gmail.com', 'Boost website update: '.date('j M Y'), $result);
+    return $result;
 }
 
 class GitHubWebHookEvent {
