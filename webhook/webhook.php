@@ -65,14 +65,14 @@ function webhook_push_handler($event) {
     $git_commits = commit_details($payload);
 
     $result = '';
-    $result .= "Pull\n";
-    $result .= "====\n";
-    $result .= "\n";
-    $result .= $git_output;
-    $result .= "\n";
     $result .= "Commits\n";
     $result .= "=======\n";
     $result .= $git_commits;
+    $result .= "\n";
+    $result .= "Pull\n";
+    $result .= "====\n";
+    $result .= $git_output;
+    $result .= "\n";
 
     // Email the result
     mail('dnljms@gmail.com', 'Boost website update: '.date('j M Y'), $result);
