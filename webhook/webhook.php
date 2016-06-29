@@ -79,6 +79,8 @@ function webhook_push_handler($event) {
 }
 
 function update_git_checkout($repo_path) {
+    $result = '';
+
     $result .= Process::run('git stash', $repo_path)->getOutput();
     try {
         $result .= Process::run('git pull -q', $repo_path)->getOutput();
