@@ -75,7 +75,7 @@ function webhook_push_handler($event) {
     $result .= "\n";
 
     // Email the result
-    mail('dnljms@gmail.com', 'Boost website update: '.date('j M Y'), $result);
+    mail('dnljms@gmail.com', "[boost website] Update {$payload->ref} ".date('j M Y'), $result);
 }
 
 function update_git_checkout($repo_path) {
