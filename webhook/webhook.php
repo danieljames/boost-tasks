@@ -107,9 +107,10 @@ function commit_details($payload) {
 
     foreach ($payload->commits as $commit) {
         $result .= "\n";
-        $result .= "{$commit->id}\n";
-        $result .= "{$commit->author->name} <{$commit->author->email}>\n";
-        $result .= "{$commit->message}\n";
+        $result .= "commit {$commit->id}\n";
+        $result .= "Author: {$commit->author->name} <{$commit->author->email}>\n";
+        $result .= "\n";
+        $result .= preg_replace('@^(?!$)@m', "    ", $commit->message)."\n";
     }
 
     return $result;
