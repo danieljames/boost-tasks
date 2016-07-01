@@ -143,8 +143,7 @@ class GitHubCache_Iterator extends Object implements Iterator
                 $response_body);
             // Assuming that if there's no 'next_url' it's the end,
             // but maybe it should be an exception?
-            $this->next_url = property_exists($response, 'next_url') ?
-                $response->next_url : null;
+            $this->next_url = $response->next_url;
         }
     }
 }

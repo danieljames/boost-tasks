@@ -41,7 +41,7 @@ class MockCache {
         if (array_key_exists($url, $this->requests)) {
             $x = $this->requests[$url];
             if (is_array($x)) {
-                $x = (object) $x;
+                $x = (object) array_merge(array('next_url' => ''), $x);
                 $x->body = json_encode($x->body);
                 return $x;
             }
