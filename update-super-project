@@ -8,6 +8,8 @@ function main($args) {
     $specs = new OptionCollection;
     $specs->add('no-fetch', "Don't fetch events from GitHub")
         ->defaultValue(false);
+    $specs->add('full', "Full update of every submodule regardless of event queue")
+        ->defaultValue(false);
     $options = CommandLineOptions::process($args,
         'Update the submodules in the super project',
         $specs);
@@ -41,7 +43,7 @@ function main($args) {
         GitHubEventQueue::downloadEvents();
     }
 
-    SuperProject::updateBranches();
+    SuperProject::updateBranches(null, $options['full']);
 }
 
 main($_SERVER['argv']);

@@ -13,11 +13,11 @@ use Nette\Object;
 class SuperProject extends Repo {
     var $submodule_branch;
 
-    static function updateBranches($branches = null) {
+    static function updateBranches($branches = null, $full = false) {
         if (!$branches) { $branches = EvilGlobals::branch_repos(); }
         foreach ($branches as $x) {
             $super = new SuperProject($x);
-            $super->checkedUpdateFromEvents();
+            $super->checkedUpdateFromEvents($full);
         }
     }
 
@@ -35,14 +35,18 @@ class SuperProject extends Repo {
         return $settings[$name];
     }
 
-    function checkedUpdateFromEvents() {
+    function checkedUpdateFromEvents($full = false) {
         $self = $this; // Has to work on php 5.3
         $queue = new GitHubEventQueue($self->submodule_branch);
-        $result = $this->attemptAndPush(function() use($self, $queue) {
+        $result = $this->attemptAndPush(function() use($self, $queue, $full) {
             $submodules = new SuperProject_Submodules($self->path);
             $submodules->readSubmodules();
 
-            if (!$queue->continuedFromLastRun()) {
+            if ($full) {
+                Log::info('Full referesh of submodules.');
+                $updates = $self->getUpdatesFromAll($submodules, $queue);
+            }
+            else if (!$queue->continuedFromLastRun()) {
                 Log::info('Full referesh of submodules because of gap in event queue.');
                 $updates = $self->getUpdatesFromAll($submodules, $queue);
             }
