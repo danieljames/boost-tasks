@@ -366,8 +366,15 @@ class Db_Impl extends Object {
             case '__meta':
                 break;
             default:
-                if (!$value instanceof Db_Default) { $update[$key] = $value; }
-                else { $default_columns[] = "`{$key}`"; }
+                if ($value instanceof Db_Default) {
+                    $default_columns[] = "`{$key}`";
+                } else if ($value instanceof \DateTime || $value instanceof \DateTimeInterface) {
+                    $value = clone $value;
+                    $value->setTimezone(new \DateTimeZone('UTC'));
+                    $update[$key] = $value->format('Y-m-d H:i:s');
+                } else {
+                    $update[$key] = $value;
+                }
                 break;
             }
         }

@@ -129,6 +129,22 @@ class DbTest extends Tester\TestCase
 
         $y = Db::load('test', 1);
         Assert::same($y->t, $x->t);
+
+        $date1 = new DateTime('10 Jun 2005');
+        $x = Db::dispense('test');
+        $x->t = $date1;
+        $x->store();
+
+        $y = Db::load('test', 2);
+        Assert::equal($date1->getTimestamp(), strtotime($y->t));
+
+        $date2 = new DateTime('30 May 2001 15:36 +0300');
+        $x = Db::dispense('test');
+        $x->t = $date2;
+        $x->store();
+
+        $y = Db::load('test', 3);
+        Assert::equal($date2->getTimestamp(), strtotime($y->t));
     }
 
     function testDispenseError() {
