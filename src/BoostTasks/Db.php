@@ -5,6 +5,7 @@ namespace BoostTasks;
 use PDO;
 use stdClass;
 use RuntimeException;
+use Exception;
 use Nette\Object;
 
 // This is an incredibly crude little library for database stuff that I
@@ -31,6 +32,7 @@ class Db {
         return new Db_Impl(new PDO("sqlite:{$path}"));
     }
 
+    static function transaction($callback) { return self::$instance->transaction($callback); }
     static function begin() { return self::$instance->begin(); }
     static function commit() { return self::$instance->commit(); }
     static function rollback() { return self::$instance->rollback(); }
@@ -93,6 +95,21 @@ class Db_Impl extends Object {
 
     public function __construct($pdo) {
         $this->pdo_connection = $pdo;
+    }
+
+    public function transaction($callback) {
+        static $depth = 0;
+        if ($depth == 0) { $this->begin(); }
+        ++$depth;
+        try { $result = call_user_func($callback); }
+        catch(Exception $e) {
+            --$depth;
+            if ($depth == 0) { $this->rollback(); }
+            throw $e;
+        }
+        --$depth;
+        if ($depth == 0) { $this->commit(); }
+        return $result;
     }
 
     public function begin() {

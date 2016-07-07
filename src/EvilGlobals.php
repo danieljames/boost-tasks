@@ -97,7 +97,7 @@ class EvilGlobals extends Object {
             // Set up the database
 
             Db::setup("sqlite:{$this->data_root}/cache.db");
-            Migrations::migrate();
+            Migrations::migrate(Db::$instance);
         }
     }
 
@@ -150,6 +150,10 @@ class EvilGlobals extends Object {
         }
 
         return self::$instance->github_cache;
+    }
+
+    static function database() {
+        return Db::$instance;
     }
 
     static function resolve_path($path, $base = null) {

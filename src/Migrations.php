@@ -9,27 +9,27 @@ class Migrations extends Object {
         'Migrations::migration_Null',
     );
 
-    static function migrate() {
-        while(Db::transaction('Migrations::single_migration')) {}
+    static function migrate($db) {
+        while($db->transaction(function() use($db) { Migrations::single_migration($db); })) {}
     }
 
-    static function single_migration() {
+    static function single_migration($db) {
         $num_versions = count(self::$versions);
-        $version = Db::getCell('PRAGMA user_version');
+        $version = $db->getCell('PRAGMA user_version');
         if ($version < $num_versions) {
             Log::info("Call migration {$version}: ".self::$versions[$version]);
-            call_user_func(self::$versions[$version]);
+            call_user_func(self::$versions[$version], $db);
             ++$version;
             Log::info("Migration success, now at version {$version}");
-            Db::exec("PRAGMA user_version = {$version}");
+            $db->exec("PRAGMA user_version = {$version}");
         }
         return $version < $num_versions;
     }
 
-    static function migration_Null() {
+    static function migration_Null($db) {
     }
 
-    static function migration_Initialise() {
+    static function migration_Initialise($db) {
         $schema = "
             CREATE TABLE `event` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `github_id` TEXT, `branch` TEXT, `repo` TEXT, `payload` TEXT, `created` NUMERIC, `sequence_start` INTEGER, `type` TEXT);
             CREATE TABLE `eventstate` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `start_id` TEXT, `last_id` TEXT, `name` TEXT);
@@ -44,8 +44,8 @@ class Migrations extends Object {
             CREATE INDEX index_foreignkey_queue_last_github ON `queue` (last_github_id);
         ";
 
-        foreach(explode(';', $schema) as $command) {
-            Db::exec($command);
+        foreach(preg_split('@\s*;\s*@', $schema) as $command) {
+            if ($command) { $db->exec($command); }
         }
     }
 }
