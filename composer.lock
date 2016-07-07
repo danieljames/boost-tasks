@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "91a11cbecdfc97498b48ca71d0eb9d78",
-    "content-hash": "a7f3a7e604791ffce1ed20a796b246a6",
+    "hash": "5cde4233343d1ce5f1af208169cc2464",
+    "content-hash": "ab10358a2ca6da96e2acc60b85569868",
     "packages": [
         {
             "name": "corneltek/getoptionkit",
@@ -366,17 +366,6 @@
                 "psr-3"
             ],
             "time": "2012-12-21 11:40:51"
-        },
-        {
-            "name": "redbeanphp/redbeanphp",
-            "version": "4.2.1",
-            "dist": {
-                "type": "zip",
-                "url": "https://github.com/gabordemooij/redbean/archive/v4.2.1.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "type": "library"
         },
         {
             "name": "symfony/event-dispatcher",
