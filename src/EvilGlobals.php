@@ -5,6 +5,7 @@ use Nette\Object;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
+use BoostTasks\Db;
 
 class EvilGlobals extends Object {
     static $settings_types = array(
@@ -26,8 +27,7 @@ class EvilGlobals extends Object {
     static $instance = null;
 
     private $settings;
-
-    // Filesystem layout
+    var $database;
     var $data_root;
     var $branch_repos;
     var $github_cache;
@@ -92,17 +92,6 @@ class EvilGlobals extends Object {
             $stdout_handler->setFormatter($formatter);
 
             Log::$log->setHandlers(array($log_handler, $stdout_handler));
-
-            // Set up the database
-            // TODO: This doesn't work if the configuration changes.
-
-            static $previously_setup_database = false;
-            if (!$previously_setup_database) {
-                R::setup("sqlite:{$this->data_root}/cache.db");
-                Migrations::migrate();
-                R::freeze(true);
-                $previously_setup_database = true;
-            }
         }
     }
 
@@ -155,6 +144,18 @@ class EvilGlobals extends Object {
         }
 
         return self::$instance->github_cache;
+    }
+
+    static function database() {
+        if (!self::$instance->database) {
+            // Set up the database
+
+            $db = Db::create("sqlite:".self::data_path()."/cache.db");
+            Migrations::migrate($db);
+            self::$instance->database = $db;
+        }
+
+        return self::$instance->database;
     }
 
     static function resolve_path($path, $base = null) {

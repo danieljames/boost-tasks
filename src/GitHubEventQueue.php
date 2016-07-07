@@ -26,22 +26,23 @@ class GitHubEventQueue extends Object {
     var $type;
 
     function __construct($name, $type = 'PushEvent') {
-        $this->queue = R::findOne(self::$queue_table, 'name = ?', array($name));
+        $db = EvilGlobals::database();
+        $this->queue = $db->findOne(self::$queue_table, 'name = ?', array($name));
         $this->type = $type;
         if ($this->queue) {
             assert($this->queue->type === $type);
         }
         else {
-            $this->queue = R::dispense(self::$queue_table);
+            $this->queue = $db->dispense(self::$queue_table);
             $this->queue->name = $name;
             $this->queue->type = $type;
             $this->queue->last_github_id = 0;
-            R::store($this->queue);
+            $this->queue->store();
         }
     }
 
     function getEvents() {
-        return R::find(self::$event_table,
+        return EvilGlobals::database()->find(self::$event_table,
                 'github_id > ? AND type = ? ORDER BY github_id',
                 array($this->queue->last_github_id, $this->type));
     }
@@ -52,7 +53,7 @@ class GitHubEventQueue extends Object {
             $this->queue->last_github_id,
             $status->last_id,
             $status->start_id));
-        R::store($this->queue);
+        $this->queue->store();
     }
 
     function continuedFromLastRun() {
@@ -62,7 +63,7 @@ class GitHubEventQueue extends Object {
     }
 
     static function outputEvents() {
-        foreach(R::findAll(self::$event_table) as $event) {
+        foreach(EvilGlobals::database()->findAll(self::$event_table) as $event) {
             echo "GitHub id: {$event->github_id}\n";
             echo "Type: {$event->type}\n";
             echo "Branch: {$event->branch}\n";
@@ -95,11 +96,11 @@ class GitHubEventQueue extends Object {
                 $status->start_id = $event->id;
                 if ($event_row) {
                     $event_row->sequence_start = true;
-                    R::store($event_row);
+                    $event_row->store();
                 }
             }
             $status->last_id = $new_last_id;
-            R::store($status);
+            $status->store();
             self::$event_queue_status = $status;
         }
     }
@@ -119,30 +120,33 @@ class GitHubEventQueue extends Object {
             return;
         }
 
-        if (R::findOne(self::$event_table, 'github_id = ?', array($event->id))) {
+        $db = EvilGlobals::database();
+
+        if ($db->findOne(self::$event_table, 'github_id = ?', array($event->id))) {
             return;
         }
 
-        $event_row = R::dispense(self::$event_table);
+        $event_row = $db->dispense(self::$event_table);
         $event_row->github_id = $event->id;
         $event_row->type = $event->type;
         $event_row->branch = $branch;
         $event_row->repo = $event->repo->name;
         $event_row->payload = json_encode($event->payload);
         $event_row->created = new \DateTime($event->created_at);
-        R::store($event_row);
+        $event_row->store();
         return $event_row;
     }
 
     static function getStatus($force = false) {
         if (!self::$event_queue_status || $force) {
-            self::$event_queue_status = R::findOne(self::$event_state_table, 'name = "github-state"');
+            $db = EvilGlobals::database();
+            self::$event_queue_status = $db->findOne(self::$event_state_table, 'name = "github-state"');
             if (!self::$event_queue_status) {
-                self::$event_queue_status = R::dispense(self::$event_state_table);
+                self::$event_queue_status = $db->dispense(self::$event_state_table);
                 self::$event_queue_status->start_id = 0;
                 self::$event_queue_status->last_id = 0;
                 self::$event_queue_status->name = 'github-state';
-                R::store(self::$event_queue_status);
+                self::$event_queue_status->store();
             }
         }
 

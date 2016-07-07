@@ -56,22 +56,24 @@ class LocalMirror extends Object {
     }
 
     function update($url, $dirty) {
+        $db = EvilGlobals::database();
         $path = parse_url($url, PHP_URL_PATH);
-        $entry = R::findOne(self::$mirror_table, 'path = ?', array($path));
+        $entry = $db->findOne(self::$mirror_table, 'path = ?', array($path));
         if ($entry) {
             if (!$entry->dirty) { $entry->dirty = $dirty; }
         }
         else {
-            $entry = R::dispense(self::$mirror_table);
+            $entry = $db->dispense(self::$mirror_table);
             $entry->path = $path;
             $entry->dirty = $dirty;
         }
         $entry->url = $url;
-        R::store($entry);
+        $db->store($entry);
     }
 
     function fetchDirty() {
-        $repos = R::find(self::$mirror_table, 'dirty = ?', Array(true));
+        $db = EvilGlobals::database();
+        $repos = $db->find(self::$mirror_table, 'dirty = ?', Array(true));
 
         foreach ($repos as $repo_entry) {
             if (is_dir($this->getPath($repo_entry))) {
@@ -89,7 +91,7 @@ class LocalMirror extends Object {
         Process::run("git fetch --quiet", $this->getPath($repo_entry));
 
         $repo_entry->dirty = false;
-        R::store($repo_entry);
+        $repo_entry->store();
     }
 
     function createMirror($repo_entry) {
@@ -98,11 +100,11 @@ class LocalMirror extends Object {
             $this->getPath($repo_entry), null, null, 240); // 240 = timeout
 
         $repo_entry->dirty = false;
-        R::store($repo_entry);
+        $repo_entry->store();
     }
 
     function outputRepos() {
-        foreach(R::findAll(self::$mirror_table) as $repo) {
+        foreach(EvilGlobals::database()->findAll(self::$mirror_table) as $repo) {
             echo "{$repo->url} ", $repo->dirty ? '(needs update)' : '' ,"\n";
         }
     }

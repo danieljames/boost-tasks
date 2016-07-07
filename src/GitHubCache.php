@@ -27,7 +27,9 @@ class GitHubCache extends Object {
         }
         $full_url = $request->getUrl();
 
-        $cached = R::findOne(self::$table_name, 'url = ?', array($full_url));
+        $db = EvilGlobals::database();
+
+        $cached = $db->findOne(self::$table_name, 'url = ?', array($full_url));
         if ($cached && $cached->etag) {
             $request->addHeader('If-None-Match', $cached->etag);
         }
@@ -37,7 +39,7 @@ class GitHubCache extends Object {
             case 200:
                 \Log::debug("Fetched: {$url}");
                 if (!$cached) {
-                    $cached = R::dispense(self::$table_name);
+                    $cached = $db->dispense(self::$table_name);
                     $cached->url = $full_url;
                 }
 
@@ -51,7 +53,7 @@ class GitHubCache extends Object {
                     $cached->etag = $response->getHeader('ETag')->__toString();
                     $cached->body = $response->getBody()->__toString();
 
-                    R::store($cached);
+                    $db->store($cached);
                 }
 
                 break;

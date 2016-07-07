@@ -2,27 +2,6 @@
     "name": "danieljames/boost-tasks",
     "description": "Misc. boost things.",
     "license": "BSL-1.0",
-    "repositories": [
-        {
-            "type": "package",
-            "package": {
-                 "name": "redbeanphp/redbeanphp",
-                 "version": "4.2.1",
-                 "dist": {
-                     "url": "https://github.com/gabordemooij/redbean/archive/v4.2.1.zip",
-                     "type": "zip"
-                 }
-            }
-        }
-    ],
-    "scripts": {
-        "post-install-cmd": [
-           "cd vendor/redbeanphp/redbeanphp/ && php replica2.php onlyphp && php p533patch.php"
-        ],
-        "post-update-cmd": [
-           "cd vendor/redbeanphp/redbeanphp/ && php replica2.php onlyphp && php p533patch.php"
-        ]
-    },
     "authors": [
         {
             "name": "Daniel James",
@@ -35,14 +14,13 @@
         "nette/utils": "*",
         "guzzle/guzzle": "*",
         "symfony/process": "*",
-        "redbeanphp/redbeanphp": "4.2.*",
         "monolog/monolog": "*"
     },
     "require-dev": {
         "nette/tester": "*"
     },
     "autoload": {
-        "files": [ "vendor/redbeanphp/redbeanphp/rb-p533.php", "src/_init.php" ],
+        "files": [ "src/_init.php" ],
         "psr-0": { "" : "src/" }
     },
     "minimum-stability": "dev",
