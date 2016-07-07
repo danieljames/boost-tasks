@@ -1,5 +1,7 @@
 <?php
 
+use BoostTasks\Db;
+
 /*
  * Copyright 2013-2014 Daniel James <daniel@calamity.org.uk>.
  *
@@ -57,21 +59,21 @@ class LocalMirror extends Object {
 
     function update($url, $dirty) {
         $path = parse_url($url, PHP_URL_PATH);
-        $entry = R::findOne(self::$mirror_table, 'path = ?', array($path));
+        $entry = Db::findOne(self::$mirror_table, 'path = ?', array($path));
         if ($entry) {
             if (!$entry->dirty) { $entry->dirty = $dirty; }
         }
         else {
-            $entry = R::dispense(self::$mirror_table);
+            $entry = Db::dispense(self::$mirror_table);
             $entry->path = $path;
             $entry->dirty = $dirty;
         }
         $entry->url = $url;
-        R::store($entry);
+        Db::store($entry);
     }
 
     function fetchDirty() {
-        $repos = R::find(self::$mirror_table, 'dirty = ?', Array(true));
+        $repos = Db::find(self::$mirror_table, 'dirty = ?', Array(true));
 
         foreach ($repos as $repo_entry) {
             if (is_dir($this->getPath($repo_entry))) {
@@ -89,7 +91,7 @@ class LocalMirror extends Object {
         Process::run("git fetch --quiet", $this->getPath($repo_entry));
 
         $repo_entry->dirty = false;
-        R::store($repo_entry);
+        Db::store($repo_entry);
     }
 
     function createMirror($repo_entry) {
@@ -98,11 +100,11 @@ class LocalMirror extends Object {
             $this->getPath($repo_entry), null, null, 240); // 240 = timeout
 
         $repo_entry->dirty = false;
-        R::store($repo_entry);
+        Db::store($repo_entry);
     }
 
     function outputRepos() {
-        foreach(R::findAll(self::$mirror_table) as $repo) {
+        foreach(Db::findAll(self::$mirror_table) as $repo) {
             echo "{$repo->url} ", $repo->dirty ? '(needs update)' : '' ,"\n";
         }
     }

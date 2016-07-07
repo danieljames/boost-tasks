@@ -3,6 +3,7 @@
 require_once(__DIR__.'/vendor/autoload.php');
 
 use GetOptionKit\OptionCollection;
+use BoostTasks\Db;
 
 function main($args) {
     $specs = new OptionCollection;
@@ -18,24 +19,24 @@ function main($args) {
     if ($options['cron']) {
         // Quick and dirty check if the configuration has changed since last run.
         $settings = \Nette\Neon\Neon::encode(EvilGlobals::safe_settings(), \Nette\Neon\Neon::BLOCK);
-        $record = R::findOne('variable', 'name = "settings"');
+        $record = Db::findOne('variable', 'name = "settings"');
         if (!$record || $settings !== $record->value) {
             echo "Configuration updated:\n\n{$settings}";
             if ($record) { echo "\n\nOld configuration:\n\n{$record->value}"; }
 
             if (!$record) {
-                $record = R::dispense('variable');
+                $record = Db::dispense('variable');
                 $record->name = 'settings';
             }
             $record->value = $settings;
-            $record->updated_on = R::isoDateTime();
-            R::store($record);
+            $record->updated_on = Db::isoDateTime();
+            Db::store($record);
 
-            $history = R::dispense('history');
+            $history = Db::dispense('history');
             $history->name = $record->name;
             $history->value = $record->value;
             $history->updated_on = $record->updated_on;
-            R::store($history);
+            Db::store($history);
         }
     }
 

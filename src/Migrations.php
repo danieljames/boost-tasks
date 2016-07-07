@@ -1,6 +1,7 @@
 <?php
 
 use Nette\Object;
+use BoostTasks\Db;
 
 class Migrations extends Object {
     static $versions = array(
@@ -9,18 +10,18 @@ class Migrations extends Object {
     );
 
     static function migrate() {
-        while(R::transaction('Migrations::single_migration')) {}
+        while(Db::transaction('Migrations::single_migration')) {}
     }
 
     static function single_migration() {
         $num_versions = count(self::$versions);
-        $version = R::getCell('PRAGMA user_version');
+        $version = Db::getCell('PRAGMA user_version');
         if ($version < $num_versions) {
             Log::info("Call migration {$version}: ".self::$versions[$version]);
             call_user_func(self::$versions[$version]);
             ++$version;
             Log::info("Migration success, now at version {$version}");
-            R::exec("PRAGMA user_version = {$version}");
+            Db::exec("PRAGMA user_version = {$version}");
         }
         return $version < $num_versions;
     }
@@ -44,7 +45,7 @@ class Migrations extends Object {
         ";
 
         foreach(explode(';', $schema) as $command) {
-            R::exec($command);
+            Db::exec($command);
         }
     }
 }

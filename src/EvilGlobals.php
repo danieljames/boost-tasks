@@ -5,6 +5,7 @@ use Nette\Object;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
+use BoostTasks\Db;
 
 class EvilGlobals extends Object {
     static $settings_types = array(
@@ -94,15 +95,9 @@ class EvilGlobals extends Object {
             Log::$log->setHandlers(array($log_handler, $stdout_handler));
 
             // Set up the database
-            // TODO: This doesn't work if the configuration changes.
 
-            static $previously_setup_database = false;
-            if (!$previously_setup_database) {
-                R::setup("sqlite:{$this->data_root}/cache.db");
-                Migrations::migrate();
-                R::freeze(true);
-                $previously_setup_database = true;
-            }
+            Db::setup("sqlite:{$this->data_root}/cache.db");
+            Migrations::migrate();
         }
     }
 
