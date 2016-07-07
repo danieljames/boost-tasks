@@ -261,7 +261,7 @@ class Db_Impl extends Object {
             }
 
             $object = new self::$entity_object();
-            while($column = $statement->fetchObject(self::$entity_object)) {
+            while($column = $statement->fetchObject()) {
                 $name = $column->Field;
                 if (preg_match('@\bauto_increment\b@', strtolower($column->Extra))) {
                     $object->{$name} = Db_Default::$instance;
