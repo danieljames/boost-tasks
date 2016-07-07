@@ -10,7 +10,7 @@ class Migrations extends Object {
     );
 
     static function migrate($db) {
-        while($db->transaction(function() use($db) { Migrations::single_migration($db); })) {}
+        while($db->transaction(function() use($db) { return Migrations::single_migration($db); })) {}
     }
 
     static function single_migration($db) {
