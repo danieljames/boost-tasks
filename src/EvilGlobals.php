@@ -27,8 +27,7 @@ class EvilGlobals extends Object {
     static $instance = null;
 
     private $settings;
-
-    // Filesystem layout
+    var $database;
     var $data_root;
     var $branch_repos;
     var $github_cache;
@@ -93,11 +92,6 @@ class EvilGlobals extends Object {
             $stdout_handler->setFormatter($formatter);
 
             Log::$log->setHandlers(array($log_handler, $stdout_handler));
-
-            // Set up the database
-
-            Db::setup("sqlite:{$this->data_root}/cache.db");
-            Migrations::migrate(Db::$instance);
         }
     }
 
@@ -153,7 +147,15 @@ class EvilGlobals extends Object {
     }
 
     static function database() {
-        return Db::$instance;
+        if (!self::$instance->database) {
+            // Set up the database
+
+            $db = Db::create("sqlite:".self::data_path()."/cache.db");
+            Migrations::migrate($db);
+            self::$instance->database = $db;
+        }
+
+        return self::$instance->database;
     }
 
     static function resolve_path($path, $base = null) {

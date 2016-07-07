@@ -18,25 +18,26 @@ function main($args) {
 
     if ($options['cron']) {
         // Quick and dirty check if the configuration has changed since last run.
+        $db = EvilGlobals::database();
         $settings = \Nette\Neon\Neon::encode(EvilGlobals::safe_settings(), \Nette\Neon\Neon::BLOCK);
-        $record = Db::findOne('variable', 'name = "settings"');
+        $record = $db->findOne('variable', 'name = "settings"');
         if (!$record || $settings !== $record->value) {
             echo "Configuration updated:\n\n{$settings}";
             if ($record) { echo "\n\nOld configuration:\n\n{$record->value}"; }
 
             if (!$record) {
-                $record = Db::dispense('variable');
+                $record = $db->dispense('variable');
                 $record->name = 'settings';
             }
             $record->value = $settings;
             $record->updated_on = Db::isoDateTime();
-            Db::store($record);
+            $record->store();
 
-            $history = Db::dispense('history');
+            $history = $db->dispense('history');
             $history->name = $record->name;
             $history->value = $record->value;
             $history->updated_on = $record->updated_on;
-            Db::store($history);
+            $history->store();
         }
     }
 
