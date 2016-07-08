@@ -119,6 +119,7 @@ class DbSchema {
             foreach($db->getAll("PRAGMA table_info(`{$table_name}`)") as $column_info) {
                 $column = new DbSchema_Column;
                 $column->name = $column_info['name'];
+                // TODO: Parse type to get length.
                 $column->type = $column_info['type'];
                 $column->notnull = intval($column_info['notnull']) ? true : false;
                 $column->default = $column_info['dflt_value'];
