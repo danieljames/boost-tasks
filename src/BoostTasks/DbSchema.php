@@ -86,6 +86,7 @@ class DbSchema {
                     // Index_comment
                 }
 
+                /*
                 // Infer suitable 'origin' based on index details.
                 if ($index_name === 'PRIMARY') {
                     $index->origin = 'pk';
@@ -96,6 +97,7 @@ class DbSchema {
                 else {
                     $index->origin = 'c';
                 }
+                */
 
                 $table->indexes[] = $index;
             }
@@ -129,8 +131,8 @@ class DbSchema {
                 // Ignoring 'seq'.
                 $index->name = $index_info['name'];
                 $index->unique = intval($index_info['unique']) ? true : false;
-                $index->origin = $index_info['origin'];
-                assert(!$index_info['partial']); // I don't support partial indexes.
+                //$index->origin = $index_info['origin'];
+                //assert(!$index_info['partial']); // I don't support partial indexes.
                 foreach($db->getAll("PRAGMA index_xinfo(`{$index->name}`)") as $column_info) {
                     // Ignore auxillary columns.
                     if ($column_info['key'] == '0') { continue; }
@@ -243,8 +245,8 @@ class DbSchema_Table {
     function sortIndexes() {
         usort($this->indexes, function($x, $y) {
             return
-                ($x->origin != 'pk' && $y->origin == 'pk') ?:
-                -($x->origin == 'pk' && $y->origin != 'pk') ?:
+                /* ($x->origin != 'pk' && $y->origin == 'pk') ?:
+                -($x->origin == 'pk' && $y->origin != 'pk') ?: */
                 ($x->name > $y->name) ?:
                 -($x->name < $y->name) ?:
                 0;
@@ -263,14 +265,16 @@ class DbSchema_Column {
 class DbSchema_Index {
     var $name;
     var $unique = false;
-    var $origin; // 'c' = create index, 'u' = unique, 'pk' = primary key
+    // origin doesn't seem to be supported by older versions of sqlite, so
+    // just ignore it for now.
+    // var $origin; // 'c' = create index, 'u' = unique, 'pk' = primary key
     var $columns = array();
 
     static function same($index1, $index2) {
         // Q: Do we really care about 'origin'?
         return $index1->name === $index2->name &&
             $index1->unique === $index2->unique &&
-            $index1->orgin === $index2->origin &&
+            /* $index1->orgin === $index2->origin && */
             self::sameColumns($index1->columns, $index2->columns);
 
     }
