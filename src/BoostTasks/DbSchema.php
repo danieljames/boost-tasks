@@ -133,6 +133,8 @@ class DbSchema {
                 $index->unique = intval($index_info['unique']) ? true : false;
                 //$index->origin = $index_info['origin'];
                 //assert(!$index_info['partial']); // I don't support partial indexes.
+
+                /*
                 foreach($db->getAll("PRAGMA index_xinfo(`{$index->name}`)") as $column_info) {
                     // Ignore auxillary columns.
                     if ($column_info['key'] == '0') { continue; }
@@ -144,6 +146,18 @@ class DbSchema {
                     $schema_index_column->order = $column_info['desc'] === '1' ? 'DSC' : 'ASC';
                     $index->columns[] = $schema_index_column;
                 }
+                */
+
+                foreach($db->getAll("PRAGMA index_info(`{$index->name}`)") as $column_info) {
+                     // I only support very basic indexes for now.
+                    $schema_index_column = new DbSchema_IndexColumn();
+                    $schema_index_column->name = $column_info['name'];
+                    // TODO: Just assuming that indexes are ascending for now.
+                    $schema_index_column->order = 'ASC';
+                    // TODO: Maybe order by rank?
+                    $index->columns[] = $schema_index_column;
+                }
+
                 $table->indexes[] = $index;
             }
 
