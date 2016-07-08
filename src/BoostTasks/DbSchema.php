@@ -143,7 +143,7 @@ class DbSchema {
                     assert($column_info['coll'] === 'BINARY');
                     $schema_index_column = new DbSchema_IndexColumn();
                     $schema_index_column->name = $column_info['name'];
-                    $schema_index_column->order = $column_info['desc'] === '1' ? 'DSC' : 'ASC';
+                    $schema_index_column->order = $column_info['desc'] === '1' ? 'dsc' : 'asc';
                     $index->columns[] = $schema_index_column;
                 }
                 */
@@ -153,7 +153,7 @@ class DbSchema {
                     $schema_index_column = new DbSchema_IndexColumn();
                     $schema_index_column->name = $column_info['name'];
                     // TODO: Just assuming that indexes are ascending for now.
-                    $schema_index_column->order = 'ASC';
+                    $schema_index_column->order = 'asc';
                     // TODO: Maybe order by rank?
                     $index->columns[] = $schema_index_column;
                 }
