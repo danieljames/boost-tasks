@@ -13,6 +13,9 @@ function webhook() {
     case 'push':
         webhook_push_handler($event);
         break;
+    case 'pull_request':
+        webhook_pull_request_handler($event);
+        break;
     default:
         throw new RuntimeException("Unrecognized event: {$event->event_type}");
     }
@@ -114,6 +117,21 @@ function commit_details($payload) {
     }
 
     return $result;
+}
+
+function webhook_pull_request_handler($event) {
+    $payload = $event->payload;
+
+    $record = EvilGlobals::database()->dispense('pull_request_event');
+    $record->action = $payload->action;
+    $record->repo_full_name = $payload->repository->full_name;
+    $record->pull_request_id = $payload->pull_request->id;
+    $record->pull_request_number = $payload->pull_request->number;
+    $record->pull_request_url = $payload->pull_request->html_url;
+    $record->pull_request_title = $payload->pull_request->title;
+    $record->pull_request_created_at = $payload->pull_request->created_at;
+    $record->pull_request_updated_at = $payload->pull_request->updated_at;
+    $record->store();
 }
 
 class GitHubWebHookEvent {

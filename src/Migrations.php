@@ -7,6 +7,7 @@ class Migrations extends Object {
     static $versions = array(
         'Migrations::migration_Initialise',
         'Migrations::migration_Null',
+        'Migrations::migration_PullRequestEvent',
     );
 
     static function migrate($db) {
@@ -47,5 +48,21 @@ class Migrations extends Object {
         foreach(preg_split('@\s*;\s*@', $schema) as $command) {
             if ($command) { $db->exec($command); }
         }
+    }
+
+    static function migration_PullRequestEvent($db) {
+        $db->exec('
+            CREATE TABLE `pull_request_event` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+                `action` VARCHAR(20),
+                `repo_full_name` TEXT,
+                `pull_request_id` INTEGER,
+                `pull_request_number` INTEGER,
+                `pull_request_url` TEXT,
+                `pull_request_title` TEXT,
+                `pull_request_created_at` TEXT,
+                `pull_request_updated_at` TEXT,
+                `created_on` DATETIME DEFAULT CURRENT_TIMESTAMP
+            );');
     }
 }
