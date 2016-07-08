@@ -13,11 +13,11 @@ use PDO;
 //   - collations other than BINARY in indexes.
 //   - and much, much more.
 class DbSchema {
-    static $mysql_type_mapping = [
-        'int' => ['int', 11],
-        'integer' => ['int', 11],
-        'tinyint' => ['tinyint', 4],
-    ];
+    static $mysql_type_mapping = array(
+        'int' => array('int', 11),
+        'integer' => array('int', 11),
+        'tinyint' => array('tinyint', 4),
+    );
 
     var $tables = array();
 
@@ -55,7 +55,7 @@ class DbSchema {
                 $table->columns[] = $column;
             }
 
-            $indexes_by_name = [];
+            $indexes_by_name = array();
             foreach($db->getAll("SHOW INDEX FROM `{$table_name}`") as $column_info) {
                 $indexes_by_name[$column_info['Key_name']][$column_info['Seq_in_index']] = $column_info;
             }
