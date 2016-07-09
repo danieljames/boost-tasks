@@ -131,6 +131,7 @@ function webhook_pull_request_handler($event) {
     $record->pull_request_title = $payload->pull_request->title;
     $record->pull_request_created_at = $payload->pull_request->created_at;
     $record->pull_request_updated_at = $payload->pull_request->updated_at;
+    $record->pull_request_state = $payload->pull_request->state;
     $record->store();
 }
 
