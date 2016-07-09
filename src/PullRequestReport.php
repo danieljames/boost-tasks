@@ -8,6 +8,7 @@
  */
 
 use Nette\Object;
+use BoostTasks\Db;
 
 class PullRequestReport extends Object {
     static function update($all = false) {
@@ -20,8 +21,18 @@ class PullRequestReport extends Object {
         $report->write();
     }
 
+    public function webhook_database() {
+        // TODO: This shouldn't be hard-coded.
+        static $database = null;
+        if (!$database) {
+            $database = Db::create('sqlite:'.__DIR__.'/../var/webhook-data/cache.db');
+        }
+        return $database;
+    }
+
     public function full_update() {
-        // TODO: Get queue position at this point.....
+        // Get queue position before downloading pull requests.
+        $last_event_id = $this->webhook_database()->getCell('SELECT max(`id`) FROM pull_request_event');
 
         // Download pull requests.
         $pull_requests = Array();
@@ -42,9 +53,11 @@ class PullRequestReport extends Object {
         $db = EvilGlobals::database();
         $db->begin();
         $existing_pull_requests = array();
+
         foreach($db->find('pull_request') as $row) {
             $existing_pull_requests[$row->id] = $row;
         }
+
         foreach ($pull_requests as $id => $data) {
             if (array_key_exists($id, $existing_pull_requests)) {
                 $record = $existing_pull_requests[$id];
@@ -66,10 +79,28 @@ class PullRequestReport extends Object {
             $record->pull_request_updated_at = $data->pull_request_updated_at;
             $record->store();
         }
+
         foreach($existing_pull_requests as $record) {
             $record->trash();
         }
+
+        $queue = $this->load_queue($db);
+        $queue->last_github_id = $last_event_id;
+        $queue->store();
+
         $db->commit();
+    }
+
+    public function load_queue($db) {
+        $queue = $db->findOne('queue', 'name = ? AND type = ?',
+            array('pull_request','PullRequestWebhook'));
+        if (!$queue) {
+            $queue = $db->dispense('queue');
+            $queue->name = 'pull_request';
+            $queue->type = 'PullRequestWebhook';
+            $queue->last_github_id = 0;
+        }
+        return $queue;
     }
 
     public function write() {
