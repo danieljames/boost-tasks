@@ -17,6 +17,7 @@ class PullRequestReport extends Object {
             $report->full_update();
         }
         else {
+            $report->update_from_queue();
         }
         $report->write();
     }
@@ -88,6 +89,56 @@ class PullRequestReport extends Object {
         $queue->last_github_id = $last_event_id;
         $queue->store();
 
+        $db->commit();
+    }
+
+    public function update_from_queue() {
+        $webhook_database = $this->webhook_database();
+        $db = EvilGlobals::database();
+        $db->begin();
+        $queue = $this->load_queue($db);
+        foreach($webhook_database->getAll('SELECT * FROM pull_request_event WHERE id > ? ORDER BY id', array($queue->last_github_id)) AS $row) {
+            $record = $db->load('pull_request', $row['pull_request_id']);
+            if ($record) {
+                assert($record->repo_full_name === $row['repo_full_name']);
+                assert($record->pull_request_number === $row['pull_request_number']);
+                assert($record->pull_request_url === $row['pull_request_url']);
+                assert($record->pull_request_created_at === $row['pull_request_created_at']);
+            }
+
+            switch($row['action']) {
+            case 'assigned':
+            case 'unassigned':
+            case 'labeled':
+            case 'unlabeled':
+            case 'opened':
+            case 'edited':
+            case 'reopened':
+            case 'synchronize':
+                if (!$record) {
+                    $record = $db->dispense('pull_request');
+                    $record->id = $row['pull_request_id'];
+                    $record->repo_full_name = $row['repo_full_name'];
+                    $record->pull_request_number = $row['pull_request_number'];
+                    $record->pull_request_url = $row['pull_request_url'];
+                    $record->pull_request_created_at = $row['pull_request_created_at'];
+                }
+                $record->pull_request_title = $row['pull_request_title'];
+                $record->pull_request_updated_at = $row['pull_request_updated_at'];
+                $record->store();
+                break;
+            case 'closed':
+                if (!$record) {
+                    $record->trash();
+                }
+                break;
+            default:
+                Log::Error("Unknown pull request action: {$row['action']}");
+            }
+
+            $queue->last_github_id = $row['id'];
+            $queue->store();
+        }
         $db->commit();
     }
 
