@@ -382,6 +382,10 @@ class Db_Impl extends Object {
         if (is_null($id_name)) { throw new RuntimeException("No id."); }
 
         if ($is_new) {
+            if (!$id instanceof Db_Default) {
+                $update[$id_name] = $id;
+            }
+
             $sql = "INSERT INTO `{$table_name}` ";
             if (!$update) {
                 if ($this->pdo_connection->getAttribute(PDO::ATTR_DRIVER_NAME) == 'sqlite') {

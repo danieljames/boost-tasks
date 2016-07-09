@@ -114,6 +114,20 @@ class DbTest extends Tester\TestCase
         Assert::same('-100', $x1->value6);
         Assert::same('null', $x1->value7);
         Assert::same(null, $x1->value8);
+        $x1->id = 100;
+        $x1->store();
+        Assert::same('100', $x1->id);
+
+        $x2 = Db::load('test', 100);
+        Assert::same('100', $x2->id);
+        Assert::same('something', $x2->value1);
+        Assert::same('something', $x2->value2);
+        Assert::same('something', $x2->value3);
+        Assert::same('0', $x2->value4);
+        Assert::same('100', $x2->value5);
+        Assert::same('-100', $x2->value6);
+        Assert::same('null', $x2->value7);
+        Assert::same(null, $x2->value8);
     }
 
     function testGeneratedValue() {
