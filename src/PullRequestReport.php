@@ -64,7 +64,7 @@ class PullRequestReport extends Object {
                 $record = $existing_pull_requests[$id];
                 unset($existing_pull_requests[$id]);
                 assert($record->repo_full_name === $data->repo_full_name);
-                assert($record->pull_request_number === $data->pull_request_number);
+                assert($record->pull_request_number == $data->pull_request_number);
                 assert($record->pull_request_url === $data->pull_request_url);
                 assert($record->pull_request_created_at === $data->pull_request_created_at);
             }
