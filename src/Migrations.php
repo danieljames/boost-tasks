@@ -9,6 +9,7 @@ class Migrations extends Object {
         'Migrations::migration_Null',
         'Migrations::migration_PullRequestEvent',
         'Migrations::migration_PullRequest',
+        'Migrations::migration_PullRequestEventState',
     );
 
     static function migrate($db) {
@@ -84,5 +85,12 @@ class Migrations extends Object {
                 `pull_request_created_at` TEXT,
                 `pull_request_updated_at` TEXT
             );');
+    }
+
+    static function migration_PullRequestEventState($db) {
+        $db->exec('
+            ALTER TABLE `pull_request_event`
+            ADD COLUMN `pull_request_state` TEXT
+        ');
     }
 }

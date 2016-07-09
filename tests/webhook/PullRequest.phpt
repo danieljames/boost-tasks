@@ -40,6 +40,7 @@ Assert::same(
             'pull_request_title' => 'Update the README with new information',
             'pull_request_created_at' => '2015-05-05T23:40:27Z',
             'pull_request_updated_at' => '2015-05-05T23:40:27Z',
+            'pull_request_state' => 'open',
         ),
     ),
     $events
