@@ -2,9 +2,18 @@
 <?php
 
 require_once(__DIR__.'/vendor/autoload.php');
-$options = CommandLineOptions::process($_SERVER['argv'],
-    'Update the pull request report from GitHub.');
-EvilGlobals::init($options);
 
-$report = new PullRequestReport();
-$report->run();
+use GetOptionKit\OptionCollection;
+
+function main($args) {
+    $specs = new OptionCollection;
+    $specs->add('all', "Fully refresh pull requests.")
+        ->defaultValue(false);
+    $options = CommandLineOptions::process($_SERVER['argv'],
+        'Update the pull request report from GitHub.', $specs);
+    EvilGlobals::init($options);
+
+    PullRequestReport::update($options['all']);
+}
+
+main($_SERVER['argv']);

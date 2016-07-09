@@ -8,6 +8,7 @@ class Migrations extends Object {
         'Migrations::migration_Initialise',
         'Migrations::migration_Null',
         'Migrations::migration_PullRequestEvent',
+        'Migrations::migration_PullRequest',
     );
 
     static function migrate($db) {
@@ -63,6 +64,25 @@ class Migrations extends Object {
                 `pull_request_created_at` TEXT,
                 `pull_request_updated_at` TEXT,
                 `created_on` DATETIME DEFAULT CURRENT_TIMESTAMP
+            );');
+    }
+
+    static function migration_PullRequest($db) {
+        // This is a tad confusing as it's in a different database
+        // to pull_request_event, although I'm creating the table
+        // in both because I haven't implemented having separate
+        // schemas.
+        //
+        // id is pull_request_id from github.
+        $db->exec('
+            CREATE TABLE `pull_request` (
+                `id` INTEGER PRIMARY KEY,
+                `repo_full_name` TEXT,
+                `pull_request_number` INTEGER,
+                `pull_request_url` TEXT,
+                `pull_request_title` TEXT,
+                `pull_request_created_at` TEXT,
+                `pull_request_updated_at` TEXT
             );');
     }
 }
