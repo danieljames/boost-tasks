@@ -421,6 +421,7 @@ class Db_Impl extends Object {
                 foreach($new_values as $key => $value) { $object->$key = $value; }
             }
         } else {
+            // TODO: What if id has been updated?
             if ($default_columns) { throw new RuntimeException("Default in update object.\n"); }
 
             $sql = "UPDATE `{$table_name}` SET ";
