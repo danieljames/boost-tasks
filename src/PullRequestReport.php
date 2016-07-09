@@ -106,15 +106,8 @@ class PullRequestReport extends Object {
                 assert($record->pull_request_created_at === $row['pull_request_created_at']);
             }
 
-            switch($row['action']) {
-            case 'assigned':
-            case 'unassigned':
-            case 'labeled':
-            case 'unlabeled':
-            case 'opened':
-            case 'edited':
-            case 'reopened':
-            case 'synchronize':
+            switch($row['pull_request_state']) {
+            case 'open':
                 if (!$record) {
                     $record = $db->dispense('pull_request');
                     $record->id = $row['pull_request_id'];
@@ -133,7 +126,7 @@ class PullRequestReport extends Object {
                 }
                 break;
             default:
-                Log::Error("Unknown pull request action: {$row['action']}");
+                Log::Error("Unknown pull request state: {$row['pull_request_state']}");
             }
 
             $queue->last_github_id = $row['id'];
