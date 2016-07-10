@@ -88,8 +88,8 @@ class LocalMirror extends Object {
     }
 
     function fetchMirror($repo_entry) {
-        Process::run("git fetch --quiet", $this->getPath($repo_entry));
-
+        $repo = new RepoBase($this->getPath($repo_entry));
+        $repo->fetchWithPrune();
         $repo_entry->dirty = false;
         $repo_entry->store();
     }
