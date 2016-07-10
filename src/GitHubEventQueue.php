@@ -43,8 +43,11 @@ class GitHubEventQueue extends Object {
 
     function getEvents() {
         return EvilGlobals::database()->find(self::$event_table,
-                'github_id > ? AND type = ? ORDER BY github_id',
-                array($this->queue->last_github_id, $this->type));
+                'github_id > ? AND github_id <= ? AND type = ? ORDER BY github_id',
+                array(
+                    $this->queue->last_github_id,
+                    $this->status->last_id,
+                    $this->type));
     }
 
     function catchUp() {
