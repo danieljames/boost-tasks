@@ -39,22 +39,18 @@ class SuperProject extends Repo {
         $self = $this; // Has to work on php 5.3
         $queue = new GitHubEventQueue($self->submodule_branch);
         $result = $this->attemptAndPush(function() use($self, $queue, $all) {
-            $submodules = new SuperProject_Submodules($self->path);
-
             if ($all) {
                 Log::info('Refresh all submodules.');
-                $updates = $self->getUpdatesFromAll($submodules, $queue);
+                return $self->updateFromAll($queue);
             }
             else if (!$queue->continuedFromLastRun()) {
                 Log::info('Full refresh of submodules because of gap in event queue.');
-                $updates = $self->getUpdatesFromAll($submodules, $queue);
+                return $self->updateFromAll($queue);
             }
             else {
                 Log::info('Refresh submodules from event queue.');
-                $updates = $self->getUpdatedFromEventQueue($submodules, $queue);
+                return $self->updateFromEventQueue($queue);
             }
-
-            return $self->updateHashes($submodules, $updates);
         });
 
         if ($result) { $queue->catchUp(); }
@@ -62,7 +58,9 @@ class SuperProject extends Repo {
     }
 
     // TODO: Public so that it can be called in a closure in PHP 5.3
-    public function getUpdatesFromAll($submodules, $queue) {
+    public function updateFromAll($queue) {
+        $submodules = new SuperProject_Submodules($this->path);
+
         // TODO: Because this fetches all branches, it requires several fetches
         // per repo. See if there's something more efficient.
         $updates = array();
@@ -84,11 +82,13 @@ class SuperProject extends Repo {
         // Or alternatively, fetch the queue and rollback any changes
         // since the catch up point.
 
-        return $updates;
+        return $this->updateHashes($submodules, $updates);
     }
 
     // TODO: Public so that it can be called in a closure in PHP 5.3
-    public function getUpdatedFromEventQueue($submodules, $queue) {
+    public function updateFromEventQueue($queue) {
+        $submodules = new SuperProject_Submodules($this->path);
+
         $updates = array();
 
         foreach ($queue->getEvents() as $event) {
@@ -101,7 +101,7 @@ class SuperProject extends Repo {
             }
         }
 
-        return $updates;
+        return $this->updateHashes($submodules, $updates);
     }
 
     /**
