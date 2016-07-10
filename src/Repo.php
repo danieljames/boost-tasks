@@ -9,16 +9,15 @@ use Nette\Object;
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-class Repo extends Object {
+class Repo extends RepoBase {
     var $module;
     var $branch;
-    var $path;
     var $enable_push;
 
     function __construct($module, $branch, $path) {
+        parent::__construct($path);
         $this->module = $module;
         $this->branch = $branch;
-        $this->path = $path;
         $this->enable_push = EvilGlobals::settings('push-to-repo');
     }
 
@@ -49,21 +48,19 @@ class Repo extends Object {
     }
 
     function updateRepo() {
-        Process::run("git fetch -q", $this->path);
-        Process::run("git reset -q --hard origin/{$this->branch}", $this->path);
-        Process::run("git clean -d -f", $this->path);
+        $this->command("fetch -q");
+        $this->command("reset -q --hard origin/{$this->branch}");
+        $this->command("clean -d -f");
         $this->configureRepo();
     }
 
     function configureRepo() {
-        Process::run("git config user.email 'automated@calamity.org.uk'",
-                $this->path);
-        Process::run("git config user.name 'Automated Commit'",
-                $this->path);
+        $this->command("config user.email 'automated@calamity.org.uk'");
+        $this->command("config user.name 'Automated Commit'");
     }
 
     function commitAll($message) {
-        Process::run('git add -u .', $this->path);
+        $this->command('add -u .');
         $process = new \Symfony\Component\Process\Process(
             'git diff-index HEAD --quiet', $this->path);
         $status = $process->run();
@@ -73,7 +70,7 @@ class Repo extends Object {
             return false;
         } else if ($status == 1) {
             Log::info("Committing changes to {$this->getModuleBranchName()}.");
-            Process::run('git commit -m "'.$message.'"', $this->path);
+            $this->command('git commit -m "'.$message.'"');
             return true;
         } else {
             throw new RuntimeException("Unexpected status from 'git diff-index'.");
