@@ -121,7 +121,12 @@ class DbSchema {
                 // TODO: Parse type to get length.
                 $column->type = $column_info['type'];
                 $column->notnull = intval($column_info['notnull']) ? true : false;
-                $column->default = $column_info['dflt_value'];
+                if (trim(strtolower($column_info['dflt_value'])) === 'null') {
+                    $column->default = null;
+                }
+                else {
+                    $column->default = $column_info['dflt_value'];
+                }
 
                 // TODO: Properly handle primary keys.
                 if ($column_info['pk'] && preg_match('@^int@i', $column->type)) {
@@ -295,6 +300,9 @@ class DbSchema_Column {
     var $type;
     var $notnull = false;
     var $auto_increment = false;
+    // TODO: Default is stored in original source, should I parse it?
+    //       e.g. no need to alter schema if the only difference is the
+    //       quote characters.
     var $default = null;
 
     function toSql($db) {
@@ -311,8 +319,7 @@ class DbSchema_Column {
                 break;
             }
         }
-        // TODO: Quote default better. Are placeholders possible?
-        if (!is_null($this->default)) { $sql .= " DEFAULT '{$this->default}'"; }
+        if (!is_null($this->default)) { $sql .= " DEFAULT {$this->default}"; }
         return $sql;
     }
 }

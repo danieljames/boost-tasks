@@ -54,6 +54,45 @@ class DbSchemaTest extends Tester\TestCase
         Assert::same(1, count($schema->tables['a2']->indexes[0]->columns));
         Assert::same('z', $schema->tables['a2']->indexes[0]->columns[0]->name);
     }
+
+    function testLoadDefaultsFromSql() {
+        $schema = DbSchema::loadFromSql("
+            CREATE TABLE test(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                null1 TEXT DEFAULT NULL,
+                null2 INT DEFAULT NULL,
+                value1 TEXT DEFAULT 'something',
+                value2 TEXT DEFAULT \"something\",
+                value3 TEXT DEFAULT `something`,
+                value4 INT DEFAULT 0,
+                value5 INT DEFAULT +100,
+                value6 INT DEFAULT -100,
+                value7 TEXT DEFAULT 'null',
+                value8 TEXT DEFAULT null,
+                date1 DATETIME DEFAULT CURRENT_TIMESTAMP,
+                date2 DATETIME DEFAULT '10 Jul 2016'
+            )
+        ");
+
+        $columns = array();
+        foreach($schema->tables['test']->columns as $column) {
+            $columns[$column->name] = $column;
+        }
+
+        Assert::null($columns['id']->default);
+        Assert::null($columns['null1']->default);
+        Assert::null($columns['null2']->default);
+        Assert::same("'something'", $columns['value1']->default);
+        Assert::same('"something"', $columns['value2']->default);
+        Assert::same('`something`', $columns['value3']->default);
+        Assert::same('0', $columns['value4']->default);
+        Assert::same('100', $columns['value5']->default);
+        Assert::same('-100', $columns['value6']->default);
+        Assert::same("'null'", $columns['value7']->default);
+        Assert::null($columns['value8']->default);
+        Assert::same("CURRENT_TIMESTAMP", $columns['date1']->default);
+        Assert::same("'10 Jul 2016'", $columns['date2']->default);
+    }
 }
 
 $test = new DbSchemaTest();
