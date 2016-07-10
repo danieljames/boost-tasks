@@ -18,13 +18,8 @@ class RepoBase extends Object {
         $this->path = $path;
     }
 
-    function init() {
-        $this->command('init');
-
-    }
-
     function command($command) {
-        Process::run("git {$command}", $this->path);
+        return Process::run("git {$command}", $this->path);
     }
 
     function read_lines($command) {
@@ -33,7 +28,7 @@ class RepoBase extends Object {
 
     function fetchWithPrune($remote = 'origin') {
         try {
-            Process::run("git fetch -p --quiet {$remote}", $this->path);
+            $this->command("fetch -p --quiet {$remote}");
         }
         catch (\RuntimeException $e) {
             // Workaround for a bug in old versions of git.
@@ -48,8 +43,8 @@ class RepoBase extends Object {
             {
                 Log::warning("git fetch failed, trying to fix.");
                 // TODO: Log the output from this?
-                Process::run("git remote prune {$remote}", $this->path);
-                Process::run("git fetch -p --quiet {$remote}", $this->path);
+                $this->command("remote prune {$remote}");
+                $this->command("fetch -p --quiet {$remote}");
             }
             else {
                 throw($e);
