@@ -141,7 +141,7 @@ class SuperProject extends Repo {
 
         Process::run('git update-index --index-info', $this->path,
                 null, $text_updates);
-        Process::run("git commit -m '{$message}'", $this->path);
+        $this->command("commit -m '{$message}'");
 
         return true;
     }
@@ -152,8 +152,10 @@ class SuperProject extends Repo {
     // supports reading from a bare repo.
     static function readSubmoduleConfig($repo_path) {
         $submodule_config = array();
-        foreach(Process::read_lines("git config -f .gitmodules -l", $repo_path)
-                as $line)
+        // Note: This isn't always an actual repo, just a path containing
+        //       a .gitmodules file.
+        $repo = new RepoBase($repo_path);
+        foreach($repo->read_lines("config -f .gitmodules -l") as $line)
         {
             $matches = null;
             if (!preg_match(
@@ -181,9 +183,9 @@ class SuperProject extends Repo {
         if (!$paths) { return $hashes; }
 
         $matches = null;
-        foreach (Process::read_lines(
-            "git ls-tree {$ref} ". implode(' ', $paths),
-            $repo_path) as $line)
+        $repo = new RepoBase($repo_path);
+        foreach ($repo->read_lines("ls-tree {$ref} ". implode(' ', $paths))
+            as $line)
         {
             if (preg_match(
                     "@160000 commit (?<hash>[a-zA-Z0-9]{40})\t(?<path>.*)@",

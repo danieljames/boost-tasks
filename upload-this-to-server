@@ -20,8 +20,9 @@ try {
 
     mkdir($dst);
 
-    Process::run("git archive HEAD | tar -x -C {$dst}", __DIR__);
-    Process::run("git rev-parse HEAD > {$dst}/commit_hash.txt", __DIR__);
+    $repo = new RepoBase(__DIR__);
+    $repo->command("archive HEAD | tar -x -C {$dst}");
+    $repo->command("rev-parse HEAD > {$dst}/commit_hash.txt");
 
     #Process::run("rm -r {$dst}/nbproject");
     Process::run("rm {$dst}/upload-this-to-server");
@@ -29,17 +30,17 @@ try {
 
     // Tag the upload.
     $tags = array();
-    foreach(Process::read_lines('git tag', __DIR__) as $tag) {
+    foreach($repo->read_lines('tag') as $tag) {
         $tags[$tag] = true;
     }
     for($count = 1;true;++$count) {
         $tag = "upload-".date('Ymd')."-{$count}";
         if (!array_key_exists($tag, $tags)) {
-            Process::run("git tag {$tag}", __DIR__);
+            $git->command("tag {$tag}");
             break;
         }
     }
-    Process::run("git tag -f last-upload");
+    $git->command("tag -f last-upload");
 }
 catch (\RuntimeException $e) {
     Log::error("Runtime exception: {$e}");

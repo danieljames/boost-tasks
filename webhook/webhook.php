@@ -84,15 +84,17 @@ function webhook_push_handler($event) {
 function update_git_checkout($repo_path) {
     $result = '';
 
-    $result .= Process::run('git stash', $repo_path)->getOutput();
+    $repo = new RepoBase($repo_path);
+
+    $result .= $repo->command('stash')->getOutput();
     try {
-        $result .= Process::run('git pull -q', $repo_path)->getOutput();
+        $result .= $repo->command('pull -q')->getOutput();
     }
     catch (\RuntimeException $e) {
         $result .= "git pull failed\n";
     }
     try {
-        $result .= Process::run('git stash pop', $repo_path)->getOutput();
+        $result .= $repo->command('stash pop')->getOutput();
     }
     catch (\RuntimeException $e) {
         $result .= "git stash pop failed\n";
