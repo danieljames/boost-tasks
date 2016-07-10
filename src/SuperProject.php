@@ -70,13 +70,15 @@ class SuperProject extends Repo {
     public function updateFromAll($queue) {
         $submodules = array();
         foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
-            $submodules[] = new SuperProject_Submodule($name, $details);
+            $submodule = new SuperProject_Submodule($name, $details);
+            if ($submodule->github_name) {
+                $submodules[] = $submodule;
+            }
         }
 
         // TODO: Because this fetches all branches, it requires several fetches
         // per repo. See if there's something more efficient.
         foreach($submodules as $submodule) {
-            // TODO: github_name can be null.
             foreach (EvilGlobals::github_cache()->iterate(
                     "/repos/{$submodule->github_name}/branches") as $branch) {
                 if ($branch->name === $this->submodule_branch) {
@@ -101,7 +103,9 @@ class SuperProject extends Repo {
         $submodules = array();
         foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
             $submodule = new SuperProject_Submodule($name, $details);
-            $submodules[$submodule->github_name] = $submodule;
+            if ($submodule->github_name) {
+                $submodules[$submodule->github_name] = $submodule;
+            }
         }
 
         foreach ($queue->getEvents() as $event) {
