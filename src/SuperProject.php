@@ -36,28 +36,37 @@ class SuperProject extends Repo {
     }
 
     function checkedUpdateFromEvents($all = false) {
-        $self = $this; // Has to work on php 5.3
-        $queue = new GitHubEventQueue($self->submodule_branch);
-        $result = $this->attemptAndPush(function() use($self, $queue, $all) {
-            if ($all) {
-                Log::info('Refresh all submodules.');
-                return $self->updateFromAll($queue);
-            }
-            else if (!$queue->continuedFromLastRun()) {
-                Log::info('Full refresh of submodules because of gap in event queue.');
-                return $self->updateFromAll($queue);
-            }
-            else {
-                Log::info('Refresh submodules from event queue.');
-                return $self->updateFromEventQueue($queue);
-            }
-        });
+        $queue = new GitHubEventQueue($this->submodule_branch);
+        if ($all) {
+            Log::info('Refresh all submodules.');
+            $result = $this->attemptUpdateFromAll($queue);
+        } else if (!$queue->continuedFromLastRun()) {
+            Log::info('Full refresh of submodules because of gap in event queue.');
+            $result = $this->attemptUpdateFromAll($queue);
+        } else {
+            Log::info('Refresh submodules from event queue.');
+            $result = $this->attemptUpdateFromEventQueue($queue);
+        };
 
         if ($result) { $queue->catchUp(); }
         return true;
     }
 
-    // TODO: Public so that it can be called in a closure in PHP 5.3
+    private function attemptUpdateFromAll($queue) {
+        $self = $this; // Has to work on php 5.3
+        return $this->attemptAndPush(function() use($self, $queue) {
+            return $self->updateFromAll($queue);
+        });
+    }
+
+    private function attemptUpdateFromEventQueue($queue) {
+        $self = $this; // Has to work on php 5.3
+        $result = $this->attemptAndPush(function() use($self, $queue) {
+            return $self->updateFromEventQueue($queue);
+        });
+    }
+
+    // Note: Public so that it can be called in a closure in PHP 5.3
     public function updateFromAll($queue) {
         $submodules = array();
         foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
@@ -87,7 +96,7 @@ class SuperProject extends Repo {
         return $this->updateHashes($submodules);
     }
 
-    // TODO: Public so that it can be called in a closure in PHP 5.3
+    // Note: Public so that it can be called in a closure in PHP 5.3
     public function updateFromEventQueue($queue) {
         $submodules = array();
         foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
