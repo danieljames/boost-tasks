@@ -115,7 +115,7 @@ class SuperProject extends Repo {
         foreach($hashes as $boost_name => $hash) {
             $paths[] = $submodules->findByBoostName($boost_name)->path;
         }
-        $old_hashes = SuperProject::currentHashes($this->path, $paths);
+        $old_hashes = $this->currentHashes($paths);
 
         $updates = array();
         $names = array();
@@ -143,66 +143,6 @@ class SuperProject extends Repo {
 
         return true;
     }
-
-    // TODO: Awkward location for this function, but php is pretty bad at organising
-    // free functions. Maybe move somewhere better?
-    // TODO: Duplicates BoostSuperProject::get_modules in the website, which also
-    // supports reading from a bare repo.
-    static function readSubmoduleConfig($repo_path) {
-        $submodule_config = array();
-        // Note: This isn't always an actual repo, just a path containing
-        //       a .gitmodules file.
-        $repo = new RepoBase($repo_path);
-        foreach($repo->read_lines("config -f .gitmodules -l") as $line)
-        {
-            $matches = null;
-            if (!preg_match(
-                '@submodule\.(?<submodule>[\w/]+)\.(?<name>\w+)=(?<value>.*)@',
-                $line, $matches))
-            {
-                throw new \LogicException(
-                    "Unable to parse submodule setting: {$line}");
-            }
-
-            $submodule_config[$matches['submodule']][$matches['name']]
-                    = $matches['value'];
-        }
-
-        return $submodule_config;
-    }
-
-    /**
-     * Get the current hash values of the given paths.
-     *
-     * @return Array
-     */
-    static function currentHashes($repo_path, $paths, $ref = 'HEAD') {
-        $hashes = Array();
-        if (!$paths) { return $hashes; }
-
-        $matches = null;
-        $repo = new RepoBase($repo_path);
-        foreach ($repo->read_lines("ls-tree {$ref} ". implode(' ', $paths))
-            as $line)
-        {
-            if (preg_match(
-                    "@160000 commit (?<hash>[a-zA-Z0-9]{40})\t(?<path>.*)@",
-                    $line, $matches))
-            {
-                if (!in_array($matches['path'], $paths)) {
-                    throw new \LogicException("Unexpected path: {$matches['path']}");
-                }
-
-                $hashes[$matches['path']] = $matches['hash'];
-            }
-            else {
-                throw new \LogicException(
-                    "Unable to parse submodule entry:\n{$line}");
-            }
-        }
-
-        return $hashes;
-    }
 }
 
 /**
@@ -221,7 +161,7 @@ class SuperProject_Submodules extends Object {
         }
 
         $this->submodules = array();
-        foreach (SuperProject::readSubmoduleConfig($this->path) as $name => $details) {
+        foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
             $this->submodules[$name] = new SuperProject_Submodule($name, $details);
         }
     }

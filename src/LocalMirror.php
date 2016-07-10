@@ -129,13 +129,13 @@ class LocalMirror extends Object {
 
         if (is_file("{$dst_dir}/.gitmodules")) {
             $child_repos = array();
-            foreach(SuperProject::readSubmoduleConfig($dst_dir) as $name => $values) {
+            foreach(RepoBase::readSubmoduleConfig($dst_dir) as $name => $values) {
                 if (empty($values['path'])) { throw \RuntimeException("Missing path."); }
                 if (empty($values['url'])) { throw \RuntimeException("Missing URL."); }
                 $child_repos[$values['path']] = self::resolveGithubUrl($values['url'], $repo_path);
             }
 
-            foreach(SuperProject::currentHashes($repo->path, array_keys($child_repos)) as $path => $hash) {
+            foreach($repo->currentHashes(array_keys($child_repos)) as $path => $hash) {
                 $this->exportRecursiveImpl($child_repos[$path], $hash, "{$dst_dir}/{$path}");
             }
         }
