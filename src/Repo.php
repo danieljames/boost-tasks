@@ -48,7 +48,7 @@ class Repo extends RepoBase {
     }
 
     function updateRepo() {
-        $this->command("fetch -q");
+        $this->fetchWithPrune('origin');
         $this->command("reset -q --hard origin/{$this->branch}");
         $this->command("clean -d -f");
         $this->configureRepo();
