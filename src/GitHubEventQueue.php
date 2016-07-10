@@ -50,6 +50,16 @@ class GitHubEventQueue extends Object {
                     $this->type));
     }
 
+    // Downloads any events since this was created, and updates getEvents
+    // to return them.
+    function downloadMoreEvents() {
+        $this->queue->last_github_id = max(array(
+            $this->queue->last_github_id,
+            $this->status->last_id,
+            $this->status->start_id));
+        $this->status = self::downloadEvents();
+    }
+
     function catchUp() {
         $this->queue->last_github_id = max(array(
             $this->queue->last_github_id,
@@ -108,6 +118,8 @@ class GitHubEventQueue extends Object {
         }
 
         $db->commit();
+
+        return $status;
     }
 
     private static function addGitHubEvent($event) {

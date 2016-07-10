@@ -79,19 +79,14 @@ class SuperProject extends Repo {
             $submodule->updated_hash_value = $ref->object->sha;
         }
 
-        // TODO: Fetch the event queue again, and go back to start.
-        // Since this might have picked up changes after the end
-        // of the event queue.
-        //
-        // Or alternatively, fetch the queue and rollback any changes
-        // since the catch up point.
-
-        return $this->updateHashes($submodules);
+        // Include any events that have arrived since starting this update.
+        $queue->downloadMoreEvents();
+        return $this->updateFromEventQueue($queue, $submodules);
     }
 
     // Note: Public so that it can be called in a closure in PHP 5.3
-    public function updateFromEventQueue($queue) {
-        $submodules = $this->getSubmodules();
+    public function updateFromEventQueue($queue, $submodules = null) {
+        if (!$submodules) { $submodules = $this->getSubmodules(); }
 
         foreach ($queue->getEvents() as $event) {
             if ($event->branch == $this->submodule_branch) {
