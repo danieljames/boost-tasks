@@ -40,7 +40,6 @@ class SuperProject extends Repo {
         $queue = new GitHubEventQueue($self->submodule_branch);
         $result = $this->attemptAndPush(function() use($self, $queue, $all) {
             $submodules = new SuperProject_Submodules($self->path);
-            $submodules->readSubmodules();
 
             if ($all) {
                 Log::info('Refresh all submodules.');
@@ -215,17 +214,7 @@ class SuperProject_Submodules extends Object {
 
     function __construct($path) {
         $this->path = $path;
-        $this->readSubmodules();
-    }
 
-    /**
-     * Read $this->submodules from the .gitmodules file.
-     */
-    function getSubmodules() {
-        return $this->submodules;
-    }
-
-    function readSubmodules() {
         if (!is_dir($this->path)) {
             throw new \RuntimeException(
                     "No directory for repo at {$this->path}");
@@ -235,7 +224,12 @@ class SuperProject_Submodules extends Object {
         foreach (SuperProject::readSubmoduleConfig($this->path) as $name => $details) {
             $this->submodules[$name] = new SuperProject_Submodule($name, $details);
         }
+    }
 
+    /**
+     * Read $this->submodules from the .gitmodules file.
+     */
+    function getSubmodules() {
         return $this->submodules;
     }
 
