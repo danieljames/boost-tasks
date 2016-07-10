@@ -68,13 +68,7 @@ class SuperProject extends Repo {
 
     // Note: Public so that it can be called in a closure in PHP 5.3
     public function updateFromAll($queue) {
-        $submodules = array();
-        foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
-            $submodule = new SuperProject_Submodule($name, $details);
-            if ($submodule->github_name) {
-                $submodules[] = $submodule;
-            }
-        }
+        $submodules = $this->getSubmodules();
 
         // TODO: Because this fetches all branches, it requires several fetches
         // per repo. See if there's something more efficient.
@@ -100,13 +94,7 @@ class SuperProject extends Repo {
 
     // Note: Public so that it can be called in a closure in PHP 5.3
     public function updateFromEventQueue($queue) {
-        $submodules = array();
-        foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
-            $submodule = new SuperProject_Submodule($name, $details);
-            if ($submodule->github_name) {
-                $submodules[$submodule->github_name] = $submodule;
-            }
-        }
+        $submodules = $this->getSubmodules();
 
         foreach ($queue->getEvents() as $event) {
             if ($event->branch == $this->submodule_branch) {
@@ -119,6 +107,17 @@ class SuperProject extends Repo {
         }
 
         return $this->updateHashes($submodules);
+    }
+
+    private function getSubmodules() {
+        $submodules = array();
+        foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
+            $submodule = new SuperProject_Submodule($name, $details);
+            if ($submodule->github_name) {
+                $submodules[$submodule->github_name] = $submodule;
+            }
+        }
+        return $submodules;
     }
 
     /**
