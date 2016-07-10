@@ -139,8 +139,7 @@ class SuperProject extends Repo {
                     "160000 {$hash}\t{$path}\n";
         }
 
-        Process::run('git update-index --index-info', $this->path,
-                null, $text_updates);
+        $this->command_with_input('update-index --index-info', $text_updates);
         $this->command("commit -m '{$message}'");
 
         return true;

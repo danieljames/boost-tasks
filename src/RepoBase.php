@@ -26,6 +26,10 @@ class RepoBase extends Object {
         return Process::run("git {$command}", $this->path);
     }
 
+    function command_with_input($command, $input) {
+        return Process::run("git {$command}", $this->path, null, $input);
+    }
+
     function read_lines($command) {
         return Process::read_lines("git {$command}", $this->path);
     }
