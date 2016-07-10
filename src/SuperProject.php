@@ -59,17 +59,19 @@ class SuperProject extends Repo {
 
     // TODO: Public so that it can be called in a closure in PHP 5.3
     public function updateFromAll($queue) {
-        $submodules = new SuperProject_Submodules($this->path);
+        $submodules = array();
+        foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
+            $submodules[] = new SuperProject_Submodule($name, $details);
+        }
 
         // TODO: Because this fetches all branches, it requires several fetches
         // per repo. See if there's something more efficient.
-        $updates = array();
-        foreach($submodules->getSubmodules() as $submodule) {
+        foreach($submodules as $submodule) {
             // TODO: github_name can be null.
             foreach (EvilGlobals::github_cache()->iterate(
                     "/repos/{$submodule->github_name}/branches") as $branch) {
                 if ($branch->name === $this->submodule_branch) {
-                    $updates[$submodule->boost_name] = $branch->commit->sha;
+                    $submodule->updated_hash_value = $branch->commit->sha;
                     break;
                 }
             }
@@ -82,26 +84,28 @@ class SuperProject extends Repo {
         // Or alternatively, fetch the queue and rollback any changes
         // since the catch up point.
 
-        return $this->updateHashes($submodules, $updates);
+        return $this->updateHashes($submodules);
     }
 
     // TODO: Public so that it can be called in a closure in PHP 5.3
     public function updateFromEventQueue($queue) {
-        $submodules = new SuperProject_Submodules($this->path);
-
-        $updates = array();
+        $submodules = array();
+        foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
+            $submodule = new SuperProject_Submodule($name, $details);
+            $submodules[$submodule->github_name] = $submodule;
+        }
 
         foreach ($queue->getEvents() as $event) {
             if ($event->branch == $this->submodule_branch) {
-                $submodule = $submodules->findByGitHubName($event->repo);
+                $submodule = $submodules[$event->repo];
                 if ($submodule) {
-                    $updates[$submodule->boost_name]
+                    $submodule->updated_hash_value
                             = json_decode($event->payload)->head;
                 }
             }
         }
 
-        return $this->updateHashes($submodules, $updates);
+        return $this->updateHashes($submodules);
     }
 
     /**
@@ -110,20 +114,23 @@ class SuperProject extends Repo {
      * @param Array $hashes
      * @return boolean True if a change was committed.
      */
-    function updateHashes($submodules, $hashes) {
+    function updateHashes($submodules) {
         $paths = Array();
-        foreach($hashes as $boost_name => $hash) {
-            $paths[] = $submodules->findByBoostName($boost_name)->path;
+        foreach($submodules as $submodule) {
+            if ($submodule->updated_hash_value) {
+                $paths[] = $submodule->path;
+            }
         }
         $old_hashes = $this->currentHashes($paths);
 
         $updates = array();
         $names = array();
-        foreach($hashes as $boost_name => $hash) {
-            $submodule = $submodules->findByBoostName($boost_name);
-            if ($old_hashes[$submodule->path] != $hash) {
+        foreach($submodules as $submodule) {
+            if (!$submodule->updated_hash_value) { continue; }
+
+            if ($old_hashes[$submodule->path] != $submodule->updated_hash_value) {
                 $updates[$submodule->path] = $hash;
-                $names[] = preg_replace('@^(libs|tools)/@', '', $boost_name);
+                $names[] = preg_replace('@^(libs|tools)/@', '', $submodule->boost_name);
             }
         }
 
@@ -146,49 +153,6 @@ class SuperProject extends Repo {
 }
 
 /**
- * The super project's submodules.
- */
-class SuperProject_Submodules extends Object {
-    var $path;
-    var $submodules;
-
-    function __construct($path) {
-        $this->path = $path;
-
-        if (!is_dir($this->path)) {
-            throw new \RuntimeException(
-                    "No directory for repo at {$this->path}");
-        }
-
-        $this->submodules = array();
-        foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
-            $this->submodules[$name] = new SuperProject_Submodule($name, $details);
-        }
-    }
-
-    /**
-     * Read $this->submodules from the .gitmodules file.
-     */
-    function getSubmodules() {
-        return $this->submodules;
-    }
-
-    public function findByBoostName($boost_name) {
-        $x = $this->getSubmodules();
-        return $x[$boost_name];
-    }
-
-    public function findByGitHubName($github_name) {
-        foreach($this->getSubmodules() as $module) {
-            if ($github_name == $module->github_name)
-                return $module;
-        }
-
-        return null;
-    }
-}
-
-/**
  * A submodule.
  */
 class SuperProject_Submodule extends Object {
@@ -200,6 +164,9 @@ class SuperProject_Submodule extends Object {
 
     /** Github's name for the submodule. */
     var $github_name;
+
+    /** The hash value currently in the repo. */
+    var $updated_hash_value;
 
     function __construct($name, $values) {
         $this->boost_name = $name;
