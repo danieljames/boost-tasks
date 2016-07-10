@@ -18,6 +18,10 @@ class RepoBase extends Object {
         $this->path = $path;
     }
 
+    function process($command) {
+        return new \Symfony\Component\Process\Process("git {$command}", $this->path);
+    }
+
     function command($command) {
         return Process::run("git {$command}", $this->path);
     }

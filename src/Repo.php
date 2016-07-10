@@ -61,8 +61,7 @@ class Repo extends RepoBase {
 
     function commitAll($message) {
         $this->command('add -u .');
-        $process = new \Symfony\Component\Process\Process(
-            'git diff-index HEAD --quiet', $this->path);
+        $process = $this->process('diff-index HEAD --quiet');
         $status = $process->run();
 
         if ($status == 0) {
@@ -102,8 +101,7 @@ class Repo extends RepoBase {
             // TODO: Maybe I should parse the output from git push to check exactly
             // what succeeded/failed.
 
-            $process = new \Symfony\Component\Process\Process(
-                'git push -q --porcelain', $this->path);
+            $process = $this->process('push -q --porcelain');
             $status = $process->run();
 
             if ($status > 1) {
