@@ -8,6 +8,11 @@ require_once(__DIR__.'/bootstrap.php');
 class RepoBaseTest extends \Tester\TestCase
 {
     // Tests a bug in old versions of git.
+    //
+    // For details see:
+    //
+    // https://stackoverflow.com/a/21072934/2434
+    // https://github.com/git/git/commit/10a6cc8890ec1e5459c05ddeb28a671acdc37d60
     function testFetchWithBranchFileReplacedByDirectory() {
         $temp_directory = new TempDirectory();
 
@@ -28,12 +33,16 @@ class RepoBaseTest extends \Tester\TestCase
         Process::run("git clone --mirror base mirror", $temp_directory->path);
         $mirror_repo = new RepoBase($mirror_path);
 
+        $branches = iterator_to_array($mirror_repo->read_lines('branch'));
+        Assert::same(array('* master', '  test'),$branches);
+
         $base_repo->command('branch -d test');
         $base_repo->command('branch test/subbranch');
 
-        $mirror_repo->command('fetch -p');
+        $mirror_repo->fetchWithPrune();
 
-        Assert::true(true);
+        $branches = iterator_to_array($mirror_repo->read_lines('branch'));
+        Assert::same(array('* master', '  test/subbranch'),$branches);
     }
 }
 
