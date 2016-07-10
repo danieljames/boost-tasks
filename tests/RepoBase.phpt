@@ -24,8 +24,8 @@ class RepoBaseTest extends \Tester\TestCase
 
         $base_repo = new RepoBase($base_path);
         $base_repo->command("init");
-        $base_repo->command("config --local user.name Testing");
-        $base_repo->command("config --local user.email 'testing@example.com'");
+        $base_repo->command("config user.email testing@example.com");
+        $base_repo->command("config user.name Testing");
         $base_repo->command("add .");
         $base_repo->command("commit -m 'Initial commit'");
         $base_repo->command("branch test");
