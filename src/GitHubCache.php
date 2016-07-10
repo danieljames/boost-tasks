@@ -80,6 +80,15 @@ class GitHubCache extends Object {
         return $cached;
     }
 
+    function getJson($url) {
+        $response = $this->get($url);
+        $response_body = \json_decode(trim($response->body));
+        if ($response_body === false && strtolower(trim($response_body)) !== 'false') {
+            throw new \RuntimeException("Invalid json from github");
+        }
+        return $response_body;
+    }
+
     function iterate($url) {
         return new GitHubCache_Iterator($this, $url);
     }

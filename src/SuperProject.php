@@ -70,16 +70,13 @@ class SuperProject extends Repo {
     public function updateFromAll($queue) {
         $submodules = $this->getSubmodules();
 
-        // TODO: Because this fetches all branches, it requires several fetches
-        // per repo. See if there's something more efficient.
         foreach($submodules as $submodule) {
-            foreach (EvilGlobals::github_cache()->iterate(
-                    "/repos/{$submodule->github_name}/branches") as $branch) {
-                if ($branch->name === $this->submodule_branch) {
-                    $submodule->updated_hash_value = $branch->commit->sha;
-                    break;
-                }
-            }
+            // Note: Alternative would be to use branch API to get more
+            //       information.
+            //       https://developer.github.com/v3/repos/branches/#get-branch
+            $ref = EvilGlobals::github_cache()->getJson(
+                "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
+            $submodule->updated_hash_value = $ref->object->sha;
         }
 
         // TODO: Fetch the event queue again, and go back to start.
