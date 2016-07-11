@@ -121,7 +121,7 @@ class PullRequestReport extends Object {
                 $record->store();
                 break;
             case 'closed':
-                if (!$record) {
+                if ($record) {
                     $record->trash();
                 }
                 break;

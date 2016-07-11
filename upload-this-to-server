@@ -36,11 +36,11 @@ try {
     for($count = 1;true;++$count) {
         $tag = "upload-".date('Ymd')."-{$count}";
         if (!array_key_exists($tag, $tags)) {
-            $git->command("tag {$tag}");
+            $repo->command("tag {$tag}");
             break;
         }
     }
-    $git->command("tag -f last-upload");
+    $repo->command("tag -f last-upload");
 }
 catch (\RuntimeException $e) {
     Log::error("Runtime exception: {$e}");

@@ -90,9 +90,8 @@ class SuperProject extends Repo {
 
         foreach ($queue->getEvents() as $event) {
             if ($event->branch == $this->submodule_branch) {
-                $submodule = $submodules[$event->repo];
-                if ($submodule) {
-                    $submodule->updated_hash_value
+                if (array_key_exists($event->repo, $submodules)) {
+                    $submodules[$event->repo]->updated_hash_value
                             = json_decode($event->payload)->head;
                 }
             }
@@ -133,7 +132,7 @@ class SuperProject extends Repo {
             if (!$submodule->updated_hash_value) { continue; }
 
             if ($old_hashes[$submodule->path] != $submodule->updated_hash_value) {
-                $updates[$submodule->path] = $hash;
+                $updates[$submodule->path] = $submodule->updated_hash_value;
                 $names[] = preg_replace('@^(libs|tools)/@', '', $submodule->boost_name);
             }
         }
