@@ -115,7 +115,6 @@ class DbSchema {
         foreach($db->getAll("SELECT tbl_name FROM sqlite_master WHERE type='table' AND tbl_name NOT LIKE 'sqlite_%'") as $row) {
             $table = new DbSchema_Table;
             $table_name = $row['tbl_name'];
-
             foreach($db->getAll("PRAGMA table_info(`{$table_name}`)") as $column_info) {
                 $column = new DbSchema_Column;
                 $column->name = $column_info['name'];
@@ -272,6 +271,23 @@ class DbSchema_Table {
                 0;
         });
     }
+
+    function create($db, $name) {
+        $commands = array();
+        $sql = "CREATE TABLE `{$name}` (\n";
+        $sql .= implode(",\n", array_map(
+            function($x) use($db) {
+                return $x->toSql($db);
+            }, $this->columns));
+        $sql .= ")";
+        $commands[] = $sql;
+        foreach ($this->indexes as $index) {
+            $commands[] = $index->toSql($db, $name);
+        }
+        foreach($commands as $command) {
+            $db->exec($command);
+        }
+    }
 }
 
 class DbSchema_Column {
@@ -280,6 +296,25 @@ class DbSchema_Column {
     var $notnull = false;
     var $auto_increment = false;
     var $default = null;
+
+    function toSql($db) {
+        $sql = "`{$this->name}` {$this->type}";
+        if ($this->notnull) { $sql .= " NOT NULL"; }
+        if ($this->auto_increment) {
+            switch($db->pdo_connection->getAttribute(PDO::ATTR_DRIVER_NAME)) {
+            case 'sqlite':
+                // TODO: What if it isn't the primary key?
+                $sql .= " PRIMARY KEY AUTOINCREMENT";
+                break;
+            default:
+                $sql .= " AUTOINCREMENT";
+                break;
+            }
+        }
+        // TODO: Quote default better. Are placeholders possible?
+        if (!is_null($this->default)) { $sql .= " DEFAULT '{$this->default}'"; }
+        return $sql;
+    }
 }
 
 class DbSchema_Index {
@@ -327,6 +362,18 @@ class DbSchema_Index {
 
         return 0;
     }
+
+    function toSql($db, $table_name) {
+        $sql = "CREATE";
+        if ($this->unique) { $sql .= " UNIQUE"; }
+        $sql .= " INDEX `{$this->name}` ON `{$table_name}` (";
+        $sql .= implode(".\n", array_map(
+            function($x) use($db) {
+                return $x->toSql($db);
+            }, $this->columns));
+        $sql .= ")";
+        return $sql;
+    }
 }
 
 class DbSchema_IndexColumn {
@@ -339,5 +386,11 @@ class DbSchema_IndexColumn {
         return $column1->name == $column2->name &&
             $column1->length == $column2->length &&
             $column1->order == $column2->order;
+    }
+
+    function toSql($db) {
+        return "`{$this->name}`".
+            (is_null($this->length) ? '' : "({$this->length})").
+            (!is_null($this->order) && $this->order != 'asc' ? " ".strtoupper($this->order) : '');
     }
 }
