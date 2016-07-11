@@ -113,30 +113,31 @@ class LocalMirror extends Object {
         return $this->mirror_root.$repo_entry->path;
     }
 
-    function exportRecursive($repo, $branch, $dst_dir) {
-        $repo = '/'.trim($repo, '/');
-        $dst_dir = ltrim($dst_dir, '/');
+    function exportRecursive($branch, $dst_dir) {
+        $dst_dir = rtrim($dst_dir, '/');
 
         if (!@mkdir($dst_dir)) {
             throw \RuntimeException("Unable to create export destination: '{$dst_dir}'.");
         }
 
-        $this->exportRecursiveImpl($repo, $branch, $dst_dir);
+        $this->exportRecursiveImpl('boostorg/boost.git', $branch, $dst_dir);
     }
 
-    private function exportRecursiveImpl($repo, $ref, $dst_dir) {
-        $git_dir = "{$this->mirror_root}{$repo}";
-        Process::run("git --git-dir='{$git_dir}' archive {$ref} | tar -x -C '${dst_dir}'");
+    private function exportRecursiveImpl($repo_path, $ref, $dst_dir) {
+        $repo = new RepoBase("{$this->mirror_root}/{$repo_path}");
+        $repo->command("archive {$ref} | tar -x -C '${dst_dir}'");
 
-        $child_repos = array();
-        foreach(SuperProject::readSubmoduleConfig($dst_dir) as $name => $values) {
-            if (empty($values['path'])) { throw \RuntimeException("Missing path."); }
-            if (empty($values['url'])) { throw \RuntimeException("Missing URL."); }
-            $child_repos[$values['path']] = self::resolveGithubUrl($values['url'], $repo);
-        }
+        if (is_file("{$dst_dir}/.gitmodules")) {
+            $child_repos = array();
+            foreach(RepoBase::readSubmoduleConfig($dst_dir) as $name => $values) {
+                if (empty($values['path'])) { throw \RuntimeException("Missing path."); }
+                if (empty($values['url'])) { throw \RuntimeException("Missing URL."); }
+                $child_repos[$values['path']] = self::resolveGithubUrl($values['url'], $repo_path);
+            }
 
-        foreach(SuperProject::currentHashes($git_dir, array_keys($child_repos)) as $path => $hash) {
-            $this->exportRecursiveImpl($child_repos[$path], $hash, $path);
+            foreach($repo->currentHashes(array_keys($child_repos)) as $path => $hash) {
+                $this->exportRecursiveImpl($child_repos[$path], $hash, "{$dst_dir}/{$path}");
+            }
         }
     }
 
