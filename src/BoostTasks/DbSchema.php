@@ -123,7 +123,12 @@ class DbSchema {
                 $column->type = $column_info['type'];
                 $column->notnull = intval($column_info['notnull']) ? true : false;
                 $column->default = $column_info['dflt_value'];
-                // TODO: auto_increment....
+
+                // TODO: Properly handle primary keys.
+                if ($column_info['pk'] && preg_match('@^int@i', $column->type)) {
+                    $column->auto_increment = true;
+                }
+
                 $table->columns[] = $column;
             }
 

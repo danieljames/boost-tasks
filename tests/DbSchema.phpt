@@ -45,7 +45,8 @@ class DbSchemaTest extends Tester\TestCase
         Assert::same(1, count($schema->tables['a2']->columns));
         Assert::same('z', $schema->tables['a2']->columns[0]->name);
         Assert::false($schema->tables['a2']->columns[0]->notnull);
-        Assert::false($schema->tables['a2']->columns[0]->auto_increment);
+        // In sqlite integer primary keys are automatically auto_increment.
+        Assert::true($schema->tables['a2']->columns[0]->auto_increment);
         Assert::null($schema->tables['a2']->columns[0]->default);
         Assert::same(1, count($schema->tables['a2']->indexes));
 
