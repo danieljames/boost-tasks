@@ -38,6 +38,8 @@ function webhook_push_handler($event) {
     );
 
     $payload = $event->payload;
+    $email_title = "[boost website] {$payload->repository->name} ".
+        preg_replace('@^refs/heads/@', '', $payload->ref);
 
     $repo_path = null;
     if (array_key_exists($payload->repository->name, $repos)) {
@@ -53,8 +55,7 @@ function webhook_push_handler($event) {
     }
     else {
         echo "Ignoring repository {$payload->repository->name}, ref: {$payload->ref}\n";
-        mail('dnljms@gmail.com',
-            "Not updateding repo: {$payload->repository->name}, ref: {$payload->ref}): ".date('j M Y'),
+        mail('dnljms@gmail.com', "{$email_title} not updating ".date('j M Y'),
             print_r($payload, true));
         return false;
     }
@@ -78,7 +79,7 @@ function webhook_push_handler($event) {
     $result .= "\n";
 
     // Email the result
-    mail('dnljms@gmail.com', "[boost website] Update {$payload->ref} ".date('j M Y'), $result);
+    mail('dnljms@gmail.com', "{$email_title} update ".date('j M Y'), $result);
 }
 
 function update_git_checkout($repo_path) {
