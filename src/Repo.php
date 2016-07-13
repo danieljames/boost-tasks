@@ -69,7 +69,7 @@ class Repo extends RepoBase {
             return false;
         } else if ($status == 1) {
             Log::info("Committing changes to {$this->getModuleBranchName()}.");
-            $this->command('git commit -m "'.$message.'"');
+            $this->command('commit -m "'.$message.'"');
             return true;
         } else {
             throw new RuntimeException("Unexpected status from 'git diff-index'.");
