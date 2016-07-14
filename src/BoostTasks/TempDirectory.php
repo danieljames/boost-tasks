@@ -27,7 +27,7 @@ class TempDirectory {
         }
         // Race condition here, but seems unlikely to be a real problem.
         unlink($temp_name);
-        mkdir($temp_name);
+        mkdir($temp_name, 0700);
         $temp_name = realpath($temp_name);
         if (!$temp_name || !is_dir($temp_name) || strpos($temp_name, "{$tmp_root}/") !== 0) {
             throw new RuntimeException("Something went wrong creating temporary directory.");

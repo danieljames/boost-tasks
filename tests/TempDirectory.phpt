@@ -31,6 +31,8 @@ class TempDirectoryTest extends \Tester\TestCase {
     function basicTests(&$temp_directory) {
         $path = $temp_directory->path;
         Assert::true(is_dir($path));
+        // Check that group + all have no permissions.
+        Assert::same(0, fileperms($path) & 0077);
 
         $tmp_file = "{$temp_directory->path}/tmp.txt";
         Assert::false(realpath($tmp_file));
