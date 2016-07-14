@@ -18,18 +18,20 @@ class TempDirectory {
             throw new RuntimeException("Temporary directory isn't writable: {$tmp_root}");
         }
 
+        $path_base = realpath($tmp_root)."/";
+
         // Create temporary directory.
 
         $temp_name = tempnam($tmp_root, "download");
         if (!$temp_name) { return false; }
-        if (strpos($temp_name, "{$tmp_root}/") !== 0) {
+        $temp_name = realpath($temp_name);
+        if (strpos($temp_name, $path_base) !== 0) {
             throw new RuntimeException("Incorrect location for temporary directory.");
         }
         // Race condition here, but seems unlikely to be a real problem.
         unlink($temp_name);
         mkdir($temp_name, 0700);
-        $temp_name = realpath($temp_name);
-        if (!$temp_name || !is_dir($temp_name) || strpos($temp_name, "{$tmp_root}/") !== 0) {
+        if (!$temp_name || !is_dir($temp_name) || strpos($temp_name, $path_base) !== 0) {
             throw new RuntimeException("Something went wrong creating temporary directory.");
         }
 
