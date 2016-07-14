@@ -23,6 +23,7 @@ class EvilGlobals extends Object {
             'sub' => array('type' => 'path'),
         ),
     );
+    static $settings_reader;
 
     static $instance = null;
 
@@ -33,6 +34,9 @@ class EvilGlobals extends Object {
     var $github_cache;
 
     static function init($options = array()) {
+        if (!self::$settings_reader) {
+            self::$settings_reader = new EvilGlobals_SettingsReader(self::$settings_types, __DIR__.'/..');
+        }
         self::$instance = new EvilGlobals($options);
     }
 
@@ -44,7 +48,7 @@ class EvilGlobals extends Object {
         if (array_get($options, 'testing')) {
             // Just skipping configuration completely for now, will certainly
             // have to do something better in the future.
-            $this->settings = self::initial_settings();
+            $this->settings = self::$settings_reader->initial_settings();
         }
         else {
             // Initial logging settings, for loading configuration.
@@ -71,8 +75,7 @@ class EvilGlobals extends Object {
                 $path = realpath($path);
             }
 
-            $settings = self::initial_settings();
-            $this->settings = self::read_config($path, $settings);
+            $this->settings = self::$settings_reader->read_config($path);
 
             // Set up repo directory.
 
@@ -158,31 +161,36 @@ class EvilGlobals extends Object {
         return self::$instance->database;
     }
 
-    static function resolve_path($path, $base = null) {
-        if ($path[0] != '/') {
-            if (is_null($base)) {
-                $path = __DIR__.'/../'.$path;
-            }
-            else {
-                $path = rtrim($base, '/')."/{$path}";
-            }
-        }
-        $path = rtrim($path, '/');
-        return $path;
+    static function safe_settings() {
+        $settings = EvilGlobals::$instance->settings;
+        if (!empty($settings['password'])) { $settings['password'] = '********'; }
+        return $settings;
+    }
+}
+
+class EvilGlobals_SettingsReader {
+    var $path_base;
+    var $settings_types;
+
+    function __construct($settings_types, $path_base) {
+        $this->settings_types = $settings_types;
+        $this->path_base = $path_base;
     }
 
-    static function initial_settings() {
+    function initial_settings() {
         $settings = array();
-        foreach(self::$settings_types as $key => $details) {
+        foreach($this->settings_types as $key => $details) {
             $settings[$key] = array_get($details, 'default');
             if (!is_null($settings[$key]) && $details['type'] == 'path') {
-                $settings[$key] = self::resolve_path($settings[$key]);
+                $settings[$key] = self::resolve_path($settings[$key], $this->path_base);
             }
         }
         return $settings;
     }
 
-    static function read_config($path, $settings = array()) {
+    function read_config($path, $settings = null) {
+        if (is_null($settings)) { $settings = $this->initial_settings(); }
+
         $config = is_readable($path) ? file_get_contents($path) : false;
         if ($config === false) {
             throw new RuntimeException("Unable to read config file: {$path}");
@@ -190,13 +198,13 @@ class EvilGlobals extends Object {
         $config = Neon::decode($config);
         if ($config) {
             foreach ($config as $key => $value) {
-                $details = array_get(self::$settings_types, $key);
+                $details = array_get($this->settings_types, $key);
                 if (!$details) {
                     Log::warning("Unknown setting: {$key}.");
                     continue;
                 }
 
-                $value = self::check_setting($key, $value, $details, dirname($path));
+                $value = $this->check_setting($key, $value, $details, dirname($path));
 
                 switch($key) {
                 case 'config-paths':
@@ -207,7 +215,7 @@ class EvilGlobals extends Object {
                         if ($config_path[0] !== '/') {
                             $config_path = dirname($path).'/'.$config_path;
                         }
-                        $settings = self::read_config($config_path, $settings);
+                        $settings = $this->read_config($config_path, $settings);
                     }
                     break;
                 default:
@@ -220,7 +228,7 @@ class EvilGlobals extends Object {
         return $settings;
     }
 
-    static function check_setting($key, $value, $setting_details, $path) {
+    function check_setting($key, $value, $setting_details, $path) {
         switch($setting_details['type']) {
         case 'string':
             if (is_array($value) || is_object($value) ) {
@@ -243,7 +251,7 @@ class EvilGlobals extends Object {
 
             $result = array();
             foreach($value as $child) {
-                $result[] = self::check_setting($key, $child, $setting_details['sub'], $path);
+                $result[] = $this->check_setting($key, $child, $setting_details['sub'], $path);
             }
             return $result;
         case 'map':
@@ -254,15 +262,17 @@ class EvilGlobals extends Object {
             $result = array();
             foreach($value as $child_key => $child) {
                 $result[$child_key] =
-                    self::check_setting("{$key}/{$child_key}", $child, $setting_details['sub'], $path);
+                    $this->check_setting("{$key}/{$child_key}", $child, $setting_details['sub'], $path);
             }
             return $result;
         }
     }
 
-    static function safe_settings() {
-        $settings = EvilGlobals::$instance->settings;
-        if (!empty($settings['password'])) { $settings['password'] = '********'; }
-        return $settings;
+    function resolve_path($path, $base) {
+        if ($path[0] != '/') {
+            $path = rtrim($base, '/')."/{$path}";
+        }
+        $path = rtrim($path, '/');
+        return $path;
     }
 }
