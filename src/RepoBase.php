@@ -13,8 +13,6 @@ class RepoBase extends Object {
     var $path;
 
     function __construct($path) {
-        assert(is_dir($path));
-
         $this->path = $path;
     }
 
