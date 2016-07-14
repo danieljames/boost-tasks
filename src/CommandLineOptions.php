@@ -26,6 +26,8 @@ class CommandLineOptions extends Object
             ->defaultValue(false);
         $specs->add('cron', "Run as cron job.")
             ->defaultValue(false);
+        $specs->add('verbose', "Verbose.")
+            ->defaultValue(false);
         $specs->add('config-file:', "Configuration file.")
             ->isa('file');
 
