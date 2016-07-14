@@ -19,9 +19,6 @@ class EvilGlobals extends Object {
         'superproject-branches' => array('type' => 'map', 'default' => array(),
             'sub' => array('type' => 'string'),
         ),
-        'config-paths' => array('type' => 'array', 'default' => array(),
-            'sub' => array('type' => 'path'),
-        ),
     );
     static $settings_reader;
 
@@ -173,6 +170,13 @@ class EvilGlobals_SettingsReader {
     var $settings_types;
 
     function __construct($settings_types, $path_base) {
+        assert(!array_key_exists('config-paths', $settings_types));
+        $settings_types['config-paths'] =
+            array('type' => 'array', 'default' => array(),
+                'sub' => array('type' => 'path'),
+            );
+
+
         $this->settings_types = $settings_types;
         $this->path_base = $path_base;
     }
@@ -180,9 +184,11 @@ class EvilGlobals_SettingsReader {
     function initial_settings() {
         $settings = array();
         foreach($this->settings_types as $key => $details) {
-            $settings[$key] = array_get($details, 'default');
-            if (!is_null($settings[$key]) && $details['type'] == 'path') {
-                $settings[$key] = self::resolve_path($settings[$key], $this->path_base);
+            if ($key != 'config-paths') {
+                $settings[$key] = array_get($details, 'default');
+                if (!is_null($settings[$key]) && $details['type'] == 'path') {
+                    $settings[$key] = self::resolve_path($settings[$key], $this->path_base);
+                }
             }
         }
         return $settings;

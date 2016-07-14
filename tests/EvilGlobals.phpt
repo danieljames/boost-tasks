@@ -50,13 +50,10 @@ class EvilGlobals_SettingsReaderTest extends Tester\TestCase {
             'path1' => array('type' => 'path', 'default' => '.'),
             'path2' => array('type' => 'path', 'default' => '..'),
             'path3' => array('type' => 'path', 'default' => basename(__FILE__)),
-            'config-paths' => array('type' => 'array', 'default' => array(),
-                'sub' => array('type' => 'path'),
-            ),
         ), __DIR__);
 
         $settings1 = $reader->initial_settings();
-        Assert::same(array('path1','path2','path3','config-paths'), array_keys($settings1));
+        Assert::same(array('path1','path2','path3'), array_keys($settings1));
         Assert::same(realpath(__DIR__), realpath($settings1['path1']));
         Assert::same(realpath(dirname(__DIR__)), realpath($settings1['path2']));
         Assert::same(realpath(__FILE__), realpath($settings1['path3']));
@@ -65,12 +62,13 @@ class EvilGlobals_SettingsReaderTest extends Tester\TestCase {
         $config_path = "{$temp_directory->path}/config.neon";
         file_put_contents($config_path, "path1: config.neon\n");
         $settings2 = $reader->read_config($config_path);
-        Assert::same(array('path1','path2','path3','config-paths'), array_keys($settings2));
+        Assert::same(array('path1','path2','path3'), array_keys($settings2));
         Assert::same(realpath($config_path), realpath($settings2['path1']));
 
         mkdir("{$temp_directory->path}/sub");
         file_put_contents("{$temp_directory->path}/sub/config.neon", "config-paths: ../config.neon");
         $settings3 = $reader->read_config("{$temp_directory->path}/sub/config.neon");
+        Assert::same(array('path1','path2','path3'), array_keys($settings3));
         Assert::same(realpath($config_path), realpath($settings3['path1']));
     }
 }
