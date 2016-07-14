@@ -2,11 +2,105 @@
 
 use Tester\Assert;
 use BoostTasks\Db;
+use BoostTasks\TempDirectory;
 
 require_once(__DIR__.'/bootstrap.php');
 
 class DbTest extends Tester\TestCase
 {
+    function tearDown() {
+        // TODO: Better way to do this?
+        Db::$instance = null;
+    }
+
+    function testInitSqlite() {
+        Assert::null(Db::$instance);
+        Db::initSqlite(':memory:');
+
+        Db::exec("
+            CREATE TABLE test(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                value TEXT DEFAULT 'something'
+            );");
+
+        $x1 = Db::dispense('test');
+
+        Assert::truthy(Db::$instance);
+        Db::$instance = null;
+    }
+
+    function testCreateSqlite() {
+        $temp = new TempDirectory;
+        $path = "{$temp->path}/simple.db";
+        $db = Db::createSqlite($path);
+        Assert::true(is_file($path));
+
+        $db->exec("
+            CREATE TABLE test(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                value TEXT DEFAULT 'something'
+            );");
+
+        $x1 = $db->dispense('test');
+        $x1->value = 'foobar';
+        $x1->store();
+
+        $db2 = Db::createSqlite($path);
+        $x2 = $db2->load('test', 1);
+        Assert::same('foobar', $x2->value);
+        $x2->value = 'foo';
+        $x2->store();
+
+        $x3 = $db->load('test', 1);
+        Assert::same('foo', $x3->value);
+    }
+
+    function testTransaction() {
+        Db::setup("sqlite::memory:");
+
+        Db::exec("
+            CREATE TABLE test(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                value TEXT DEFAULT 'something'
+            );");
+
+        Assert::same("hello", db::transaction(function() {
+            Db::exec("INSERT INTO test(value) VALUES('value1')");
+            return "hello";
+        }));
+
+        Assert::same('1', Db::getCell("SELECT COUNT(*) FROM test"));
+        Assert::exception(function() {
+            db::transaction(function() {
+                Db::exec("INSERT INTO test(value) VALUES('value2')");
+                Assert::same('2', Db::getCell("SELECT COUNT(*) FROM test"));
+                throw new RuntimeException();
+            });
+        }, 'RuntimeException');
+
+        Assert::same('1', Db::getCell("SELECT COUNT(*) FROM test"));
+
+        Db::begin();
+        Db::exec("INSERT INTO test(value) VALUES('value3')");
+        Assert::same('2', Db::getCell("SELECT COUNT(*) FROM test"));
+        Db::commit();
+        Assert::same('2', Db::getCell("SELECT COUNT(*) FROM test"));
+
+        Db::begin();
+        Db::exec("INSERT INTO test(value) VALUES('value4')");
+        Assert::same('3', Db::getCell("SELECT COUNT(*) FROM test"));
+        Db::rollback();
+        Assert::same('2', Db::getCell("SELECT COUNT(*) FROM test"));
+
+        Assert::same(
+            array(
+                array('id' => '1', 'value' => 'value1'),
+                array('id' => '2', 'value' => 'value3'),
+            ),
+            Db::getAll('SELECT * FROM test')
+        );
+    }
+
     function testSqlite() {
         Db::setup("sqlite::memory:");
 
