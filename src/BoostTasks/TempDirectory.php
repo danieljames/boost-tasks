@@ -14,17 +14,18 @@ class TempDirectory {
             throw new RuntimeException("Temporary directory doesn't exist: {$tmp_root}");
         }
 
-        if (!is_writable($tmp_root)) {
+        if (!is_writable($tmp_root) || !is_executable($tmp_root)) {
             throw new RuntimeException("Temporary directory isn't writable: {$tmp_root}");
         }
 
         // Create temporary directory.
-        // Race condition here, but seems unlikely to be a real problem.
+
         $temp_name = tempnam($tmp_root, "download");
         if (!$temp_name) { return false; }
         if (strpos($temp_name, "{$tmp_root}/") !== 0) {
             throw new RuntimeException("Incorrect location for temporary directory.");
         }
+        // Race condition here, but seems unlikely to be a real problem.
         unlink($temp_name);
         mkdir($temp_name);
         $temp_name = realpath($temp_name);
@@ -37,10 +38,6 @@ class TempDirectory {
 
     function __destruct() {
         if ($this->path) { self::recursive_remove($this->path); }
-    }
-
-    function getPath() {
-        return $this->path;
     }
 
     // TODO: Better error handling.
