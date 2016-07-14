@@ -111,7 +111,7 @@ class EvilGlobals extends Object {
         }
         else {
             $path = "{$data_root}/{$thing}";
-            if (!is_dir($path)) { mkdir($path); }
+            if (!is_dir($path)) { mkdir($path, 0755, true); }
             return $path;
         }
 

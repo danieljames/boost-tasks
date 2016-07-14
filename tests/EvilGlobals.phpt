@@ -21,6 +21,26 @@ class EvilGlobalsTest extends Tester\TestCase {
         Assert::same(__DIR__.'/overwrite-config-paths', EvilGlobals::settings('data'));
     }
 
+    function testDataPath() {
+        $temp_directory = new TempDirectory();
+        file_put_contents("{$temp_directory->path}/config.neon", 'data: root');
+        EvilGlobals::init(array('config-file' => "{$temp_directory->path}/config.neon"));
+
+        $root = "{$temp_directory->path}/root";
+        Assert::true(is_dir($root));
+        Assert::same($root, EvilGlobals::data_path());
+
+        $sub1 = "{$root}/sub1";
+        Assert::false(is_dir($sub1));
+        Assert::same($sub1, EvilGlobals::data_path("sub1"));
+        Assert::true(is_dir($sub1));
+
+        $sub2 = "{$root}/sub2/sub2";
+        Assert::false(is_dir($sub2));
+        Assert::same($sub2, EvilGlobals::data_path("sub2/sub2"));
+        Assert::true(is_dir($sub2));
+    }
+
     function testSafeSettings() {
         EvilGlobals::init(array('config-file' => __DIR__.'/test-config1.neon'));
 
