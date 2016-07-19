@@ -71,7 +71,7 @@ class Process {
             $pipes, $cwd, $env, $options);
 
         if ($this->process === false) {
-            throw new \RuntimeException("Error running command");
+            throw new Process_Exception("Error running command");
         }
 
         $this->child_stdin = $pipes[0];
@@ -117,7 +117,7 @@ class Process {
     function close_with_error_check() {
         $this->close();
         if ($this->status != 0) {
-            throw new Process_Exception(
+            throw new Process_FailedExitCode(
                 "Process failed({$this->status})",
                 $this->stderr
             );
@@ -216,7 +216,10 @@ class Process_LineProcess implements Iterator
     }
 }
 
-class Process_Exception extends \RuntimeException
+class Process_Exception extends \RuntimeException {}
+class Process_Timeout extends Process_Exception {}
+
+class Process_FailedExitCode extends Process_Exception
 {
     var $stderr = '';
 
@@ -224,8 +227,4 @@ class Process_Exception extends \RuntimeException
         parent::__construct($message);
         $this->stderr = $stderr;
     }
-}
-
-class Process_Timeout extends \RuntimeException
-{
 }
