@@ -132,7 +132,7 @@ class LocalMirror extends Object {
             foreach(RepoBase::readSubmoduleConfig($dst_dir) as $name => $values) {
                 if (empty($values['path'])) { throw \RuntimeException("Missing path."); }
                 if (empty($values['url'])) { throw \RuntimeException("Missing URL."); }
-                $child_repos[$values['path']] = self::resolveGithubUrl($values['url'], $repo_path);
+                $child_repos[$values['path']] = self::resolveGitUrl($values['url'], $repo_path);
             }
 
             foreach($repo->currentHashes(array_keys($child_repos)) as $path => $hash) {
@@ -145,7 +145,7 @@ class LocalMirror extends Object {
     // a URL library.
     //
     // A close enough emulation of what git-submodule does.
-    private static function resolveGithubUrl($url, $base) {
+    private static function resolveGitUrl($url, $base) {
         if (strpos(':', $url) !== FALSE) {
             throw \RuntimeException("Remote URLs aren't supported.");
         } else if ($url[0] == '/') {
