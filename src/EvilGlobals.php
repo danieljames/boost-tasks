@@ -231,12 +231,6 @@ class EvilGlobals_SettingsReader {
                 switch($key) {
                 case 'config-paths':
                     foreach ($value as $config_path) {
-                        if (!is_string($config_path)) {
-                            throw new RuntimeException("'config-paths' should only contain strings.");
-                        }
-                        if ($config_path[0] !== '/') {
-                            $config_path = dirname($path).'/'.$config_path;
-                        }
                         $settings = $this->read_config($config_path, $settings);
                     }
                     break;
