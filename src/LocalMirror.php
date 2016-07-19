@@ -73,12 +73,17 @@ class LocalMirror extends Object {
 
     function fetchDirty() {
         $db = EvilGlobals::database();
-        $repos = $db->find(self::$mirror_table, 'dirty = ?', Array(true));
+        $repos = $db->getAll('SELECT id FROM `'.self::$mirror_table.'` WHERE dirty = ?', Array(true));
 
-        foreach ($repos as $repo_entry) {
-            $this->updateMirror($repo_entry->path, $repo_entry->url);
-            $repo_entry->dirty = false;
-            $repo_entry->store();
+        foreach ($repos as $row) {
+            $self = $this;
+            $db->transaction(function() use($self, $db, $row) {
+                // Q: Error checks?
+                $repo_entry = $db->load(self::$mirror_table, $row['id']);
+                $this->updateMirror($repo_entry->path, $repo_entry->url);
+                $repo_entry->dirty = false;
+                $repo_entry->store();
+            });
         }
     }
 
