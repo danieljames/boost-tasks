@@ -31,6 +31,10 @@ class EvilGlobals extends Object {
     var $github_cache;
 
     static function init($options = array()) {
+        // CommandLineOptions returns a number to exit early.
+        // Shouldn't really get here in that case, so maybe an assertion?
+        if (is_numeric($options)) { exit($options); }
+
         if (!self::$settings_reader) {
             self::$settings_reader = new EvilGlobals_SettingsReader(self::$settings_types, __DIR__.'/..');
         }

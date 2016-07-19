@@ -13,6 +13,7 @@ function main($args) {
     $options = CommandLineOptions::process($args,
         'Creates or updates the GitHub mirror',
         $specs);
+    if (is_numeric($options)) { exit($options); }
     EvilGlobals::init($options);
 
     if (!$options['no-fetch']) {

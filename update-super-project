@@ -14,6 +14,7 @@ function main($args) {
     $options = CommandLineOptions::process($args,
         'Update the submodules in the super project',
         $specs);
+    if (is_numeric($options)) { exit($options); }
     EvilGlobals::init($options);
 
     if ($options['cron']) {
