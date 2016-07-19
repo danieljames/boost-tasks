@@ -19,6 +19,7 @@ class EvilGlobals extends Object {
         'superproject-branches' => array('type' => 'map', 'default' => array(),
             'sub' => array('type' => 'string'),
         ),
+        'testing' => array('type' => 'private', 'default' => false),
     );
     static $settings_reader;
 
@@ -49,7 +50,9 @@ class EvilGlobals extends Object {
         if (array_get($options, 'testing')) {
             // Just skipping configuration completely for now, will certainly
             // have to do something better in the future.
-            $this->settings = self::$settings_reader->initial_settings();
+            $this->settings = array_merge(
+                self::$settings_reader->initial_settings(),
+                $options);
         }
         else {
             // Initial logging settings, for loading configuration.
@@ -275,6 +278,9 @@ class EvilGlobals_SettingsReader {
                     $this->check_setting("{$key}/{$child_key}", $child, $setting_details['sub'], $path);
             }
             return $result;
+        case 'private':
+            // Should really make it look like 'unknown setting' warning.
+            throw new RuntimeException("Private setting: {$key}");
         }
     }
 

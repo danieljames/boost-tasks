@@ -199,6 +199,33 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
             $reader->read_config("{$temp_directory->path}/invalid.neon");
         }, 'RuntimeException');
     }
+
+    function testPrivateSetting() {
+        $reader = new EvilGlobals_SettingsReader(array(
+            'value' => array('type' => 'string'),
+            'private' => array('type' => 'private', 'default' => 'default')
+        ), __DIR__);
+
+        $settings = $reader->initial_settings();
+        Assert::same(array('value', 'private'), array_keys($settings));
+        Assert::null($settings['value']);
+        Assert::same('default', $settings['private']);
+
+        $temp_directory = new TempDirectory();
+
+        $config_path = "{$temp_directory->path}/config.neon";
+        file_put_contents($config_path, "value: check\n");
+        $settings2 = $reader->read_config($config_path);
+        Assert::same(array('value', 'private'), array_keys($settings2));
+        Assert::same('check', $settings2['value']);
+        Assert::same('default', $settings2['private']);
+
+        $config_path2 = "{$temp_directory->path}/config2.neon";
+        file_put_contents($config_path2, "private: check\n");
+        Assert::exception(function() use($reader, $config_path2) {
+            $reader->read_config($config_path2);
+        }, 'RuntimeException', '#private#');
+    }
 }
 
 
