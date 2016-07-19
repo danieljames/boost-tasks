@@ -13,12 +13,16 @@ class Repo extends RepoBase {
     var $module;
     var $branch;
     var $enable_push;
+    var $url;
 
-    function __construct($module, $branch, $path) {
+    function __construct($module, $branch, $path, $url = null) {
         parent::__construct($path);
         $this->module = $module;
         $this->branch = $branch;
         $this->enable_push = EvilGlobals::settings('push-to-repo');
+        $this->url = is_null($url) ?
+            "git@github.com:boostorg/{$this->module}.git" :
+            $url;
     }
 
     function getModuleBranchName() {
@@ -43,7 +47,7 @@ class Repo extends RepoBase {
         // will never use the history.
         Process::run(
             "git clone -q --depth 1 -b {$this->branch} ".
-            "git@github.com:boostorg/{$this->module}.git {$this->path}");
+            "{$this->url} {$this->path}");
         $this->configureRepo();
     }
 

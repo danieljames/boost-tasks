@@ -5,18 +5,7 @@ use BoostTasks\Db;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class GitHubCacheTest extends Tester\TestCase {
-    function setup() {
-        EvilGlobals::init(array('testing' => true));
-        EvilGlobals::$instance->database = Db::create("sqlite::memory:");
-        Migrations::migrate(EvilGlobals::$instance->database);
-    }
-
-    function tearDown() {
-        EvilGlobals::$instance = null;
-        Log::$log = null;
-    }
-
+class GitHubCacheTest extends TestBase {
     function testGetFile() {
         $cache = new GitHubCache();
         $file_url = 'file://'.__FILE__;
@@ -204,12 +193,7 @@ class MockConnection {
     }
 }
 
-class GitHubCache_ConnectionTest extends Tester\TestCase {
-    function tearDown() {
-        EvilGlobals::$instance = null;
-        Log::$log = null;
-    }
-
+class GitHubCache_ConnectionTest extends TestBase {
     function testGet() {
         $connection = new GitHubCache_Connection();
         $response = $connection->get('file://'.__FILE__);
@@ -261,10 +245,6 @@ Link: <www.example.com>;rel=something'
     }
 
     function testDuplicateMessageHeaders() {
-        Log::$log = new \Monolog\Logger('test logger');
-        $handler = new \Monolog\Handler\TestHandler;
-        Log::$log->setHandlers(array($handler));
-
         Assert::same(
             array(
                 'val' => '1',
@@ -275,7 +255,8 @@ Error thing'
             )
         );
 
-        Assert::true($handler->hasRecordThatContains(
+        $handlers = Log::$log->getHandlers();
+        Assert::true($handlers[0]->hasRecordThatContains(
             'Error parsing http header', \Monolog\Logger::ERROR
         ));
     }
@@ -386,10 +367,6 @@ Error thing'
     }
 
     function testParseLinkHeaderDuplicateKey() {
-        Log::$log = new \Monolog\Logger('test logger');
-        $handler = new \Monolog\Handler\TestHandler;
-        Log::$log->setHandlers(array($handler));
-
         Assert::same(
             array(array(
                 'url' => 'http://example.com/',
@@ -398,7 +375,8 @@ Error thing'
             GitHubCache_Connection::parse_link_header('<http://example.com/>;rel=1;rel=2')
         );
 
-        Assert::true($handler->hasRecordThatContains(
+        $handlers = Log::$log->getHandlers();
+        Assert::true($handlers[0]->hasRecordThatContains(
             'Duplicate link key', \Monolog\Logger::ERROR
         ));
     }

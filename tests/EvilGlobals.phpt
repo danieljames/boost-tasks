@@ -5,11 +5,7 @@ use BoostTasks\TempDirectory;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class EvilGlobalsTest extends Tester\TestCase {
-    function tearDown() {
-        EvilGlobals::$instance = null;
-    }
-
+class EvilGlobalsTest extends TestBase {
     function testSettings() {
         EvilGlobals::init(array('config-file' => __DIR__.'/test-config1.neon'));
         Assert::same('name', EvilGlobals::settings('username'));
@@ -109,7 +105,7 @@ class EvilGlobalsTest extends Tester\TestCase {
     }
 }
 
-class EvilGlobals_SettingsReaderTest extends Tester\TestCase {
+class EvilGlobals_SettingsReaderTest extends TestBase {
     function testErrors() {
         $reader = new EvilGlobals_SettingsReader(array(), __DIR__);
         $temp_directory = new TempDirectory();
@@ -202,6 +198,33 @@ class EvilGlobals_SettingsReaderTest extends Tester\TestCase {
         Assert::exception(function() use($reader, $temp_directory) {
             $reader->read_config("{$temp_directory->path}/invalid.neon");
         }, 'RuntimeException');
+    }
+
+    function testPrivateSetting() {
+        $reader = new EvilGlobals_SettingsReader(array(
+            'value' => array('type' => 'string'),
+            'private' => array('type' => 'private', 'default' => 'default')
+        ), __DIR__);
+
+        $settings = $reader->initial_settings();
+        Assert::same(array('value', 'private'), array_keys($settings));
+        Assert::null($settings['value']);
+        Assert::same('default', $settings['private']);
+
+        $temp_directory = new TempDirectory();
+
+        $config_path = "{$temp_directory->path}/config.neon";
+        file_put_contents($config_path, "value: check\n");
+        $settings2 = $reader->read_config($config_path);
+        Assert::same(array('value', 'private'), array_keys($settings2));
+        Assert::same('check', $settings2['value']);
+        Assert::same('default', $settings2['private']);
+
+        $config_path2 = "{$temp_directory->path}/config2.neon";
+        file_put_contents($config_path2, "private: check\n");
+        Assert::exception(function() use($reader, $config_path2) {
+            $reader->read_config($config_path2);
+        }, 'RuntimeException', '#private#');
     }
 }
 

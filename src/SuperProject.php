@@ -21,9 +21,11 @@ class SuperProject extends Repo {
     }
 
     function __construct($settings) {
-        parent::__construct('boost',
+        parent::__construct(
+            array_get($settings, 'module', 'boost'),
             $this->get($settings, 'superproject-branch'),
-            $this->get($settings, 'path'));
+            $this->get($settings, 'path'),
+            array_get($settings, 'remote_url'));
         $this->submodule_branch = $this->get($settings, 'submodule-branch');
     }
 
@@ -54,52 +56,25 @@ class SuperProject extends Repo {
     private function attemptUpdateFromAll($queue) {
         $self = $this; // Has to work on php 5.3
         return $this->attemptAndPush(function() use($self, $queue) {
-            return $self->updateFromAll($queue);
+            $submodules = $self->getSubmodules();
+            $self->updateAllSubmoduleHashes($submodules);
+            // Include any events that have arrived since starting this update.
+            $queue->downloadMoreEvents();
+            $self->updateSubmoduleHashesFromEventQueue($submodules, $queue);
+            return $self->updateHashes($submodules);
         });
     }
 
     private function attemptUpdateFromEventQueue($queue) {
         $self = $this; // Has to work on php 5.3
         $result = $this->attemptAndPush(function() use($self, $queue) {
-            return $self->updateFromEventQueue($queue);
+            $submodules = $self->getSubmodules();
+            $self->updateSubmoduleHashesFromEventQueue($submodules, $queue);
+            return $self->updateHashes($submodules);
         });
     }
 
-    // Note: Public so that it can be called in a closure in PHP 5.3
-    public function updateFromAll($queue) {
-        $submodules = $this->getSubmodules();
-
-        foreach($submodules as $submodule) {
-            // Note: Alternative would be to use branch API to get more
-            //       information.
-            //       https://developer.github.com/v3/repos/branches/#get-branch
-            $ref = EvilGlobals::github_cache()->getJson(
-                "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
-            $submodule->updated_hash_value = $ref->object->sha;
-        }
-
-        // Include any events that have arrived since starting this update.
-        $queue->downloadMoreEvents();
-        return $this->updateFromEventQueue($queue, $submodules);
-    }
-
-    // Note: Public so that it can be called in a closure in PHP 5.3
-    public function updateFromEventQueue($queue, $submodules = null) {
-        if (!$submodules) { $submodules = $this->getSubmodules(); }
-
-        foreach ($queue->getEvents() as $event) {
-            if ($event->branch == $this->submodule_branch) {
-                if (array_key_exists($event->repo, $submodules)) {
-                    $submodules[$event->repo]->updated_hash_value
-                            = json_decode($event->payload)->head;
-                }
-            }
-        }
-
-        return $this->updateHashes($submodules);
-    }
-
-    private function getSubmodules() {
+    public function getSubmodules() {
         $submodules = array();
         foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
             $submodule = new SuperProject_Submodule($name, $details);
@@ -108,6 +83,30 @@ class SuperProject extends Repo {
             }
         }
         return $submodules;
+    }
+
+    // Note: Public so that it can be called in a closure in PHP 5.3
+    public function updateAllSubmoduleHashes($submodules) {
+        foreach($submodules as $submodule) {
+            // Note: Alternative would be to use branch API to get more
+            //       information.
+            //       https://developer.github.com/v3/repos/branches/#get-branch
+            $ref = EvilGlobals::github_cache()->getJson(
+                "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
+            $submodule->updated_hash_value = $ref->object->sha;
+        }
+    }
+
+    // Note: Public so that it can be called in a closure in PHP 5.3
+    public function updateSubmoduleHashesFromEventQueue($queue, $submodules = null) {
+        foreach ($queue->getEvents() as $event) {
+            if ($event->branch == $this->submodule_branch) {
+                if (array_key_exists($event->repo, $submodules)) {
+                    $submodules[$event->repo]->updated_hash_value
+                            = json_decode($event->payload)->head;
+                }
+            }
+        }
     }
 
     /**
@@ -175,7 +174,8 @@ class SuperProject_Submodule extends Object {
         $this->path = $values['path'];
 
         $matches = null;
-        if (preg_match('@^(?:\.\.|https?://github\.com/boostorg)/(\w+)\.git$@', $values['url'], $matches)) {
+        // TODO: Set github name based on super project name?
+        if (preg_match('@^(?:\.\.|https?://github\.com/boostorg)/(\w+)(\.git)?$@', $values['url'], $matches)) {
             $this->github_name = "boostorg/{$matches[1]}";
         }
     }

@@ -4,6 +4,7 @@ use Nette\Neon\Neon;
 use Nette\Object;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
+use Monolog\Handler\TestHandler;
 use Monolog\Formatter\LineFormatter;
 use BoostTasks\Db;
 
@@ -19,6 +20,7 @@ class EvilGlobals extends Object {
         'superproject-branches' => array('type' => 'map', 'default' => array(),
             'sub' => array('type' => 'string'),
         ),
+        'testing' => array('type' => 'private', 'default' => false),
     );
     static $settings_reader;
 
@@ -31,6 +33,10 @@ class EvilGlobals extends Object {
     var $github_cache;
 
     static function init($options = array()) {
+        // CommandLineOptions returns a number to exit early.
+        // Shouldn't really get here in that case, so maybe an assertion?
+        if (is_numeric($options)) { exit($options); }
+
         if (!self::$settings_reader) {
             self::$settings_reader = new EvilGlobals_SettingsReader(self::$settings_types, __DIR__.'/..');
         }
@@ -42,20 +48,26 @@ class EvilGlobals extends Object {
         $formatter = new LineFormatter;
         $formatter->includeStacktraces();
 
+        // Initial logging settings, for loading configuration.
+        // Q: Should this be done before handling command line options?
+
+        $stdout_handler = new StreamHandler("php://stdout",
+            array_get($options, 'verbose') ? Logger::DEBUG : Logger::WARNING);
+        $stdout_handler->setFormatter($formatter);
+        Log::$log->setHandlers(array($stdout_handler));
+
         if (array_get($options, 'testing')) {
+            // Important: TestHandler has to be the first handler, so it must be pushed last.
+            // TODO: Save it somewhere, so the tests don't need to rely on this.
+            Log::$log->pushHandler(new TestHandler);
+
             // Just skipping configuration completely for now, will certainly
             // have to do something better in the future.
-            $this->settings = self::$settings_reader->initial_settings();
+            $this->settings = array_merge(
+                self::$settings_reader->initial_settings(),
+                $options);
         }
         else {
-            // Initial logging settings, for loading configuration.
-            // Q: Should this be done before handling command line options?
-
-            $stdout_handler = new StreamHandler("php://stdout",
-                array_get($options, 'verbose') ? Logger::DEBUG : Logger::WARNING);
-            $stdout_handler->setFormatter($formatter);
-            Log::$log->setHandlers(array($stdout_handler));
-
             // Load settings
 
             if (array_key_exists('config-file', $options)) {
@@ -149,8 +161,13 @@ class EvilGlobals extends Object {
     static function database() {
         if (!self::$instance->database) {
             // Set up the database
+            if (self::$instance->settings['testing']) {
+                $db = Db::create("sqlite::memory:");
+            }
+            else {
+                $db = Db::create("sqlite:".self::data_path()."/cache.db");
+            }
 
-            $db = Db::create("sqlite:".self::data_path()."/cache.db");
             Migrations::migrate($db);
             self::$instance->database = $db;
         }
@@ -215,12 +232,6 @@ class EvilGlobals_SettingsReader {
                 switch($key) {
                 case 'config-paths':
                     foreach ($value as $config_path) {
-                        if (!is_string($config_path)) {
-                            throw new RuntimeException("'config-paths' should only contain strings.");
-                        }
-                        if ($config_path[0] !== '/') {
-                            $config_path = dirname($path).'/'.$config_path;
-                        }
                         $settings = $this->read_config($config_path, $settings);
                     }
                     break;
@@ -271,6 +282,9 @@ class EvilGlobals_SettingsReader {
                     $this->check_setting("{$key}/{$child_key}", $child, $setting_details['sub'], $path);
             }
             return $result;
+        case 'private':
+            // Should really make it look like 'unknown setting' warning.
+            throw new RuntimeException("Private setting: {$key}");
         }
     }
 

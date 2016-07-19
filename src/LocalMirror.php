@@ -73,44 +73,39 @@ class LocalMirror extends Object {
 
     function fetchDirty() {
         $db = EvilGlobals::database();
-        $repos = $db->find(self::$mirror_table, 'dirty = ?', Array(true));
+        $repos = $db->getAll('SELECT id FROM `'.self::$mirror_table.'` WHERE dirty = ?', Array(true));
 
-        foreach ($repos as $repo_entry) {
-            if (is_dir($this->getPath($repo_entry))) {
-                Log::info("Fetch {$repo_entry->path}");
-                $this->fetchMirror($repo_entry);
-            }
-            else {
-                Log::info("Clone {$repo_entry->path}");
-                $this->createMirror($repo_entry);
-            }
+        foreach ($repos as $row) {
+            $self = $this;
+            $db->transaction(function() use($self, $db, $row) {
+                // Q: Error checks?
+                $repo_entry = $db->load(self::$mirror_table, $row['id']);
+                $this->updateMirror($repo_entry->path, $repo_entry->url);
+                $repo_entry->dirty = false;
+                $repo_entry->store();
+            });
         }
     }
 
-    function fetchMirror($repo_entry) {
-        $repo = new RepoBase($this->getPath($repo_entry));
-        $repo->fetchWithPrune();
-        $repo_entry->dirty = false;
-        $repo_entry->store();
-    }
-
-    function createMirror($repo_entry) {
-        Process::run(
-            "git clone --mirror --quiet {$repo_entry->url} {$this->getPath($repo_entry)}",
-            $this->getPath($repo_entry), null, null, 240); // 240 = timeout
-
-        $repo_entry->dirty = false;
-        $repo_entry->store();
+    function updateMirror($path, $url) {
+        $full_path = $this->mirror_root.$path;
+        if (is_dir($full_path)) {
+            Log::info("Fetch {$path}");
+            $repo = new RepoBase($full_path);
+            $repo->fetchWithPrune();
+        }
+        else {
+            Log::info("Clone {$path}");
+            Process::run(
+                "git clone --mirror --quiet {$url} {$full_path}",
+                $this->mirror_root, null, null, 240); // 240 = timeout
+        }
     }
 
     function outputRepos() {
         foreach(EvilGlobals::database()->findAll(self::$mirror_table) as $repo) {
             echo "{$repo->url} ", $repo->dirty ? '(needs update)' : '' ,"\n";
         }
-    }
-
-    private function getPath($repo_entry) {
-        return $this->mirror_root.$repo_entry->path;
     }
 
     function exportRecursive($branch, $dst_dir) {
@@ -132,7 +127,7 @@ class LocalMirror extends Object {
             foreach(RepoBase::readSubmoduleConfig($dst_dir) as $name => $values) {
                 if (empty($values['path'])) { throw \RuntimeException("Missing path."); }
                 if (empty($values['url'])) { throw \RuntimeException("Missing URL."); }
-                $child_repos[$values['path']] = self::resolveGithubUrl($values['url'], $repo_path);
+                $child_repos[$values['path']] = self::resolveGitUrl($values['url'], $repo_path);
             }
 
             foreach($repo->currentHashes(array_keys($child_repos)) as $path => $hash) {
@@ -145,21 +140,22 @@ class LocalMirror extends Object {
     // a URL library.
     //
     // A close enough emulation of what git-submodule does.
-    private static function resolveGithubUrl($url, $base) {
-        if (strpos(':', $url) !== FALSE) {
-            throw \RuntimeException("Remote URLs aren't supported.");
+    static function resolveGitUrl($url, $base) {
+        if (strpos($url, ':') !== FALSE) {
+            throw new \RuntimeException("Remote URLs aren't supported.");
         } else if ($url[0] == '/') {
             // What git-submodule treats as an absolute path
             return '/'.trim($url, '/');
         } else {
-            $result = $base;
+            $result = rtrim($base, '/');
 
             while (true) {
                 if (substr($url, 0, 3) == '../') {
-                    if ($result == '/') {
-                        throw \RuntimeException("Unable to resolve relative URL.");
+                    if (!$result) {
+                        throw new \RuntimeException("Unable to resolve relative URL.");
                     }
                     $result = dirname($result);
+                    if ($result == '/' || $result == '.') { $result = ''; }
                     $url = substr($url, 3);
                 } else if (substr($url, 0, 2) == './') {
                     $url = substr($url, 2);

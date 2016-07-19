@@ -11,6 +11,7 @@ function main($args) {
         ->defaultValue(false);
     $options = CommandLineOptions::process($_SERVER['argv'],
         'Update the pull request report from GitHub.', $specs);
+    if (is_numeric($options)) { exit($options); }
     EvilGlobals::init($options);
 
     PullRequestReport::update($options['all']);

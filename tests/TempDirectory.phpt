@@ -5,7 +5,7 @@ use BoostTasks\TempDirectory;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class TempDirectoryTest extends \Tester\TestCase {
+class TempDirectoryTest extends \TestBase {
     function testUseSysRootByDefault() {
         $temp_directory = new TempDirectory();
         $path = $temp_directory->path;

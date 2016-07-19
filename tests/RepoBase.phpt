@@ -5,7 +5,7 @@ use BoostTasks\TempDirectory;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class RepoBaseTest extends \Tester\TestCase
+class RepoBaseTest extends \TestBase
 {
     // Tests a bug in old versions of git.
     //
@@ -36,7 +36,7 @@ class RepoBaseTest extends \Tester\TestCase
         $branches = iterator_to_array($mirror_repo->read_lines('branch'));
         Assert::same(array('* master', '  test'),$branches);
 
-        $base_repo->command('branch -q -d test');
+        $base_repo->command('branch -d test');
         $base_repo->command('branch test/subbranch');
 
         $mirror_repo->fetchWithPrune();

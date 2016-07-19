@@ -20,6 +20,7 @@ class CommandLineOptions extends Object
         $this->specs = $specs;
     }
 
+    // Returns an array of options, or an exit code.
     static function process($args, $description, $specs = null) {
         if (!$specs) { $specs = new OptionCollection(); }
         $specs->add('help', "Diplay command line usage.")
@@ -38,15 +39,15 @@ class CommandLineOptions extends Object
             $options = $parser->parse($args)->toArray();
         } catch (InvalidOptionException $e) {
             $x->usage($e->getMessage());
-            exit(1);
+            return 1;
         } catch (InvalidOptionValue $e) {
             $x->usage($e->getMessage());
-            exit(1);
+            return 1;
         }
 
         if ($options['help']) {
             $x->usage();
-            exit(0);
+            return 0;
         }
 
         return $options;
