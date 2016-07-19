@@ -87,15 +87,15 @@ function update_git_checkout($repo_path) {
 
     $repo = new RepoBase($repo_path);
 
-    $result .= $repo->command('stash')->getOutput();
+    $result .= $repo->command_with_output('stash');
     try {
-        $result .= $repo->command('pull -q')->getOutput();
+        $result .= $repo->command_with_output('pull -q');
     }
     catch (\RuntimeException $e) {
         $result .= "git pull failed\n";
     }
     try {
-        $result .= $repo->command('stash pop')->getOutput();
+        $result .= $repo->command_with_output('stash pop');
     }
     catch (\RuntimeException $e) {
         $result .= "git stash pop failed\n";
