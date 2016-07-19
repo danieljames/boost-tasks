@@ -4,7 +4,7 @@ use Tester\Assert;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class ProcessTest extends Tester\TestCase {
+class ProcessTest extends TestBase {
     function testStatus() {
         Assert::same(0, Process::status("true"));
         Assert::same(1, Process::status("false"));

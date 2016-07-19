@@ -5,11 +5,7 @@ use BoostTasks\TempDirectory;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class EvilGlobalsTest extends Tester\TestCase {
-    function tearDown() {
-        EvilGlobals::$instance = null;
-    }
-
+class EvilGlobalsTest extends TestBase {
     function testSettings() {
         EvilGlobals::init(array('config-file' => __DIR__.'/test-config1.neon'));
         Assert::same('name', EvilGlobals::settings('username'));
@@ -109,7 +105,7 @@ class EvilGlobalsTest extends Tester\TestCase {
     }
 }
 
-class EvilGlobals_SettingsReaderTest extends Tester\TestCase {
+class EvilGlobals_SettingsReaderTest extends TestBase {
     function testErrors() {
         $reader = new EvilGlobals_SettingsReader(array(), __DIR__);
         $temp_directory = new TempDirectory();

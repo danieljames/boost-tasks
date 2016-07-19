@@ -5,7 +5,7 @@ use BoostTasks\Db;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class MigrationsTest extends Tester\TestCase
+class MigrationsTest extends TestBase
 {
     function testSqlite() {
         $db = Db::create("sqlite::memory:");

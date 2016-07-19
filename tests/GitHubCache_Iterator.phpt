@@ -76,13 +76,11 @@ class MockInvalidCache {
     }
 }
 
-class GitHubCache_IteratorTest extends Tester\TestCase {
-    function setup() {
-        // Just to trigger GitHubCache autoload, so that
-        // GitHubCache_Iterator is loaded.
-        new GitHubCache();
-    }
+// Just to trigger GitHubCache autoload, so that
+// GitHubCache_Iterator is loaded.
+new GitHubCache();
 
+class GitHubCache_IteratorTest extends TestBase {
     function testEmpty() {
         $x = new GitHubCache_Iterator(new MockCache, 'empty');
         Assert::false($x->valid());

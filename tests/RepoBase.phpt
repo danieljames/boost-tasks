@@ -5,7 +5,7 @@ use BoostTasks\TempDirectory;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class RepoBaseTest extends \Tester\TestCase
+class RepoBaseTest extends \TestBase
 {
     // Tests a bug in old versions of git.
     //

@@ -6,13 +6,8 @@ use BoostTasks\TempDirectory;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class DbTest extends Tester\TestCase
+class DbTest extends TestBase
 {
-    function tearDown() {
-        // TODO: Better way to do this?
-        Db::$instance = null;
-    }
-
     function testInitSqlite() {
         Assert::null(Db::$instance);
         Db::initSqlite(':memory:');

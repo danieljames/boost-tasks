@@ -5,7 +5,7 @@ use BoostTasks\TempDirectory;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class SuperProjectTest extends Tester\TestCase {
+class SuperProjectTest extends TestBase {
     function testCreateSuperProject() {
         $x = new SuperProject(array(
             'path' => __DIR__,

@@ -4,7 +4,7 @@ use Tester\Assert;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class LocalMirrorTest extends Tester\TestCase {
+class LocalMirrorTest extends TestBase {
     function testResolveGitUrl() {
         // Not how normal URLs behave, but this is how git URLs behave.
         Assert::same(

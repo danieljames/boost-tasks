@@ -5,16 +5,11 @@ use BoostTasks\Db;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class GitHubCacheTest extends Tester\TestCase {
+class GitHubCacheTest extends TestBase {
     function setup() {
-        EvilGlobals::init(array('testing' => true));
+        parent::setup();
         EvilGlobals::$instance->database = Db::create("sqlite::memory:");
         Migrations::migrate(EvilGlobals::$instance->database);
-    }
-
-    function tearDown() {
-        EvilGlobals::$instance = null;
-        Log::$log = null;
     }
 
     function testGetFile() {
@@ -204,12 +199,7 @@ class MockConnection {
     }
 }
 
-class GitHubCache_ConnectionTest extends Tester\TestCase {
-    function tearDown() {
-        EvilGlobals::$instance = null;
-        Log::$log = null;
-    }
-
+class GitHubCache_ConnectionTest extends TestBase {
     function testGet() {
         $connection = new GitHubCache_Connection();
         $response = $connection->get('file://'.__FILE__);

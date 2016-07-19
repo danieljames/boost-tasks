@@ -5,7 +5,7 @@ use GetOptionKit\OptionCollection;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class CommandLineOptionsTest extends \Tester\TestCase
+class CommandLineOptionsTest extends \TestBase
 {
     function testBasic() {
         $options = CommandLineOptions::process(array('command'), 'Simple test');
