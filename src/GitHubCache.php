@@ -90,14 +90,15 @@ class GitHubCache extends Object {
     }
 
     function resolve_url($url) {
-        $url_parts = parse_url($url);
-        if (!$url_parts) { throw new RuntimeException("Invalid url: {$url}"); }
-        if (!array_key_exists('host', $url_parts)) { $url_parts['host'] = 'api.github.com'; }
-        if (!array_key_exists('scheme', $url_parts)) { $url_parts['scheme'] = 'https'; }
-        $url_parts['path'] = '/'.ltrim($url_parts['path'], '/');
-        $full_url = "{$url_parts['scheme']}://{$url_parts['host']}{$url_parts['path']}";
-        if (array_key_exists('query', $url_parts)) { $full_url .= "?{$url_parts['query']}"; }
-        if (array_key_exists('fragment', $url_parts)) { $full_url .= "#{$url_parts['fragment']}"; }
+        // Regexp from https://tools.ietf.org/html/rfc3986#appendix-B
+        if (!preg_match('@^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?@', $url, $matches)) {
+            throw new RuntimeException("Invalid URL: {$url}");
+        }
+        $full_url = $matches[1] ?: 'https:';
+        $full_url .= $matches[3] ?: '//api.github.com';
+        $full_url .= '/'.ltrim($matches[5], '/');
+        if (!empty($matches[6])) { $full_url .= $matches[6]; }
+        if (!empty($matches[8])) { $full_url .= $matches[8]; }
         return $full_url;
     }
 
