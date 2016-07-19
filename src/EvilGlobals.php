@@ -64,7 +64,7 @@ class EvilGlobals extends Object {
             // Just skipping configuration completely for now, will certainly
             // have to do something better in the future.
             $this->settings = array_merge(
-                self::$settings_reader->initial_settings(),
+                self::$settings_reader->initialSettings(),
                 $options);
         }
         else {
@@ -84,7 +84,7 @@ class EvilGlobals extends Object {
                 $path = realpath($path);
             }
 
-            $this->settings = self::$settings_reader->read_config($path);
+            $this->settings = self::$settings_reader->readConfig($path);
 
             // Set up repo directory.
 
@@ -116,7 +116,7 @@ class EvilGlobals extends Object {
         }
     }
 
-    static function data_path($thing = null) {
+    static function dataPath($thing = null) {
         $data_root = self::$instance->data_root;
         if (is_null($thing)) {
             return $data_root;
@@ -129,9 +129,9 @@ class EvilGlobals extends Object {
 
     }
 
-    static function branch_repos() {
+    static function branchRepos() {
         if (!is_array(self::$instance->branch_repos)) {
-            $super_root = self::data_path('super');
+            $super_root = self::dataPath('super');
 
             $branch_repos = array();
             foreach(self::settings('superproject-branches', array()) as $branch => $submodule_branch) {
@@ -148,7 +148,7 @@ class EvilGlobals extends Object {
         return self::$instance->branch_repos;
     }
 
-    static function github_cache() {
+    static function githubCache() {
         if (!self::$instance->github_cache) {
             self::$instance->github_cache = new \GitHubCache(
                 self::$instance->settings['username'],
@@ -165,7 +165,7 @@ class EvilGlobals extends Object {
                 $db = Db::create("sqlite::memory:");
             }
             else {
-                $db = Db::create("sqlite:".self::data_path()."/cache.db");
+                $db = Db::create("sqlite:".self::dataPath()."/cache.db");
             }
 
             Migrations::migrate($db);
@@ -175,7 +175,7 @@ class EvilGlobals extends Object {
         return self::$instance->database;
     }
 
-    static function safe_settings() {
+    static function safeSettings() {
         $settings = EvilGlobals::$instance->settings;
         if (!empty($settings['password'])) { $settings['password'] = '********'; }
         return $settings;
@@ -198,21 +198,21 @@ class EvilGlobals_SettingsReader {
         $this->path_base = $path_base;
     }
 
-    function initial_settings() {
+    function initialSettings() {
         $settings = array();
         foreach($this->settings_types as $key => $details) {
             if ($key != 'config-paths') {
                 $settings[$key] = array_get($details, 'default');
                 if (!is_null($settings[$key]) && $details['type'] == 'path') {
-                    $settings[$key] = self::resolve_path($settings[$key], $this->path_base);
+                    $settings[$key] = self::resolvePath($settings[$key], $this->path_base);
                 }
             }
         }
         return $settings;
     }
 
-    function read_config($path, $settings = null) {
-        if (is_null($settings)) { $settings = $this->initial_settings(); }
+    function readConfig($path, $settings = null) {
+        if (is_null($settings)) { $settings = $this->initialSettings(); }
 
         $config = is_readable($path) ? file_get_contents($path) : false;
         if ($config === false) {
@@ -227,12 +227,12 @@ class EvilGlobals_SettingsReader {
                     continue;
                 }
 
-                $value = $this->check_setting($key, $value, $details, dirname($path));
+                $value = $this->checkSetting($key, $value, $details, dirname($path));
 
                 switch($key) {
                 case 'config-paths':
                     foreach ($value as $config_path) {
-                        $settings = $this->read_config($config_path, $settings);
+                        $settings = $this->readConfig($config_path, $settings);
                     }
                     break;
                 default:
@@ -245,7 +245,7 @@ class EvilGlobals_SettingsReader {
         return $settings;
     }
 
-    function check_setting($key, $value, $setting_details, $path) {
+    function checkSetting($key, $value, $setting_details, $path) {
         switch($setting_details['type']) {
         case 'string':
             if (is_array($value) || is_object($value) ) {
@@ -256,7 +256,7 @@ class EvilGlobals_SettingsReader {
             if (!is_string($value)) {
                 throw new RuntimeException("Invalid path for setting: {$key}");
             }
-            return self::resolve_path($value, $path);
+            return self::resolvePath($value, $path);
         case 'boolean':
             // TODO: Maybe accept 1/0/"true"/"false'?
             if (!is_bool($value) ) {
@@ -268,7 +268,7 @@ class EvilGlobals_SettingsReader {
 
             $result = array();
             foreach($value as $child) {
-                $result[] = $this->check_setting($key, $child, $setting_details['sub'], $path);
+                $result[] = $this->checkSetting($key, $child, $setting_details['sub'], $path);
             }
             return $result;
         case 'map':
@@ -279,7 +279,7 @@ class EvilGlobals_SettingsReader {
             $result = array();
             foreach($value as $child_key => $child) {
                 $result[$child_key] =
-                    $this->check_setting("{$key}/{$child_key}", $child, $setting_details['sub'], $path);
+                    $this->checkSetting("{$key}/{$child_key}", $child, $setting_details['sub'], $path);
             }
             return $result;
         case 'private':
@@ -288,7 +288,7 @@ class EvilGlobals_SettingsReader {
         }
     }
 
-    function resolve_path($path, $base) {
+    function resolvePath($path, $base) {
         if ($path[0] != '/') {
             $path = rtrim($base, '/')."/{$path}";
         }

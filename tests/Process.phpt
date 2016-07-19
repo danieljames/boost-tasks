@@ -22,9 +22,9 @@ class ProcessTest extends TestBase {
 
     function testEmptyStdout() {
         Assert::same("", Process::read("true"));
-        Assert::same(array(), iterator_to_array(Process::read_lines("true")));
-        Assert::same(array(), iterator_to_array(Process::read_lines("printf ''")));
-        Assert::same(array(''), iterator_to_array(Process::read_lines("echo")));
+        Assert::same(array(), iterator_to_array(Process::readLines("true")));
+        Assert::same(array(), iterator_to_array(Process::readLines("printf ''")));
+        Assert::same(array(''), iterator_to_array(Process::readLines("echo")));
     }
 
     function testStdout() {
@@ -62,11 +62,11 @@ class ProcessTest extends TestBase {
             "echo One; printf error 1>&2; printf Two"));
 
         Assert::same(array("Hello"),
-            iterator_to_array(Process::read_lines("printf Hello")));
+            iterator_to_array(Process::readLines("printf Hello")));
         Assert::same(array("One", "Two"),
-            iterator_to_array(Process::read_lines("echo One;printf Two")));
+            iterator_to_array(Process::readLines("echo One;printf Two")));
         Assert::same(array("One", "Two"),
-            iterator_to_array(Process::read_lines(
+            iterator_to_array(Process::readLines(
                 "echo One;printf error 1>&2;printf Two")));
 
         $e = Assert::exception(function() {

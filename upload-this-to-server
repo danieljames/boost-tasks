@@ -12,7 +12,7 @@ require_once(__DIR__.'/vendor/autoload.php');
 EvilGlobals::init();
 
 try {
-    $dst = EvilGlobals::data_path().'/upload';
+    $dst = EvilGlobals::dataPath().'/upload';
 
     if (is_dir($dst)) {
         Process::run("rm -r {$dst}");
@@ -30,7 +30,7 @@ try {
 
     // Tag the upload.
     $tags = array();
-    foreach($repo->read_lines('tag') as $tag) {
+    foreach($repo->readLines('tag') as $tag) {
         $tags[$tag] = true;
     }
     for($count = 1;true;++$count) {

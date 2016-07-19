@@ -33,7 +33,7 @@ class RepoBaseTest extends \TestBase
         Process::run("git clone -q --mirror base mirror", $temp_directory->path);
         $mirror_repo = new RepoBase($mirror_path);
 
-        $branches = iterator_to_array($mirror_repo->read_lines('branch'));
+        $branches = iterator_to_array($mirror_repo->readLines('branch'));
         Assert::same(array('* master', '  test'),$branches);
 
         $base_repo->command('branch -d test');
@@ -41,7 +41,7 @@ class RepoBaseTest extends \TestBase
 
         $mirror_repo->fetchWithPrune();
 
-        $branches = iterator_to_array($mirror_repo->read_lines('branch'));
+        $branches = iterator_to_array($mirror_repo->readLines('branch'));
         Assert::same(array('* master', '  test/subbranch'),$branches);
     }
 }

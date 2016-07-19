@@ -117,7 +117,7 @@ class SuperProjectTest extends TestBase {
         $hashes = array();
         foreach($repo_paths as $name => $module_path) {
             $repo = new RepoBase($module_path);
-            $hashes[$name] = $repo->read_lines('rev-parse master')->current();
+            $hashes[$name] = $repo->readLines('rev-parse master')->current();
         }
 
         $super_project = new SuperProject(array(
@@ -135,13 +135,13 @@ class SuperProjectTest extends TestBase {
         $super_project->updateHashes($submodules);
         Assert::same(
             $hashes['super'],
-            $super_project->read_lines('rev-parse master')->current()
+            $super_project->readLines('rev-parse master')->current()
         );
 
         $submodules = $super_project->getSubmodules();
         $submodules['boostorg/sub1']->updated_hash_value = $hashes['sub2'];
         $super_project->updateHashes($submodules);
-        $hash2 = $super_project->read_lines('rev-parse master')->current();
+        $hash2 = $super_project->readLines('rev-parse master')->current();
         Assert::notSame(
             $hashes['super'],
             $hash2
@@ -153,14 +153,14 @@ class SuperProjectTest extends TestBase {
         $super_project->updateHashes($submodules);
         Assert::same(
             $hash2,
-            $super_project->read_lines('rev-parse master')->current()
+            $super_project->readLines('rev-parse master')->current()
         );
 
         $submodules = $super_project->getSubmodules();
         $submodules['boostorg/sub1']->updated_hash_value = $hashes['sub2'];
         $submodules['boostorg/sub2']->updated_hash_value = $hashes['sub1'];
         $super_project->updateHashes($submodules);
-        $hash3 = $super_project->read_lines('rev-parse master')->current();
+        $hash3 = $super_project->readLines('rev-parse master')->current();
         Assert::notSame(
             $hash2,
             $hash3

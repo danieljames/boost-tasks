@@ -91,16 +91,16 @@ class GitHubCacheTest extends TestBase {
 
     function testResolveUrl() {
         $cache = new GitHubCache();
-        Assert::same('http://www.example.com/', $cache->resolve_url('http://www.example.com/'));
-        Assert::same('https://www.example.com/', $cache->resolve_url('//www.example.com/'));
-        Assert::same('https://www.example.com/foobar.html', $cache->resolve_url('//www.example.com/foobar.html'));
-        Assert::same('https://www.example.com/foobar.html?a=b', $cache->resolve_url('//www.example.com/foobar.html?a=b'));
-        Assert::same('http://api.github.com/thing.html', $cache->resolve_url('http:thing.html'));
-        Assert::same('http://api.github.com/thing.html', $cache->resolve_url('http:/thing.html'));
-        Assert::same('https://api.github.com/foobar.html', $cache->resolve_url('/foobar.html'));
-        Assert::same('https://api.github.com/foo/bar.html', $cache->resolve_url('foo/bar.html'));
-        Assert::same('https://api.github.com/foobar.html?a=b', $cache->resolve_url('foobar.html?a=b'));
-        Assert::same('https://api.github.com/.', $cache->resolve_url('.'));
+        Assert::same('http://www.example.com/', $cache->resolveUrl('http://www.example.com/'));
+        Assert::same('https://www.example.com/', $cache->resolveUrl('//www.example.com/'));
+        Assert::same('https://www.example.com/foobar.html', $cache->resolveUrl('//www.example.com/foobar.html'));
+        Assert::same('https://www.example.com/foobar.html?a=b', $cache->resolveUrl('//www.example.com/foobar.html?a=b'));
+        Assert::same('http://api.github.com/thing.html', $cache->resolveUrl('http:thing.html'));
+        Assert::same('http://api.github.com/thing.html', $cache->resolveUrl('http:/thing.html'));
+        Assert::same('https://api.github.com/foobar.html', $cache->resolveUrl('/foobar.html'));
+        Assert::same('https://api.github.com/foo/bar.html', $cache->resolveUrl('foo/bar.html'));
+        Assert::same('https://api.github.com/foobar.html?a=b', $cache->resolveUrl('foobar.html?a=b'));
+        Assert::same('https://api.github.com/.', $cache->resolveUrl('.'));
     }
 }
 
@@ -202,7 +202,7 @@ class GitHubCache_ConnectionTest extends TestBase {
     }
 
     function testParseResponse() {
-        $response = GitHubCache_Connection::parse_response(
+        $response = GitHubCache_Connection::parseResponse(
 "HTTP/1.1 200 OK\r
 Date: Tue, 19 Jul 2016 12:00:00 GMT\r
 Server: Apache/2.2.15 (Red Hat)\r
@@ -219,7 +219,7 @@ Content-Type: text/html",
 
     function testParseInvalidResponse() {
         Assert::exception(function() {
-            GitHubCache_Connection::parse_response("Blah blah", "Blah blah");
+            GitHubCache_Connection::parseResponse("Blah blah", "Blah blah");
         }, 'RuntimeException');
     }
 
@@ -233,7 +233,7 @@ Content-Type: text/html",
                 'content-type' => 'text/html',
                 'link' => array(array('url' => 'www.example.com', 'rel' => 'something')),
             ),
-            GitHubCache_Connection::parse_message_headers(
+            GitHubCache_Connection::parseMessageHeaders(
 'Date: Tue, 19 Jul 2016 08:58:40 GMT
 Server: Apache/2.2.15 (Red Hat)
 Accept-Ranges: bytes
@@ -249,7 +249,7 @@ Link: <www.example.com>;rel=something'
             array(
                 'val' => '1',
             ),
-            GitHubCache_Connection::parse_message_headers(
+            GitHubCache_Connection::parseMessageHeaders(
 'Val: 1
 Error thing'
             )
@@ -267,7 +267,7 @@ Error thing'
                 'url' => 'http://www.cern.ch/TheBook/chapter2',
                 'rel' => 'Previous',
             )),
-            GitHubCache_Connection::parse_link_header(
+            GitHubCache_Connection::parseLinkHeader(
                 '<http://www.cern.ch/TheBook/chapter2>; rel="Previous"'
             )
         );
@@ -278,7 +278,7 @@ Error thing'
                 'rev' => 'Made',
                 'title' => 'Tim Berners-Lee',
             )),
-            GitHubCache_Connection::parse_link_header(
+            GitHubCache_Connection::parseLinkHeader(
                 '<mailto:timbl@w3.org>; rev="Made"; title="Tim Berners-Lee"'
             )
         );
@@ -299,7 +299,7 @@ Error thing'
                     'media' => 'print',
                 ),
             ),
-            GitHubCache_Connection::parse_link_header('
+            GitHubCache_Connection::parseLinkHeader('
                  <../media/contrast.css>; rel="stylesheet alternate";
                  title="High Contrast Styles"; type="text/css"; media="screen",
                  <../media/print.css>; rel="stylesheet"; type="text/css";
@@ -315,7 +315,7 @@ Error thing'
                     'anchor' => '#sec12',
                 ),
             ),
-            GitHubCache_Connection::parse_link_header(
+            GitHubCache_Connection::parseLinkHeader(
                 '<sec-12-glossary.xml>; rel="glossary"; anchor="#sec12"'
             )
         );
@@ -326,7 +326,7 @@ Error thing'
                     'url' => 'link.html',
                 ),
             ),
-            GitHubCache_Connection::parse_link_header(
+            GitHubCache_Connection::parseLinkHeader(
                 '<link.html>'
             )
         );
@@ -340,7 +340,7 @@ Error thing'
                     'url' => 'link2.html',
                 ),
             ),
-            GitHubCache_Connection::parse_link_header(
+            GitHubCache_Connection::parseLinkHeader(
                 '<link1.html>,<link2.html>'
             )
         );
@@ -354,7 +354,7 @@ Error thing'
                     'thing3' => '',
                 ),
             ),
-            GitHubCache_Connection::parse_link_header(
+            GitHubCache_Connection::parseLinkHeader(
                 '<link.html> ; thing="\";\"" ; thing2="" ; thing3='
             )
         );
@@ -362,7 +362,7 @@ Error thing'
 
     function testParseInvalidLinkHeader() {
         Assert::exception(function() {
-            GitHubCache_Connection::parse_link_header('http://example.com/');
+            GitHubCache_Connection::parseLinkHeader('http://example.com/');
         }, 'RuntimeException', '#Error parsing link#');
     }
 
@@ -372,7 +372,7 @@ Error thing'
                 'url' => 'http://example.com/',
                 'rel' => '1',
             )),
-            GitHubCache_Connection::parse_link_header('<http://example.com/>;rel=1;rel=2')
+            GitHubCache_Connection::parseLinkHeader('<http://example.com/>;rel=1;rel=2')
         );
 
         $handlers = Log::$log->getHandlers();

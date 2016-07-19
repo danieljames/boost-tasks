@@ -19,7 +19,7 @@ class GitHubCache extends Object {
     }
 
     function get($url) {
-        $full_url = $this->resolve_url($url);
+        $full_url = $this->resolveUrl($url);
         Log::debug("Fetch: {$full_url}");
         $db = EvilGlobals::database();
         $redirect_count = 0;
@@ -89,7 +89,7 @@ class GitHubCache extends Object {
         return $cached;
     }
 
-    function resolve_url($url) {
+    function resolveUrl($url) {
         // Regexp from https://tools.ietf.org/html/rfc3986#appendix-B
         if (!preg_match('@^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?@', $url, $matches)) {
             throw new RuntimeException("Invalid URL: {$url}");
@@ -145,13 +145,13 @@ class GitHubCache_Iterator extends Object implements Iterator
 
     public function valid()
     {
-        $this->fetch_to_line($this->line_index);
+        $this->fetchToLine($this->line_index);
         return array_key_exists($this->line_index, $this->lines);
     }
 
     public function current()
     {
-        $this->fetch_to_line($this->line_index);
+        $this->fetchToLine($this->line_index);
         return $this->lines[$this->line_index];
     }
 
@@ -162,11 +162,11 @@ class GitHubCache_Iterator extends Object implements Iterator
 
     public function next()
     {
-        $this->fetch_to_line($this->line_index + 1);
+        $this->fetchToLine($this->line_index + 1);
         $this->line_index = $this->line_index + 1;
     }
 
-    private function fetch_to_line($line_index) {
+    private function fetchToLine($line_index) {
         while ($line_index >= count($this->lines) && $this->next_url) {
             $response = $this->cache->get($this->next_url);
             $response_body = \json_decode(trim($response->body));
@@ -210,12 +210,12 @@ class GitHubCache_Connection {
             array_merge($this->default_headers, $headers));
         $response = curl_exec($this->ch);
         $header_size = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
-        return self::parse_response(
+        return self::parseResponse(
             substr($response, 0, $header_size),
             substr($response, $header_size));
     }
 
-    static function parse_response($header, $body) {
+    static function parseResponse($header, $body) {
         $r = new GitHubCache_Response();
         $header = str_replace("\r\n", "\n", $header);
         $r->body = str_replace("\r\n", "\n", $body);
@@ -226,7 +226,7 @@ class GitHubCache_Connection {
             }
             $r->code = $matches[1];
             $r->reason_phrase = $matches[2];
-            $r->headers = self::parse_message_headers($matches[3]);
+            $r->headers = self::parseMessageHeaders($matches[3]);
         }
         else {
             $r->code = '200';
@@ -237,7 +237,7 @@ class GitHubCache_Connection {
         return $r;
     }
 
-    static function parse_message_headers($header) {
+    static function parseMessageHeaders($header) {
         preg_match_all('@^([-_a-zA-Z0-9]+):(.*(?:[\n\r][ \t].*)*)$|([^\s].+)@m',
             $header, $matches, PREG_SET_ORDER);
         $headers = array();
@@ -252,7 +252,7 @@ class GitHubCache_Connection {
 
                 switch($key) {
                 case 'link':
-                    $headers[$key] = self::parse_link_header($value);
+                    $headers[$key] = self::parseLinkHeader($value);
                     break;
                 default:
                     $headers[$key] = $value;
@@ -262,7 +262,7 @@ class GitHubCache_Connection {
         return $headers;
     }
 
-    static function parse_link_header($value) {
+    static function parseLinkHeader($value) {
         $link_value = '"(?:\\\\.|[^"])*"|[^;"]*';
         $links = array();
         foreach(explode(',', $value) as $link_text) {

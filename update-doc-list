@@ -34,7 +34,7 @@ function main($args) {
     }
 
     // Update maintainer lists.
-    foreach (EvilGlobals::branch_repos() as $x) {
+    foreach (EvilGlobals::branchRepos() as $x) {
         $website_repo->updateSuperProject(new SuperProject($x));
     }
 }

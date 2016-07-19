@@ -39,7 +39,7 @@ function update_documentation($branch) {
 
     // Download file details from bintray...
     $cache = new BinTrayCache;
-    foreach($cache->fetch_details($branch) as $file) {
+    foreach($cache->fetchDetails($branch) as $file) {
         if ($version == $file->version) {
             Log::info("{$branch} documentation: Already installed: {$file->name}, version {$file->version}.");
             return;
@@ -48,7 +48,7 @@ function update_documentation($branch) {
         Log::info("{$branch} documentation: Attempt to install {$file->name}, version {$file->version}.");
 
         // Download tarball.
-        $file_path = $cache->cached_download($file);
+        $file_path = $cache->cachedDownload($file);
         if (!$file_path) {
             Log::info("Download failed.");
             continue;
@@ -170,10 +170,10 @@ class BinTrayCache {
     var $path;
 
     function __construct() {
-        $this->path = EvilGlobals::data_path('bintray');
+        $this->path = EvilGlobals::dataPath('bintray');
     }
 
-    function fetch_details($branch) {
+    function fetchDetails($branch) {
         // Not using 7zip files because 7z doesn't seem to be installed on the server.
         $extension_priorities = array_flip(array('tar.bz2', 'tar.gz', 'zip'));
         $low_priority = 100;
@@ -217,7 +217,7 @@ class BinTrayCache {
     // Return path the file was downloaded to, null if the file isn't available.
     // Throws an exception if something goes wrong while downloading, or the
     // hash of the downloaded file doesn't match.
-    function cached_download($file) {
+    function cachedDownload($file) {
         $date = date('Y-m-d\TH:i', strtotime($file->created));
         // 'repo' is actually the branch, that's just the way bintray is organised.
         $download_dir = "{$this->path}/{$file->repo}/{$date}/{$file->sha1}";
@@ -228,7 +228,7 @@ class BinTrayCache {
                 mkdir($download_dir, 0777, true);
             }
 
-            if (!$this->download_file(
+            if (!$this->downloadFile(
                 "http://dl.bintray.com/boostorg/{$file->repo}/{$file->name}",
                 $download_path))
             {
@@ -245,7 +245,7 @@ class BinTrayCache {
 
     // TODO: Download to temporary file and move into position.
     // TODO: Better error handling, what to do if there's a failure during download?
-    function download_file($url, $dst_path) {
+    function downloadFile($url, $dst_path) {
         $download_fh = fopen($url, 'rb');
         if (!$download_fh) { return false; }
 

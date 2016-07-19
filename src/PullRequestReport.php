@@ -14,15 +14,15 @@ class PullRequestReport extends Object {
     static function update($all = false) {
         $report = new PullRequestReport;
         if ($all) {
-            $report->full_update();
+            $report->fullUpdate();
         }
         else {
-            $report->update_from_queue();
+            $report->updateFromQueue();
         }
         $report->write();
     }
 
-    public function webhook_database() {
+    public function webhookDatabase() {
         // TODO: This shouldn't be hard-coded.
         static $database = null;
         if (!$database) {
@@ -31,14 +31,14 @@ class PullRequestReport extends Object {
         return $database;
     }
 
-    public function full_update() {
+    public function fullUpdate() {
         // Get queue position before downloading pull requests.
-        $last_event_id = $this->webhook_database()->getCell('SELECT max(`id`) FROM pull_request_event');
+        $last_event_id = $this->webhookDatabase()->getCell('SELECT max(`id`) FROM pull_request_event');
 
         // Download pull requests.
         $pull_requests = Array();
-        foreach (EvilGlobals::github_cache()->iterate('/orgs/boostorg/repos') as $repo) {
-            foreach (EvilGlobals::github_cache()->iterate("/repos/{$repo->full_name}/pulls") as $pull) {
+        foreach (EvilGlobals::githubCache()->iterate('/orgs/boostorg/repos') as $repo) {
+            foreach (EvilGlobals::githubCache()->iterate("/repos/{$repo->full_name}/pulls") as $pull) {
                 $data = new \stdClass();
                 $data->id = $pull->id;
                 $data->repo_full_name = $repo->full_name;
@@ -85,18 +85,18 @@ class PullRequestReport extends Object {
             $record->trash();
         }
 
-        $queue = $this->load_queue($db);
+        $queue = $this->loadQueue($db);
         $queue->last_github_id = $last_event_id;
         $queue->store();
 
         $db->commit();
     }
 
-    public function update_from_queue() {
-        $webhook_database = $this->webhook_database();
+    public function updateFromQueue() {
+        $webhook_database = $this->webhookDatabase();
         $db = EvilGlobals::database();
         $db->begin();
-        $queue = $this->load_queue($db);
+        $queue = $this->loadQueue($db);
         foreach($webhook_database->getAll('SELECT * FROM pull_request_event WHERE id > ? ORDER BY id', array($queue->last_github_id)) AS $row) {
             $record = $db->load('pull_request', $row['pull_request_id']);
             if ($record) {
@@ -135,7 +135,7 @@ class PullRequestReport extends Object {
         $db->commit();
     }
 
-    public function load_queue($db) {
+    public function loadQueue($db) {
         $queue = $db->findOne('queue', 'name = ? AND type = ?',
             array('pull_request','PullRequestWebhook'));
         if (!$queue) {

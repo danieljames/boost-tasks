@@ -22,15 +22,15 @@ class Process {
         $process = new self($command, $cwd, $env, $timeout, $options);
         // TODO: Timeout here.
         if ($input) { fwrite($process->child_stdin, $input); }
-        $process->close_child_stdin();
+        $process->closeChildStdin();
         $process->join();
-        $process->close_with_error_check();
+        $process->closeWithErrorCheck();
     }
 
     public static function status($command, $cwd = null)
     {
         $process = new self($command, $cwd);
-        $process->close_child_stdin();
+        $process->closeChildStdin();
         $process->join();
         $process->close();
         return $process->status;
@@ -39,22 +39,22 @@ class Process {
     public static function read($command, $cwd = null)
     {
         $process = new self($command, $cwd);
-        $process->close_child_stdin();
+        $process->closeChildStdin();
 
         $output = '';
         do {
-            $process->wait_for_read();
+            $process->waitForRead();
             $output .= fread($process->child_stdout, 2048);
         } while (!feof($process->child_stdout));
-        $process->close_with_error_check();
+        $process->closeWithErrorCheck();
 
         return $output;
     }
 
-    public static function read_lines($command, $cwd = null)
+    public static function readLines($command, $cwd = null)
     {
         $process = new self($command, $cwd);
-        $process->close_child_stdin();
+        $process->closeChildStdin();
         return new Process_LineProcess($process);
     }
 
@@ -93,7 +93,7 @@ class Process {
 
     function join() {
         if ($this->process && $this->child_stdout) do {
-            $this->wait_for_read();
+            $this->waitForRead();
             fread($this->child_stdout, 2048);
         } while (!feof($this->child_stdout));
         $this->close();
@@ -101,20 +101,20 @@ class Process {
 
     function close() {
         if ($this->process) {
-            $this->close_child_stdin();
-            $this->close_child_stdout();
+            $this->closeChildStdin();
+            $this->closeChildStdout();
             if ($this->child_stderr) do {
-                $this->wait_for_read();
+                $this->waitForRead();
                 fread($this->child_stderr, 2048);
             } while (!feof($this->child_stderr));
-            $this->close_child_stderr();
+            $this->closeChildStderr();
 
             $this->status = proc_close($this->process);
             $this->process = null;
         }
     }
 
-    function close_with_error_check() {
+    function closeWithErrorCheck() {
         $this->close();
         if ($this->status != 0) {
             throw new Process_FailedExitCode(
@@ -124,28 +124,28 @@ class Process {
         }
     }
 
-    function close_child_stdin() {
+    function closeChildStdin() {
         if ($this->child_stdin) {
             fclose($this->child_stdin);
             $this->child_stdin = null;
         }
     }
 
-    function close_child_stdout() {
+    function closeChildStdout() {
         if ($this->child_stdout) {
             fclose($this->child_stdout);
             $this->child_stdout = null;
         }
     }
 
-    function close_child_stderr() {
+    function closeChildStderr() {
         if ($this->child_stderr) {
             fclose($this->child_stderr);
             $this->child_stderr = null;
         }
     }
 
-    function wait_for_read() {
+    function waitForRead() {
         while($this->child_stdout) {
             $read = array($this->child_stdout, $this->child_stderr);
             $write = array();
@@ -183,7 +183,7 @@ class Process_LineProcess implements Iterator
 
     function __construct($process) {
         $this->process = $process;
-        $this->read_line();
+        $this->readLine();
     }
 
     function rewind() {}
@@ -201,18 +201,18 @@ class Process_LineProcess implements Iterator
     }
 
     function next() {
-        $this->read_line();
+        $this->readLine();
         ++$this->line_count;
     }
 
-    private function read_line() {
-        $this->process->wait_for_read();
+    private function readLine() {
+        $this->process->waitForRead();
         // TODO: I guess this might block if a full line isn't written out.
         //       Perhaps use a buffer?
         $line = fgets($this->process->child_stdout);
         if (is_string($line)) { $line = rtrim($line, "\r\n"); }
         $this->line = $line;
-        if ($line === false) { $this->process->close_with_error_check(); }
+        if ($line === false) { $this->process->closeWithErrorCheck(); }
     }
 }
 

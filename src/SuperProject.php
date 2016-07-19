@@ -13,7 +13,7 @@ class SuperProject extends Repo {
     var $submodule_branch;
 
     static function updateBranches($branches = null, $all = false) {
-        if (!$branches) { $branches = EvilGlobals::branch_repos(); }
+        if (!$branches) { $branches = EvilGlobals::branchRepos(); }
         foreach ($branches as $x) {
             $super = new SuperProject($x);
             $super->checkedUpdateFromEvents($all);
@@ -91,7 +91,7 @@ class SuperProject extends Repo {
             // Note: Alternative would be to use branch API to get more
             //       information.
             //       https://developer.github.com/v3/repos/branches/#get-branch
-            $ref = EvilGlobals::github_cache()->getJson(
+            $ref = EvilGlobals::githubCache()->getJson(
                 "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
             $submodule->updated_hash_value = $ref->object->sha;
         }
@@ -146,7 +146,7 @@ class SuperProject extends Repo {
                     "160000 {$hash}\t{$path}\n";
         }
 
-        $this->command_with_input('update-index --index-info', $text_updates);
+        $this->commandWithInput('update-index --index-info', $text_updates);
         $this->command("commit -m '{$message}'");
 
         return true;

@@ -20,20 +20,20 @@ class RepoBase extends Object {
         return Process::run("git {$command}", $this->path);
     }
 
-    function command_with_status($command) {
+    function commandWithStatus($command) {
         return Process::status("git {$command}", $this->path);
     }
 
-    function command_with_input($command, $input) {
+    function commandWithInput($command, $input) {
         return Process::run("git {$command}", $this->path, null, $input);
     }
 
-    function command_with_output($command) {
+    function commandWithOutput($command) {
         return Process::read("git {$command}", $this->path);
     }
 
-    function read_lines($command) {
-        return Process::read_lines("git {$command}", $this->path);
+    function readLines($command) {
+        return Process::readLines("git {$command}", $this->path);
     }
 
     function fetchWithPrune($remote = 'origin') {
@@ -69,7 +69,7 @@ class RepoBase extends Object {
         // Note: This isn't always an actual repo, just a path containing
         //       a .gitmodules file.
         $repo = new RepoBase($repo_path);
-        foreach($repo->read_lines("config -f .gitmodules -l") as $line)
+        foreach($repo->readLines("config -f .gitmodules -l") as $line)
         {
             $matches = null;
             if (!preg_match(
@@ -97,7 +97,7 @@ class RepoBase extends Object {
         if (!$paths) { return $hashes; }
 
         $matches = null;
-        foreach ($this->read_lines("ls-tree {$ref} ". implode(' ', $paths))
+        foreach ($this->readLines("ls-tree {$ref} ". implode(' ', $paths))
             as $line)
         {
             if (preg_match(

@@ -39,11 +39,11 @@ class TempDirectory {
     }
 
     function __destruct() {
-        if ($this->path) { self::recursive_remove($this->path); }
+        if ($this->path) { self::recursiveRemove($this->path); }
     }
 
     // TODO: Better error handling.
-    static function recursive_remove($path) {
+    static function recursiveRemove($path) {
         if (is_file($path) || is_link($path)) {
             unlink($path);
         }
@@ -51,7 +51,7 @@ class TempDirectory {
             foreach(scandir($path) as $child) {
                 if ($child == '.' || $child == '..') { continue; }
                 $child_path = "{$path}/{$child}";
-                self::recursive_remove($child_path);
+                self::recursiveRemove($child_path);
             }
             rmdir($path);
         }

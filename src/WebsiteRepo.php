@@ -10,7 +10,7 @@
 class WebsiteRepo extends Repo {
     function __construct() {
         parent::__construct('website', 'master',
-            EvilGlobals::data_path('repos').'/website');
+            EvilGlobals::dataPath('repos').'/website');
     }
 
     function updateDocumentationList($mirror, $version) {
