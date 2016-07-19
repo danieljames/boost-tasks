@@ -7,7 +7,6 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-use Guzzle\Http\Url;
 use Nette\Object;
 
 class SuperProject extends Repo {
