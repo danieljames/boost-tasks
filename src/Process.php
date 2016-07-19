@@ -13,14 +13,14 @@ class Process {
     var $child_stdout;
     var $child_stderr;
     var $stderr;
-    var $status = 0;
+    var $status = null;
+    var $timeout_at = null;
 
     public static function run($command, $cwd = null, array $env = null,
             $input = null, $timeout = 60, array $options = array())
     {
-        // Q: Ignoring timeout?
-
-        $process = new self($command, $cwd, $env, $options);
+        $process = new self($command, $cwd, $env, $timeout, $options);
+        // TODO: Timeout here.
         if ($input) { fwrite($process->child_stdin, $input); }
         $process->close_child_stdin();
         $process->join();
@@ -58,7 +58,9 @@ class Process {
         return new Process_LineProcess($process);
     }
 
-    private function __construct($command, $cwd = null, $env = null, $options = array()) {
+    // Note: Will probably completely change this constructor in the future,
+    //       so it really should be private.
+    private function __construct($command, $cwd = null, $env = null, $timeout = 60, $options = array()) {
         $descriptorspec = array(
            0 => array("pipe", "r"),
            1 => array("pipe", "w"),
@@ -75,6 +77,10 @@ class Process {
         $this->child_stdin = $pipes[0];
         $this->child_stdout = $pipes[1];
         $this->child_stderr = $pipes[2];
+
+        if (!is_null($timeout)) {
+            $this->timeout_at = microtime(true) + $timeout;
+        }
     }
 
     function join() {
@@ -89,10 +95,10 @@ class Process {
         if ($this->process) {
             $this->close_child_stdin();
             $this->close_child_stdout();
-            // Q: Should we blocking here?
-            if ($this->child_stderr) {
-                $this->stderr .= stream_get_contents($this->child_stderr);
-            }
+            if ($this->child_stderr) do {
+                $this->wait_for_read();
+                fread($this->child_stderr, 2048);
+            } while (!feof($this->child_stderr));
             $this->close_child_stderr();
 
             $this->status = proc_close($this->process);
@@ -136,7 +142,20 @@ class Process {
             $read = array($this->child_stdout, $this->child_stderr);
             $write = array();
             $except = array();
-            $count = stream_select($read, $write, $except, 60*60);
+            if (is_null($this->timeout_at)) {
+                $count = stream_select($read, $write, $except, null);
+            }
+            else {
+                $remain = $this->timeout_at - microtime(true);
+                if ($remain <= 0) { $remain = 0; }
+                $remain_int = floor($remain);
+                $count = stream_select($read, $write, $except,
+                    $remain_int, floor(($remain - $remain_int) * 1000000));
+                if ($this->timeout_at <= microtime(true)) {
+                    proc_terminate($this->process);
+                    throw new Process_Timeout("Timeout in process");
+                }
+            }
             if (in_array($this->child_stderr, $read)) {
                 $output = fread($this->child_stderr, 2048);
                 $this->stderr .= $output;
@@ -197,4 +216,8 @@ class Process_Exception extends \RuntimeException
         parent::__construct($message);
         $this->stderr = $stderr;
     }
+}
+
+class Process_Timeout extends \RuntimeException
+{
 }
