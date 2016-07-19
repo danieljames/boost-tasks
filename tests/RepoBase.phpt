@@ -36,7 +36,7 @@ class RepoBaseTest extends \TestBase
         $branches = iterator_to_array($mirror_repo->read_lines('branch'));
         Assert::same(array('* master', '  test'),$branches);
 
-        $base_repo->command('branch -q -d test');
+        $base_repo->command('branch -d test');
         $base_repo->command('branch test/subbranch');
 
         $mirror_repo->fetchWithPrune();

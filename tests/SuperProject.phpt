@@ -85,7 +85,7 @@ class SuperProjectTest extends TestBase {
     function testUpdateHashes() {
         $temp_directory = new TempDirectory();
         $repo_paths = Array(
-            'super' => "{$temp_directory->path}/super",
+            'super1' => "{$temp_directory->path}/super1",
             'sub1' => "{$temp_directory->path}/sub1",
             'sub2' => "{$temp_directory->path}/sub2",
         );
@@ -101,10 +101,18 @@ class SuperProjectTest extends TestBase {
             $repo->command("commit -m 'Initial commit'");
         }
 
-        $repo = new RepoBase($repo_paths['super']);
-        $repo->command("submodule add '../sub1' libs/sub1");
-        $repo->command("submodule add --name 'arbitrary_name' '../sub2' libs/sub2");
-        $repo->command("commit -m 'add submodules'");
+        // Old git doesn't let you add a submodule if you don't have an origin remote,
+        // so we clone the super project, so that the clone has an origin.
+        Process::run("git clone -q super1 super", $temp_directory->path);
+        $repo_paths['super'] = "{$temp_directory->path}/super";
+        $super_repo = new RepoBase($repo_paths['super']);
+        $super_repo->command("config user.email testing@example.com");
+        $super_repo->command("config user.name Testing");
+
+        // Add submodules.
+        $super_repo->command("submodule add '../sub1' libs/sub1");
+        $super_repo->command("submodule add '../sub2' libs/sub2");
+        $super_repo->command("commit -m 'add submodules'");
 
         $hashes = array();
         foreach($repo_paths as $name => $module_path) {
