@@ -44,9 +44,22 @@ class EvilGlobals extends Object {
     }
 
     private function __construct($options = array()) {
+        Log::$log = new Logger('boost update log');
+        $formatter = new LineFormatter;
+        $formatter->includeStacktraces();
+
+        // Initial logging settings, for loading configuration.
+        // Q: Should this be done before handling command line options?
+
+        $stdout_handler = new StreamHandler("php://stdout",
+            array_get($options, 'verbose') ? Logger::DEBUG : Logger::WARNING);
+        $stdout_handler->setFormatter($formatter);
+        Log::$log->setHandlers(array($stdout_handler));
+
         if (array_get($options, 'testing')) {
-            Log::$log = new Logger('test logger');
-            Log::$log->setHandlers(array(new TestHandler));
+            // Important: TestHandler has to be the first handler, so it must be pushed last.
+            // TODO: Save it somewhere, so the tests don't need to rely on this.
+            Log::$log->pushHandler(new TestHandler);
 
             // Just skipping configuration completely for now, will certainly
             // have to do something better in the future.
@@ -55,18 +68,6 @@ class EvilGlobals extends Object {
                 $options);
         }
         else {
-            Log::$log = new Logger('boost update log');
-            $formatter = new LineFormatter;
-            $formatter->includeStacktraces();
-
-            // Initial logging settings, for loading configuration.
-            // Q: Should this be done before handling command line options?
-
-            $stdout_handler = new StreamHandler("php://stdout",
-                array_get($options, 'verbose') ? Logger::DEBUG : Logger::WARNING);
-            $stdout_handler->setFormatter($formatter);
-            Log::$log->setHandlers(array($stdout_handler));
-
             // Load settings
 
             if (array_key_exists('config-file', $options)) {
