@@ -6,12 +6,6 @@ use BoostTasks\Db;
 require_once(__DIR__.'/bootstrap.php');
 
 class GitHubCacheTest extends TestBase {
-    function setup() {
-        parent::setup();
-        EvilGlobals::$instance->database = Db::create("sqlite::memory:");
-        Migrations::migrate(EvilGlobals::$instance->database);
-    }
-
     function testGetFile() {
         $cache = new GitHubCache();
         $file_url = 'file://'.__FILE__;

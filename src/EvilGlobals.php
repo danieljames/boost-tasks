@@ -156,8 +156,13 @@ class EvilGlobals extends Object {
     static function database() {
         if (!self::$instance->database) {
             // Set up the database
+            if (self::$instance->settings['testing']) {
+                $db = Db::create("sqlite::memory:");
+            }
+            else {
+                $db = Db::create("sqlite:".self::data_path()."/cache.db");
+            }
 
-            $db = Db::create("sqlite:".self::data_path()."/cache.db");
             Migrations::migrate($db);
             self::$instance->database = $db;
         }
