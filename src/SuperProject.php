@@ -21,9 +21,11 @@ class SuperProject extends Repo {
     }
 
     function __construct($settings) {
-        parent::__construct('boost',
+        parent::__construct(
+            array_get($settings, 'module', 'boost'),
             $this->get($settings, 'superproject-branch'),
-            $this->get($settings, 'path'));
+            $this->get($settings, 'path'),
+            array_get($settings, 'remote_url'));
         $this->submodule_branch = $this->get($settings, 'submodule-branch');
     }
 
@@ -99,7 +101,7 @@ class SuperProject extends Repo {
         return $this->updateHashes($submodules);
     }
 
-    private function getSubmodules() {
+    public function getSubmodules() {
         $submodules = array();
         foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
             $submodule = new SuperProject_Submodule($name, $details);
@@ -175,7 +177,8 @@ class SuperProject_Submodule extends Object {
         $this->path = $values['path'];
 
         $matches = null;
-        if (preg_match('@^(?:\.\.|https?://github\.com/boostorg)/(\w+)\.git$@', $values['url'], $matches)) {
+        // TODO: Set github name based on super project name?
+        if (preg_match('@^(?:\.\.|https?://github\.com/boostorg)/(\w+)(\.git)?$@', $values['url'], $matches)) {
             $this->github_name = "boostorg/{$matches[1]}";
         }
     }
