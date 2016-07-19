@@ -78,6 +78,14 @@ class Process {
         $this->child_stdout = $pipes[1];
         $this->child_stderr = $pipes[2];
 
+        // TODO: Probably should set streams to nonblocking. But
+        //       need to be more careful about how I use them. For
+        //       example, calls to 'fgets' and 'fwrite' elsewhere
+        //       in this file.
+        // stream_set_blocking($this->child_stdin, false);
+        // stream_set_blocking($this->child_stdout, false);
+        // stream_set_blocking($this->child_stderr, false);
+
         if (!is_null($timeout)) {
             $this->timeout_at = microtime(true) + $timeout;
         }
