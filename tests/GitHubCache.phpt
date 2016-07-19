@@ -245,10 +245,6 @@ Link: <www.example.com>;rel=something'
     }
 
     function testDuplicateMessageHeaders() {
-        Log::$log = new \Monolog\Logger('test logger');
-        $handler = new \Monolog\Handler\TestHandler;
-        Log::$log->setHandlers(array($handler));
-
         Assert::same(
             array(
                 'val' => '1',
@@ -259,7 +255,8 @@ Error thing'
             )
         );
 
-        Assert::true($handler->hasRecordThatContains(
+        $handlers = Log::$log->getHandlers();
+        Assert::true($handlers[0]->hasRecordThatContains(
             'Error parsing http header', \Monolog\Logger::ERROR
         ));
     }
@@ -370,10 +367,6 @@ Error thing'
     }
 
     function testParseLinkHeaderDuplicateKey() {
-        Log::$log = new \Monolog\Logger('test logger');
-        $handler = new \Monolog\Handler\TestHandler;
-        Log::$log->setHandlers(array($handler));
-
         Assert::same(
             array(array(
                 'url' => 'http://example.com/',
@@ -382,7 +375,8 @@ Error thing'
             GitHubCache_Connection::parse_link_header('<http://example.com/>;rel=1;rel=2')
         );
 
-        Assert::true($handler->hasRecordThatContains(
+        $handlers = Log::$log->getHandlers();
+        Assert::true($handlers[0]->hasRecordThatContains(
             'Duplicate link key', \Monolog\Logger::ERROR
         ));
     }
