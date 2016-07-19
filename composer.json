@@ -12,8 +12,6 @@
         "corneltek/getoptionkit": "*",
         "nette/neon": "*",
         "nette/utils": "*",
-        "guzzle/guzzle": "*",
-        "symfony/process": "*",
         "monolog/monolog": "*"
     },
     "require-dev": {

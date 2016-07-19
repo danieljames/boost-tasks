@@ -23,20 +23,20 @@ class RepoBaseTest extends \Tester\TestCase
         file_put_contents("{$base_path}/Hello.txt", "Hello!\n");
 
         $base_repo = new RepoBase($base_path);
-        $base_repo->command("init");
+        $base_repo->command("init -q");
         $base_repo->command("config user.email testing@example.com");
         $base_repo->command("config user.name Testing");
         $base_repo->command("add .");
-        $base_repo->command("commit -m 'Initial commit'");
+        $base_repo->command("commit -q -m 'Initial commit'");
         $base_repo->command("branch test");
 
-        Process::run("git clone --mirror base mirror", $temp_directory->path);
+        Process::run("git clone -q --mirror base mirror", $temp_directory->path);
         $mirror_repo = new RepoBase($mirror_path);
 
         $branches = iterator_to_array($mirror_repo->read_lines('branch'));
         Assert::same(array('* master', '  test'),$branches);
 
-        $base_repo->command('branch -d test');
+        $base_repo->command('branch -q -d test');
         $base_repo->command('branch test/subbranch');
 
         $mirror_repo->fetchWithPrune();

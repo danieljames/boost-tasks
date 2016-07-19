@@ -61,8 +61,7 @@ class Repo extends RepoBase {
 
     function commitAll($message) {
         $this->command('add -u .');
-        $process = $this->process('diff-index HEAD --quiet');
-        $status = $process->run();
+        $status = $this->command_with_status('diff-index HEAD --quiet');
 
         if ($status == 0) {
             Log::info("No changes to {$this->getModuleBranchName()}.");
@@ -101,8 +100,7 @@ class Repo extends RepoBase {
             // TODO: Maybe I should parse the output from git push to check exactly
             // what succeeded/failed.
 
-            $process = $this->process('push -q --porcelain');
-            $status = $process->run();
+            $status = $this->command_with_status('push -q --porcelain');
 
             if ($status > 1) {
                 throw new \RuntimeException("Push failed: {$process->getErrorOutput()}");

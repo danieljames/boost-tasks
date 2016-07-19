@@ -16,16 +16,20 @@ class RepoBase extends Object {
         $this->path = $path;
     }
 
-    function process($command) {
-        return new \Symfony\Component\Process\Process("git {$command}", $this->path);
-    }
-
     function command($command) {
         return Process::run("git {$command}", $this->path);
     }
 
+    function command_with_status($command) {
+        return Process::status("git {$command}", $this->path);
+    }
+
     function command_with_input($command, $input) {
         return Process::run("git {$command}", $this->path, null, $input);
+    }
+
+    function command_with_output($command) {
+        return Process::read("git {$command}", $this->path);
     }
 
     function read_lines($command) {
@@ -36,7 +40,7 @@ class RepoBase extends Object {
         try {
             $this->command("fetch -p --quiet {$remote}");
         }
-        catch (\RuntimeException $e) {
+        catch (Process_Exception $e) {
             // Workaround for a bug in old versions of git.
             //
             // For details see:
@@ -45,7 +49,7 @@ class RepoBase extends Object {
             // https://github.com/git/git/commit/10a6cc8890ec1e5459c05ddeb28a671acdc37d60
             if (preg_match(
                 '@some local refs could not be updated.*git remote prune@is',
-                $e->getMessage()))
+                $e->stderr))
             {
                 Log::warning("git fetch failed, trying to fix.");
                 // TODO: Log the output from this?
