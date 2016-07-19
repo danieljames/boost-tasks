@@ -145,21 +145,22 @@ class LocalMirror extends Object {
     // a URL library.
     //
     // A close enough emulation of what git-submodule does.
-    private static function resolveGitUrl($url, $base) {
-        if (strpos(':', $url) !== FALSE) {
-            throw \RuntimeException("Remote URLs aren't supported.");
+    static function resolveGitUrl($url, $base) {
+        if (strpos($url, ':') !== FALSE) {
+            throw new \RuntimeException("Remote URLs aren't supported.");
         } else if ($url[0] == '/') {
             // What git-submodule treats as an absolute path
             return '/'.trim($url, '/');
         } else {
-            $result = $base;
+            $result = rtrim($base, '/');
 
             while (true) {
                 if (substr($url, 0, 3) == '../') {
-                    if ($result == '/') {
-                        throw \RuntimeException("Unable to resolve relative URL.");
+                    if (!$result) {
+                        throw new \RuntimeException("Unable to resolve relative URL.");
                     }
                     $result = dirname($result);
+                    if ($result == '/' || $result == '.') { $result = ''; }
                     $url = substr($url, 3);
                 } else if (substr($url, 0, 2) == './') {
                     $url = substr($url, 2);
