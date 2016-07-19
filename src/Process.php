@@ -224,7 +224,8 @@ class Process_FailedExitCode extends Process_Exception
     var $stderr = '';
 
     function __construct($message, $stderr) {
-        parent::__construct($message);
+        if ($stderr) { $message .= "\n\n{$stderr}"; }
         $this->stderr = $stderr;
+        parent::__construct($message);
     }
 }
