@@ -76,41 +76,31 @@ class LocalMirror extends Object {
         $repos = $db->find(self::$mirror_table, 'dirty = ?', Array(true));
 
         foreach ($repos as $repo_entry) {
-            if (is_dir($this->getPath($repo_entry))) {
-                Log::info("Fetch {$repo_entry->path}");
-                $this->fetchMirror($repo_entry);
-            }
-            else {
-                Log::info("Clone {$repo_entry->path}");
-                $this->createMirror($repo_entry);
-            }
+            $this->updateMirror($repo_entry->path, $repo_entry->url);
+            $repo_entry->dirty = false;
+            $repo_entry->store();
         }
     }
 
-    function fetchMirror($repo_entry) {
-        $repo = new RepoBase($this->getPath($repo_entry));
-        $repo->fetchWithPrune();
-        $repo_entry->dirty = false;
-        $repo_entry->store();
-    }
-
-    function createMirror($repo_entry) {
-        Process::run(
-            "git clone --mirror --quiet {$repo_entry->url} {$this->getPath($repo_entry)}",
-            $this->getPath($repo_entry), null, null, 240); // 240 = timeout
-
-        $repo_entry->dirty = false;
-        $repo_entry->store();
+    function updateMirror($path, $url) {
+        $full_path = $this->mirror_root.$path;
+        if (is_dir($full_path)) {
+            Log::info("Fetch {$path}");
+            $repo = new RepoBase($full_path);
+            $repo->fetchWithPrune();
+        }
+        else {
+            Log::info("Clone {$path}");
+            Process::run(
+                "git clone --mirror --quiet {$url} {$full_path}",
+                $this->mirror_root, null, null, 240); // 240 = timeout
+        }
     }
 
     function outputRepos() {
         foreach(EvilGlobals::database()->findAll(self::$mirror_table) as $repo) {
             echo "{$repo->url} ", $repo->dirty ? '(needs update)' : '' ,"\n";
         }
-    }
-
-    private function getPath($repo_entry) {
-        return $this->mirror_root.$repo_entry->path;
     }
 
     function exportRecursive($branch, $dst_dir) {
