@@ -56,21 +56,26 @@ class SuperProject extends Repo {
     private function attemptUpdateFromAll($queue) {
         $self = $this; // Has to work on php 5.3
         return $this->attemptAndPush(function() use($self, $queue) {
-            return $self->updateFromAll($queue);
+            $submodules = $self->getSubmodules();
+            $self->updateAllSubmoduleHashes($submodules);
+            // Include any events that have arrived since starting this update.
+            $queue->downloadMoreEvents();
+            $self->updateSubmoduleHashesFromEventQueue($submodules, $queue);
+            return $self->updateHashes($submodules);
         });
     }
 
     private function attemptUpdateFromEventQueue($queue) {
         $self = $this; // Has to work on php 5.3
         $result = $this->attemptAndPush(function() use($self, $queue) {
-            return $self->updateFromEventQueue($queue);
+            $submodules = $self->getSubmodules();
+            $self->updateSubmoduleHashesFromEventQueue($submodules, $queue);
+            return $self->updateHashes($submodules);
         });
     }
 
     // Note: Public so that it can be called in a closure in PHP 5.3
-    public function updateFromAll($queue) {
-        $submodules = $this->getSubmodules();
-
+    public function updateAllSubmoduleHashes($submodules) {
         foreach($submodules as $submodule) {
             // Note: Alternative would be to use branch API to get more
             //       information.
@@ -79,16 +84,10 @@ class SuperProject extends Repo {
                 "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
             $submodule->updated_hash_value = $ref->object->sha;
         }
-
-        // Include any events that have arrived since starting this update.
-        $queue->downloadMoreEvents();
-        return $this->updateFromEventQueue($queue, $submodules);
     }
 
     // Note: Public so that it can be called in a closure in PHP 5.3
-    public function updateFromEventQueue($queue, $submodules = null) {
-        if (!$submodules) { $submodules = $this->getSubmodules(); }
-
+    public function updateSubmoduleHashesFromEventQueue($queue, $submodules = null) {
         foreach ($queue->getEvents() as $event) {
             if ($event->branch == $this->submodule_branch) {
                 if (array_key_exists($event->repo, $submodules)) {
@@ -97,8 +96,6 @@ class SuperProject extends Repo {
                 }
             }
         }
-
-        return $this->updateHashes($submodules);
     }
 
     public function getSubmodules() {
