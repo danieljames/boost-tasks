@@ -74,6 +74,17 @@ class SuperProject extends Repo {
         });
     }
 
+    public function getSubmodules() {
+        $submodules = array();
+        foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
+            $submodule = new SuperProject_Submodule($name, $details);
+            if ($submodule->github_name) {
+                $submodules[$submodule->github_name] = $submodule;
+            }
+        }
+        return $submodules;
+    }
+
     // Note: Public so that it can be called in a closure in PHP 5.3
     public function updateAllSubmoduleHashes($submodules) {
         foreach($submodules as $submodule) {
@@ -96,17 +107,6 @@ class SuperProject extends Repo {
                 }
             }
         }
-    }
-
-    public function getSubmodules() {
-        $submodules = array();
-        foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
-            $submodule = new SuperProject_Submodule($name, $details);
-            if ($submodule->github_name) {
-                $submodules[$submodule->github_name] = $submodule;
-            }
-        }
-        return $submodules;
     }
 
     /**
