@@ -23,7 +23,7 @@ class ProcessTest extends Tester\TestCase {
     function testEmptyStdout() {
         Assert::same("", Process::read("true"));
         Assert::same(array(), iterator_to_array(Process::read_lines("true")));
-        Assert::same(array(), iterator_to_array(Process::read_lines("echo -n")));
+        Assert::same(array(), iterator_to_array(Process::read_lines("printf ''")));
         Assert::same(array(''), iterator_to_array(Process::read_lines("echo")));
     }
 
@@ -56,26 +56,26 @@ class ProcessTest extends Tester\TestCase {
     }
 
     function testNoTrailingNewline() {
-        Assert::same("Hello", Process::read("echo -n Hello"));
-        Assert::same("One\nTwo", Process::read("echo One; echo -n Two"));
+        Assert::same("Hello", Process::read("printf Hello"));
+        Assert::same("One\nTwo", Process::read("echo One; printf Two"));
         Assert::same("One\nTwo", Process::read(
-            "echo One; echo -n error 1>&2; echo -n Two"));
+            "echo One; printf error 1>&2; printf Two"));
 
         Assert::same(array("Hello"),
-            iterator_to_array(Process::read_lines("echo -n Hello")));
+            iterator_to_array(Process::read_lines("printf Hello")));
         Assert::same(array("One", "Two"),
-            iterator_to_array(Process::read_lines("echo One;echo -n Two")));
+            iterator_to_array(Process::read_lines("echo One;printf Two")));
         Assert::same(array("One", "Two"),
             iterator_to_array(Process::read_lines(
-                "echo One;echo -n error 1>&2;echo -n Two")));
+                "echo One;printf error 1>&2;printf Two")));
 
         $e = Assert::exception(function() {
-            Process::run("echo -n error 1>&2; false");
+            Process::run("printf error 1>&2; false");
         }, 'Process_Exception');
         Assert::same("error", $e->stderr);
 
         $e = Assert::exception(function() {
-            Process::run("echo -n One; echo -n error 1>&2; echo Two; false");
+            Process::run("printf One; printf error 1>&2; echo Two; false");
         }, 'Process_Exception');
         Assert::same("error", $e->stderr);
     }
