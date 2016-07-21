@@ -73,7 +73,7 @@ class RepoBase extends Object {
         {
             $matches = null;
             if (!preg_match(
-                '@submodule\.(?<submodule>[\w/]+)\.(?<name>\w+)=(?<value>.*)@',
+                '@^submodule\.(?<submodule>[\w/]+)\.(?<name>\w+)=(?<value>.*)@',
                 $line, $matches))
             {
                 throw new \LogicException(
@@ -101,7 +101,7 @@ class RepoBase extends Object {
             as $line)
         {
             if (preg_match(
-                    "@160000 commit (?<hash>[a-zA-Z0-9]{40})\t(?<path>.*)@",
+                    "@^160000 commit (?<hash>[a-zA-Z0-9]{40})\t(?<path>.*)@",
                     $line, $matches))
             {
                 if (!in_array($matches['path'], $paths)) {
