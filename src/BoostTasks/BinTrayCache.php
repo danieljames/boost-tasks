@@ -14,19 +14,21 @@ class BinTrayCache {
     }
 
     function fetchDetails($branch) {
-        // Not using 7zip files because 7z doesn't seem to be installed on the server.
-        $extension_priorities = array_flip(array('tar.bz2', 'tar.gz', 'zip'));
-        $low_priority = 100;
-
-        // Download the file list from bintray.
         $files = file_get_contents(
             "https://api.bintray.com/packages/boostorg/{$branch}/snapshot/files");
         if (!$files) {
             throw new RuntimeException("Error downloading file details from bintray.");
         }
+        return self::getFileDetails($files);
+    }
+
+    static function getFileDetails($files) {
+        // Not using 7zip files because 7z doesn't seem to be installed on the server.
+        $extension_priorities = array_flip(array('tar.bz2', 'tar.gz', 'zip'));
+        $low_priority = 100;
 
         $files = json_decode($files);
-        if (!$files) {
+        if (!is_array($files)) {
             throw new RuntimeException("Error parsing latest details.");
         }
 
