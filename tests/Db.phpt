@@ -304,6 +304,23 @@ class DbTest extends TestBase
 
         Assert::equal(array(array('value' => '10')), Db::getAll('SELECT value FROM test WHERE id=?', array('1')));
         Assert::equal(array(), Db::getAll('SELECT value FROM test WHERE id=?', array('2')));
+
+        // Error checking
+
+        Assert::exception(function() {
+            Db::getCell('SELECT value FROM non_existant');
+        }, 'RuntimeException');
+        Assert::exception(function() {
+            Db::getRow('SELECT * FROM non_existant');
+        }, 'RuntimeException');
+        Assert::exception(function() {
+            Db::getAll('SELECT * FROM non_existant');
+        }, 'RuntimeException');
+
+        Db::$instance->pdo_connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+        Assert::false(Db::getCell('SELECT value FROM non_existant'));
+        Assert::false(Db::getRow('SELECT * FROM non_existant'));
+        Assert::false(Db::getAll('SELECT * FROM non_existant'));
     }
 
     function testFind() {
@@ -335,6 +352,19 @@ class DbTest extends TestBase
         Assert::equal('10', $entity->value);
 
         Assert::null(Db::findOne('test', 'id=?', array('2')));
+
+        // Error checking
+
+        Assert::exception(function() {
+            Db::find('non_existant');
+        }, 'RuntimeException');
+        Assert::exception(function() {
+            Db::findOne('non_existant');
+        }, 'RuntimeException');
+
+        Db::$instance->pdo_connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+        Assert::false(Db::find('non_existant'));
+        Assert::false(Db::findOne('non_existant'));
     }
 }
 
