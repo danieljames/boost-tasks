@@ -12,7 +12,7 @@ class EvilGlobals extends Object {
     static $settings_types = array(
         'data' => array('type' => 'path', 'default' => '../update-data'),
         'username' => array('type' => 'string'),
-        'password' => array('type' => 'string'),
+        'password' => array('type' => 'password'),
         'github-webhook-secret' => array('type' => 'string'),
         'website-data' => array('type' => 'path'),
         'website-archives' => array('type' => 'path'),
@@ -176,7 +176,7 @@ class EvilGlobals extends Object {
     }
 
     static function safeSettings() {
-        $settings = EvilGlobals::$instance->settings;
+        $settings = EvilGlobals::$settings_reader->outputSettings(EvilGlobals::$instance->settings);
         if (!empty($settings['password'])) { $settings['password'] = '********'; }
         return $settings;
     }
@@ -248,6 +248,7 @@ class EvilGlobals_SettingsReader {
     function checkSetting($key, $value, $setting_details, $path) {
         switch($setting_details['type']) {
         case 'string':
+        case 'password':
             if (is_array($value) || is_object($value) ) {
                 throw new RuntimeException("Invalid string for setting: {$key}");
             }
@@ -285,6 +286,38 @@ class EvilGlobals_SettingsReader {
         case 'private':
             // Should really make it look like 'unknown setting' warning.
             throw new RuntimeException("Private setting: {$key}");
+        default:
+            throw new LogicException("Invalid setting type: {$setting_details['type']}");
+        }
+    }
+
+    // Transform the settings for public output.
+    function outputSettings($settings) {
+        $safe_settings = array();
+        foreach ($settings as $key => $value) {
+            $value = $this->outputSettingsValue($value, $this->settings_types[$key]);
+            if (!is_null($value)) {
+                $safe_settings[$key] = $value;
+            }
+        }
+        return $safe_settings;
+    }
+
+    function outputSettingsValue($value, $setting_details) {
+        switch($setting_details['type']) {
+        case 'private':
+            return null;
+        case 'password':
+            return '********';
+        case 'array':
+        case 'map':
+            $result = array();
+            foreach($value as $key => $x) {
+                $result[$key] = $this->outputSettingsValue($x, $setting_details['sub']);
+            }
+            return $result;
+        default:
+            return $value;
         }
     }
 

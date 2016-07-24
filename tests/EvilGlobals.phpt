@@ -87,7 +87,7 @@ class EvilGlobalsTest extends TestBase {
         $safe_settings = EvilGlobals::safeSettings();
         Assert::same('name', $safe_settings['username']);
         Assert::same('********', $safe_settings['password']);
-        Assert::false(strpos(print_r($safe_settings, true), 'private'));
+        Assert::false(strpos(print_r($safe_settings, true), 'testing'));
     }
 
     function testGithubCache() {
@@ -111,7 +111,34 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
         $temp_directory = new TempDirectory();
         Assert::exception(function() use($temp_directory, $reader) {
             $reader->readConfig("{$temp_directory->path}/config.neon");
-        }, 'RuntimeException');
+        }, 'RuntimeException', '#Unable to read#');
+    }
+
+    function testInvalidSettings() {
+        // Currently only detected when trying to read in a configuration option.
+        $read = new EvilGlobals_SettingsReader(array(
+            'username' => array('type' => 'blah blah blah'),
+        ), __DIR__);
+
+        Assert::exception(function() use($read) {
+            $read->readConfig(__DIR__.'/test-config1.neon');
+        }, 'LogicException', '#Invalid setting type#');
+    }
+
+    function testIgnoreSettings() {
+        // Currently only detected when trying to read in a configuration option.
+        $read = new EvilGlobals_SettingsReader(array(
+            'username' => array('type' => 'string'),
+        ), __DIR__);
+
+        $settings = $read->readConfig(__DIR__.'/test-config1.neon');
+        Assert::equal(array('username'), array_keys($settings));
+
+        $handlers = Log::$log->getHandlers();
+        Assert::true($handlers[0]->hasRecordThatContains(
+            'Unknown setting: password', \Monolog\Logger::WARNING));
+        Assert::true($handlers[0]->hasRecordThatContains(
+            'Unknown setting: data', \Monolog\Logger::WARNING));
     }
 
     function testSimpleSettings() {
@@ -225,6 +252,17 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
         Assert::exception(function() use($reader, $config_path2) {
             $reader->readConfig($config_path2);
         }, 'RuntimeException', '#private#');
+    }
+
+    function testArrayPasswordSetting() {
+        $reader = new EvilGlobals_SettingsReader(array(
+            'password' => array('type' => 'array', 'sub' => array('type' => 'password')),
+        ), __DIR__);
+        $settings = $reader->readConfig(__DIR__.'/test-config1.neon');
+        Assert::equal(array('password' => array('private')), $settings);
+        $safe = $reader->outputSettings($settings);
+        Assert::equal(array('password' => array('********')), $safe);
+
     }
 }
 
