@@ -31,9 +31,12 @@ class LocalMirror extends Object {
     }
 
     private function refreshFromQueue() {
+        $start_id = $this->queue->lastId();
+        $current_id = $this->queue->currentId();
+
         // Get set of updated repos.
         $repos = Array();
-        foreach ($this->queue->getEvents() as $event) {
+        foreach ($this->queue->getEvents($start_id, $current_id) as $event) {
             $repos[$event->repo] = true;
         }
 
@@ -43,16 +46,18 @@ class LocalMirror extends Object {
             Log::info("Updated repo: {$repo}");
         }
 
-        $this->queue->catchUp();
+        $this->queue->catchUp($current_id);
     }
 
     function refreshAll($dirty = true) {
+        $current_id = $this->queue->currentId();
+
         foreach (EvilGlobals::githubCache()->iterate('/orgs/boostorg/repos') as $repo) {
             $url = $repo->clone_url;
             $this->update($repo->clone_url, $dirty);
         }
 
-        $this->queue->catchUp();
+        $this->queue->catchUp($current_id);
     }
 
     function update($url, $dirty) {

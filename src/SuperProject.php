@@ -40,37 +40,55 @@ class SuperProject extends Repo {
         $queue = new GitHubEventQueue($this->submodule_branch);
         if ($all) {
             Log::info('Refresh all submodules.');
-            $result = $this->attemptUpdateFromAll($queue);
+            $queue_processed = $this->attemptUpdateFromAll($queue);
         } else if (!$queue->continuedFromLastRun()) {
             Log::info('Full refresh of submodules because of gap in event queue.');
-            $result = $this->attemptUpdateFromAll($queue);
+            $queue_processed = $this->attemptUpdateFromAll($queue);
         } else {
             Log::info('Refresh submodules from event queue.');
-            $result = $this->attemptUpdateFromEventQueue($queue);
+            $queue_processed = $this->attemptUpdateFromEventQueue($queue);
         };
 
-        if ($result) { $queue->catchUp(); }
+        if ($queue_processed) { $queue->catchUp($queue_processed); }
         return true;
     }
 
     private function attemptUpdateFromAll($queue) {
         $self = $this; // Has to work on php 5.3
         return $this->attemptAndPush(function() use($self, $queue) {
+            $start_id = $queue->queue->last_github_id;
+            $before_update_id = $queue->status->last_id;
             $submodules = $self->getSubmodules();
             $self->updateAllSubmoduleHashes($submodules);
             // Include any events that have arrived since starting this update.
             $queue->downloadMoreEvents();
-            $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
-            return $self->updateHashes($submodules);
+            $after_update_id = $queue->status->last_id;
+            $self->updateSubmoduleHashesFromEvents(
+                $queue->getEvents($before_update_id, $after_update_id), $submodules);
+            if ($self->updateHashes($submodules)) {
+                return $after_update_id;
+            }
+            else {
+                return false;
+            }
         });
     }
 
     private function attemptUpdateFromEventQueue($queue) {
         $self = $this; // Has to work on php 5.3
         $result = $this->attemptAndPush(function() use($self, $queue) {
+            $start_id = $queue->queue->last_github_id;
+            $current_id = $queue->status->last_id;
             $submodules = $self->getSubmodules();
-            $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
+            $self->updateSubmoduleHashesFromEvents(
+                $queue->getEvents($start_id, $current_id), $submodules);
             return $self->updateHashes($submodules);
+            if ($self->updateHashes($submodules)) {
+                return $current_id;
+            }
+            else {
+                return false;
+            }
         });
     }
 
@@ -98,8 +116,8 @@ class SuperProject extends Repo {
     }
 
     // Note: Public so that it can be called in a closure in PHP 5.3
-    public function updateSubmoduleHashesFromEventQueue($queue, $submodules = null) {
-        foreach ($queue->getEvents() as $event) {
+    public function updateSubmoduleHashesFromEvents($events, $submodules = null) {
+        foreach ($events as $event) {
             if ($event->branch == $this->submodule_branch) {
                 if (array_key_exists($event->repo, $submodules)) {
                     $submodules[$event->repo]->updated_hash_value

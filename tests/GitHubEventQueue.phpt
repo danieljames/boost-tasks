@@ -31,31 +31,31 @@ class GitHubEventQueueTest extends TestBase
         GitHubEventQueue::downloadEventsImpl($events);
 
         Assert::false($queue1->continuedFromLastRun());
-        $events1 = $queue1->getEvents();
+        $events1 = $queue1->getEvents($queue1->lastId(), $queue1->currentId());
         Assert::same(1, count($events1));
         Assert::same('1', $events1[0]->github_id);
         Assert::same('master', $events1[0]->branch);
         Assert::same('example/foo', $events1[0]->repo);
-        $queue1->catchUp();
+        $queue1->catchUp($queue1->currentId());
 
         $queue1a = new GitHubEventQueue('test1');
         Assert::true($queue1a->continuedFromLastRun());
-        $events2 = $queue1a->getEvents();
-        Assert::same(1, count($events2));
-        Assert::same('4', $events2[0]->github_id);
-        Assert::same('develop', $events2[0]->branch);
-        Assert::same('example/bar', $events2[0]->repo);
+        $events1a = $queue1a->getEvents($queue1a->lastId(), $queue1a->currentId());
+        Assert::same(1, count($events1a));
+        Assert::same('4', $events1a[0]->github_id);
+        Assert::same('develop', $events1a[0]->branch);
+        Assert::same('example/bar', $events1a[0]->repo);
 
         $queue2 = new GitHubEventQueue('test2');
         Assert::false($queue2->continuedFromLastRun());
-        $events2 = $queue2->getEvents();
+        $events2 = $queue2->getEvents($queue2->lastId(), $queue2->currentId());
         Assert::same(2, count($events2));
         Assert::same('1', $events2[0]->github_id);
         Assert::same('4', $events2[1]->github_id);
 
         $queue3 = new GitHubEventQueue('test3', 'CreateEvent');
         Assert::false($queue3->continuedFromLastRun());
-        $events3 = $queue3->getEvents();
+        $events3 = $queue3->getEvents($queue3->lastId(), $queue3->currentId());
         Assert::same(1, count($events3));
         Assert::same('3', $events3[0]->github_id);
     }

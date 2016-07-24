@@ -41,30 +41,22 @@ class GitHubEventQueue extends Object {
         $this->status = self::loadStatusFromDb($db);
     }
 
-    function getEvents() {
+    function lastId() { return $this->queue->last_github_id; }
+    function currentId() { return $this->status->last_id; }
+
+    function getEvents($from, $to) {
         return EvilGlobals::database()->find(self::$event_table,
                 'github_id > ? AND github_id <= ? AND type = ? ORDER BY github_id',
-                array(
-                    $this->queue->last_github_id,
-                    $this->status->last_id,
-                    $this->type));
+                array($from, $to, $this->type));
     }
 
-    // Downloads any events since this was created, and updates getEvents
-    // to return them.
     function downloadMoreEvents() {
-        $this->queue->last_github_id = max(array(
-            $this->queue->last_github_id,
-            $this->status->last_id,
-            $this->status->start_id));
         $this->status = self::downloadEvents();
     }
 
-    function catchUp() {
-        $this->queue->last_github_id = max(array(
-            $this->queue->last_github_id,
-            $this->status->last_id,
-            $this->status->start_id));
+    function catchUp($new_id) {
+        assert($new_id >= $this->queue->last_github_id);
+        $this->queue->last_github_id = $new_id;
         $this->queue->store();
     }
 
