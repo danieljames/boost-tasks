@@ -143,8 +143,8 @@ class Db_Impl extends Object {
     public function getCell($sql, $query_args = array()) {
         $statement = $this->pdo_connection->prepare($sql);
         if ($statement && $statement->execute($query_args)) {
-            // TODO: What if query is empty????
-            return $statement->fetchColumn(0);
+            $row = $statement->fetch(PDO::FETCH_NUM);
+            return $row !== false ? $row[0] : null;
         }
         else {
             return false;
@@ -154,8 +154,7 @@ class Db_Impl extends Object {
     public function getRow($sql, $query_args = array()) {
         $statement = $this->pdo_connection->prepare($sql);
         if ($statement && $statement->execute($query_args)) {
-            // TODO: What if query is empty????
-            return $statement->fetch(PDO::FETCH_ASSOC);
+            return $statement->fetch(PDO::FETCH_ASSOC) ?: null;
         }
         else {
             return false;

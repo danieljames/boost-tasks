@@ -288,6 +288,28 @@ class DbTest extends TestBase
         Db::setup("sqlite::memory:");
         Assert::exception(function() { Db::dispense('test'); }, 'RuntimeException');
     }
+
+    function testGet() {
+        Db::setup("sqlite::memory:");
+        Assert::true(Db::exec("
+            CREATE TABLE test(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                value INTEGER
+            );"));
+        Assert::truthy($x = Db::dispense('test'));
+        $x->value = 10;
+        Assert::true($x->store());
+
+        Assert::equal('10', Db::getCell('SELECT value FROM test'));
+        Assert::equal('10', Db::getCell('SELECT value FROM test WHERE id=?', array('1')));
+        Assert::null(Db::getCell('SELECT value FROM test WHERE id=?', array('2')));
+
+        Assert::equal(array('value' => '10'), Db::getRow('SELECT value FROM test WHERE id=?', array('1')));
+        Assert::null(Db::getRow('SELECT value FROM test WHERE id=?', array('2')));
+
+        Assert::equal(array(array('value' => '10')), Db::getAll('SELECT value FROM test WHERE id=?', array('1')));
+        Assert::equal(array(), Db::getAll('SELECT value FROM test WHERE id=?', array('2')));
+    }
 }
 
 $test = new DbTest();
