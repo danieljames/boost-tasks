@@ -237,6 +237,17 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
             $reader->readConfig($config_path2);
         }, 'RuntimeException', '#private#');
     }
+
+    function testArrayPasswordSetting() {
+        $reader = new EvilGlobals_SettingsReader(array(
+            'password' => array('type' => 'array', 'sub' => array('type' => 'password')),
+        ), __DIR__);
+        $settings = $reader->readConfig(__DIR__.'/test-config1.neon');
+        Assert::equal(array('password' => array('private')), $settings);
+        $safe = $reader->outputSettings($settings);
+        Assert::equal(array('password' => array('********')), $safe);
+
+    }
 }
 
 

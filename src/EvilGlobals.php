@@ -295,20 +295,30 @@ class EvilGlobals_SettingsReader {
     function outputSettings($settings) {
         $safe_settings = array();
         foreach ($settings as $key => $value) {
-            if (array_key_exists($key, $this->settings_types)) {
-                switch($this->settings_types[$key]['type']) {
-                case 'private':
-                    break;
-                case 'password':
-                    $safe_settings[$key] = '********';
-                    break;
-                default:
-                    // TODO: Recurse?
-                    $safe_settings[$key] = $value;
-                }
+            $value = $this->outputSettingsValue($value, $this->settings_types[$key]);
+            if (!is_null($value)) {
+                $safe_settings[$key] = $value;
             }
         }
         return $safe_settings;
+    }
+
+    function outputSettingsValue($value, $setting_details) {
+        switch($setting_details['type']) {
+        case 'private':
+            return null;
+        case 'password':
+            return '********';
+        case 'array':
+        case 'map':
+            $result = array();
+            foreach($value as $key => $x) {
+                $result[$key] = $this->outputSettingsValue($x, $setting_details['sub']);
+            }
+            return $result;
+        default:
+            return $value;
+        }
     }
 
     function resolvePath($path, $base) {
