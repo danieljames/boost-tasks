@@ -13,7 +13,7 @@ class EvilGlobals extends Object {
         'data' => array('type' => 'path', 'default' => '../update-data'),
         'username' => array('type' => 'string'),
         'password' => array('type' => 'password'),
-        'github-webhook-secret' => array('type' => 'string'),
+        'github-webhook-secret' => array('type' => 'password'),
         'website-data' => array('type' => 'path'),
         'website-archives' => array('type' => 'path'),
         'push-to-repo' => array('type' => 'boolean', 'default' => false),
@@ -177,7 +177,6 @@ class EvilGlobals extends Object {
 
     static function safeSettings() {
         $settings = EvilGlobals::$settings_reader->outputSettings(EvilGlobals::$instance->settings);
-        if (!empty($settings['password'])) { $settings['password'] = '********'; }
         return $settings;
     }
 }
@@ -304,6 +303,8 @@ class EvilGlobals_SettingsReader {
     }
 
     function outputSettingsValue($value, $setting_details) {
+        if (is_null($value)) { return null; }
+
         switch($setting_details['type']) {
         case 'private':
             return null;

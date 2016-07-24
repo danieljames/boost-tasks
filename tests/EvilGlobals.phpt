@@ -87,7 +87,15 @@ class EvilGlobalsTest extends TestBase {
         $safe_settings = EvilGlobals::safeSettings();
         Assert::same('name', $safe_settings['username']);
         Assert::same('********', $safe_settings['password']);
+        Assert::false(array_key_exists('testing', $safe_settings));
         Assert::false(strpos(print_r($safe_settings, true), 'testing'));
+    }
+
+    function testMissingInSafeSettings() {
+        $safe_settings = EvilGlobals::safeSettings();
+        Assert::false(array_key_exists('username', $safe_settings));
+        Assert::false(array_key_exists('password', $safe_settings));
+        Assert::false(array_key_exists('testing', $safe_settings));
     }
 
     function testGithubCache() {
@@ -191,6 +199,22 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
         }, 'RuntimeException');
     }
 
+    function testArraySetting() {
+        $reader = new EvilGlobals_SettingsReader(array(
+            'array1' => array('type' => 'array', 'sub' => array('type' => 'string')),
+            'array2' => array('type' => 'array', 'sub' => array('type' => 'string'), 'default' => array()),
+            'array3' => array('type' => 'array', 'sub' => array('type' => 'string'), 'default' => array('1')),
+        ), __DIR__);
+
+        $settings1 = $reader->initialSettings();
+        Assert::null($settings1['array1']);
+        Assert::equal(array(), $settings1['array2']);
+        Assert::equal(array('1'), $settings1['array3']);
+
+        $safe = $reader->outputSettings($settings1);
+        Assert::equal(array('array2','array3'), array_keys($safe));
+    }
+
     function testPathSetting() {
         $reader = new EvilGlobals_SettingsReader(array(
             'path1' => array('type' => 'path', 'default' => '.'),
@@ -262,7 +286,6 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
         Assert::equal(array('password' => array('private')), $settings);
         $safe = $reader->outputSettings($settings);
         Assert::equal(array('password' => array('********')), $safe);
-
     }
 }
 
