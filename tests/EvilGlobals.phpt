@@ -87,7 +87,15 @@ class EvilGlobalsTest extends TestBase {
         $safe_settings = EvilGlobals::safeSettings();
         Assert::same('name', $safe_settings['username']);
         Assert::same('********', $safe_settings['password']);
+        Assert::false(array_key_exists('testing', $safe_settings));
         Assert::false(strpos(print_r($safe_settings, true), 'testing'));
+    }
+
+    function testMissingInSafeSettings() {
+        $safe_settings = EvilGlobals::safeSettings();
+        Assert::false(array_key_exists('username', $safe_settings));
+        Assert::false(array_key_exists('password', $safe_settings));
+        Assert::false(array_key_exists('testing', $safe_settings));
     }
 
     function testGithubCache() {

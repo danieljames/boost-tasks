@@ -307,7 +307,7 @@ class EvilGlobals_SettingsReader {
         case 'private':
             return null;
         case 'password':
-            return '********';
+            return is_null($value) ? null : '********';
         case 'array':
         case 'map':
             $result = array();
