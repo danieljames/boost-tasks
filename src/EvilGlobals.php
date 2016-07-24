@@ -13,7 +13,7 @@ class EvilGlobals extends Object {
         'data' => array('type' => 'path', 'default' => '../update-data'),
         'username' => array('type' => 'string'),
         'password' => array('type' => 'password'),
-        'github-webhook-secret' => array('type' => 'string'),
+        'github-webhook-secret' => array('type' => 'password'),
         'website-data' => array('type' => 'path'),
         'website-archives' => array('type' => 'path'),
         'push-to-repo' => array('type' => 'boolean', 'default' => false),
