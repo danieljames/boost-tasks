@@ -85,7 +85,7 @@ class DbTest extends TestBase
     }
 
     function testTransaction() {
-        Db::setup("sqlite::memory:");
+        Assert::true(Db::setup("sqlite::memory:"));
 
         Db::exec("
             CREATE TABLE test(
@@ -148,11 +148,11 @@ class DbTest extends TestBase
         Assert::same(array('__meta', 'id', 'value'), $properties);
 
         Assert::same('something', $x1->value);
-        $x1->store();
+        Assert::true($x1->store());
         Assert::same('1', $x1->id);
 
         $x1->value = 'else';
-        $x1->store();
+        Assert::true(Db::store($x1));
         Assert::same('1', $x1->id);
 
         $x1_ = Db::load('test', 1);
@@ -205,7 +205,7 @@ class DbTest extends TestBase
         $value2 = Db::getCell('select value from test where id = ?', array(2));
         Assert::same('two', $value2);
 
-        $rows3[0]->trash();
+        Assert::true(Db::trash($rows3[0]));
         $row2 = Db::getRow('select * from test');
         Assert::same('2', $row2['id']);
         Assert::same('two', $row2['value']);

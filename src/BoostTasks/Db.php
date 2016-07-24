@@ -18,6 +18,7 @@ class Db {
 
     static function setup($dsn, $username = null, $password = null) {
         self::$instance = self::create($dsn, $username, $password);
+        return true;
     }
 
     static function create($dsn, $username = null, $password = null) {
@@ -26,6 +27,7 @@ class Db {
 
     static function initSqlite($path) {
         self::$instance = self::createSqlite($path);
+        return true;
     }
 
     static function createSqlite($path) {
@@ -59,11 +61,11 @@ class Db_Entity {
     var $__meta;
 
     function store() {
-        $this->__meta->connection->store($this);
+        return $this->__meta->connection->store($this);
     }
 
     function trash() {
-        $this->__meta->connection->trash($this);
+        return $this->__meta->connection->trash($this);
     }
 }
 
