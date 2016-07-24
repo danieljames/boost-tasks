@@ -125,6 +125,22 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
         }, 'LogicException', '#Invalid setting type#');
     }
 
+    function testIgnoreSettings() {
+        // Currently only detected when trying to read in a configuration option.
+        $read = new EvilGlobals_SettingsReader(array(
+            'username' => array('type' => 'string'),
+        ), __DIR__);
+
+        $settings = $read->readConfig(__DIR__.'/test-config1.neon');
+        Assert::equal(array('username'), array_keys($settings));
+
+        $handlers = Log::$log->getHandlers();
+        Assert::true($handlers[0]->hasRecordThatContains(
+            'Unknown setting: password', \Monolog\Logger::WARNING));
+        Assert::true($handlers[0]->hasRecordThatContains(
+            'Unknown setting: data', \Monolog\Logger::WARNING));
+    }
+
     function testSimpleSettings() {
         $reader = new EvilGlobals_SettingsReader(array(
             'string1' => array('type' => 'string', 'default' => 'hello'),
