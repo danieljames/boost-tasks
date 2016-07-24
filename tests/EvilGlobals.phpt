@@ -87,7 +87,7 @@ class EvilGlobalsTest extends TestBase {
         $safe_settings = EvilGlobals::safeSettings();
         Assert::same('name', $safe_settings['username']);
         Assert::same('********', $safe_settings['password']);
-        Assert::false(strpos(print_r($safe_settings, true), 'private'));
+        Assert::false(strpos(print_r($safe_settings, true), 'testing'));
     }
 
     function testGithubCache() {

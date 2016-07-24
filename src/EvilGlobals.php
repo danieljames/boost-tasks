@@ -176,7 +176,7 @@ class EvilGlobals extends Object {
     }
 
     static function safeSettings() {
-        $settings = EvilGlobals::$instance->settings;
+        $settings = EvilGlobals::$settings_reader->outputSettings(EvilGlobals::$instance->settings);
         if (!empty($settings['password'])) { $settings['password'] = '********'; }
         return $settings;
     }
@@ -286,6 +286,23 @@ class EvilGlobals_SettingsReader {
             // Should really make it look like 'unknown setting' warning.
             throw new RuntimeException("Private setting: {$key}");
         }
+    }
+
+    // Transform the settings for public output.
+    function outputSettings($settings) {
+        $safe_settings = array();
+        foreach ($settings as $key => $value) {
+            if (array_key_exists($key, $this->settings_types)) {
+                switch($this->settings_types[$key]['type']) {
+                case 'private':
+                    break;
+                default:
+                    // TODO: Recurse?
+                    $safe_settings[$key] = $value;
+                }
+            }
+        }
+        return $safe_settings;
     }
 
     function resolvePath($path, $base) {
