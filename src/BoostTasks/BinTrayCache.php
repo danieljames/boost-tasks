@@ -110,39 +110,46 @@ class BinTrayCache {
     }
 
     function cleanup($branch = null) {
-        $dirs = array();
+        $branches = array();
         if (is_null($branch)) {
             foreach(scandir($this->path) as $dir) {
                 if ($dir[0] === '.') { continue; }
-                $dirs[] = realpath("{$this->path}/{$dir}");
+                $branches[] = $dir;
             }
         }
         else {
-            // Error if branch doesn't exist?
-            $path = realpath("{$this->path}/{$branch}");
-            if ($path) { $dirs[] = $path; }
+            $branches = array($branch);
         }
 
-        foreach($dirs as $dir) {
-            $children = array();
-            foreach(scandir($dir) as $child) {
-                if ($child[0] === '.') { continue; }
-                // Q: Accept any time? Or just the ones that are generated.
-                $timestamp = strtotime($child);
-                if ($timestamp === FALSE) {
-                    Log::warning("Invalid cache dir: {$dir}/{$child}");
-                }
-                else {
-                    $children[$child] = $timestamp;
-                }
-            }
-
+        foreach($branches as $x) {
+            $children = $this->scanBranch($x);
             $delete_before = max($children) - 5*60*60;
             foreach($children as $child_dir => $timestamp) {
                 if ($timestamp < $delete_before) {
-                    TempDirectory::recursiveRemove("{$dir}/{$child_dir}");
+                    TempDirectory::recursiveRemove("{$child_dir}");
                 }
             }
         }
+    }
+
+    private function scanBranch($branch) {
+        $children = array();
+
+        $dir = realpath("{$this->path}/{$branch}");
+        if (!$dir) { return $children; }
+
+        foreach(scandir($dir) as $child) {
+            if ($child[0] === '.') { continue; }
+            // Q: Accept any time? Or just the ones that are generated.
+            $timestamp = strtotime($child);
+            if ($timestamp === FALSE) {
+                Log::warning("Invalid cache dir: {$dir}/{$child}");
+            }
+            else {
+                $children["{$dir}/{$child}"] = $timestamp;
+            }
+        }
+
+        return $children;
     }
 }
