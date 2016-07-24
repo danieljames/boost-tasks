@@ -177,7 +177,6 @@ class EvilGlobals extends Object {
 
     static function safeSettings() {
         $settings = EvilGlobals::$settings_reader->outputSettings(EvilGlobals::$instance->settings);
-        if (!empty($settings['password'])) { $settings['password'] = '********'; }
         return $settings;
     }
 }
