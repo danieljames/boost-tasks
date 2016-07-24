@@ -60,7 +60,7 @@ class SuperProject extends Repo {
             $self->updateAllSubmoduleHashes($submodules);
             // Include any events that have arrived since starting this update.
             $queue->downloadMoreEvents();
-            $self->updateSubmoduleHashesFromEventQueue($submodules, $queue);
+            $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
             return $self->updateHashes($submodules);
         });
     }
@@ -69,7 +69,7 @@ class SuperProject extends Repo {
         $self = $this; // Has to work on php 5.3
         $result = $this->attemptAndPush(function() use($self, $queue) {
             $submodules = $self->getSubmodules();
-            $self->updateSubmoduleHashesFromEventQueue($submodules, $queue);
+            $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
             return $self->updateHashes($submodules);
         });
     }
