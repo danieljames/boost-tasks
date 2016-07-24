@@ -12,7 +12,7 @@ class EvilGlobals extends Object {
     static $settings_types = array(
         'data' => array('type' => 'path', 'default' => '../update-data'),
         'username' => array('type' => 'string'),
-        'password' => array('type' => 'string'),
+        'password' => array('type' => 'password'),
         'github-webhook-secret' => array('type' => 'string'),
         'website-data' => array('type' => 'path'),
         'website-archives' => array('type' => 'path'),
@@ -248,6 +248,7 @@ class EvilGlobals_SettingsReader {
     function checkSetting($key, $value, $setting_details, $path) {
         switch($setting_details['type']) {
         case 'string':
+        case 'password':
             if (is_array($value) || is_object($value) ) {
                 throw new RuntimeException("Invalid string for setting: {$key}");
             }
@@ -295,6 +296,9 @@ class EvilGlobals_SettingsReader {
             if (array_key_exists($key, $this->settings_types)) {
                 switch($this->settings_types[$key]['type']) {
                 case 'private':
+                    break;
+                case 'password':
+                    $safe_settings[$key] = '********';
                     break;
                 default:
                     // TODO: Recurse?
