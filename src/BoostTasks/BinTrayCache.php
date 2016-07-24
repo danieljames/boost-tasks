@@ -5,6 +5,7 @@ namespace BoostTasks;
 use EvilGlobals;
 use RuntimeException;
 use Log;
+use Process;
 
 class BinTrayCache {
     var $path;
@@ -151,5 +152,40 @@ class BinTrayCache {
         }
 
         return $children;
+    }
+
+    function extractSingleRootArchive($file_path, $tmpdir) {
+        $subdir = "{$tmpdir}/new";
+        mkdir($subdir);
+
+        list($base_name, $extension) = explode('.', basename($file_path), 2);
+
+        switch($extension) {
+        case 'tar.bz2':
+            Process::run("tar -xjf '{$file_path}'", $subdir, null, null, 60*10);
+            break;
+        case 'tar.gz':
+            Process::run("tar -xzf '{$file_path}'", $subdir, null, null, 60*10);
+            break;
+        case '7z':
+            Process::run("7z x '{$file_path}'", $subdir, null, null, 60*10);
+            break;
+        case 'zip':
+            Process::run("unzip '{$file_path}'", $subdir, null, null, 60*10);
+            break;
+        default:
+            assert(false);
+        }
+
+        // Find the extracted tarball in the temporary directory.
+        $new_directories = array_filter(scandir($subdir),
+            function($x) { return $x[0] != '.'; });
+        if (count($new_directories) == 0) {
+            throw new RuntimeException("Error extracting archive");
+        }
+        else if (count($new_directories) != 1) {
+            throw new RuntimeException("Multiple roots in archive");
+        }
+        return "{$subdir}/".reset($new_directories);
     }
 }
