@@ -284,11 +284,6 @@ class DbTest extends TestBase
         Assert::equal($date2->getTimestamp(), strtotime($y->t));
     }
 
-    function testDispenseError() {
-        Db::setup("sqlite::memory:");
-        Assert::exception(function() { Db::dispense('test'); }, 'RuntimeException');
-    }
-
     function testGet() {
         Db::setup("sqlite::memory:");
         Assert::true(Db::exec("
