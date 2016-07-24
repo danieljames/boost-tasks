@@ -87,6 +87,10 @@ class GitHubEventQueue extends Object {
     }
 
     static function downloadEvents() {
+        return self::downloadEventsImpl(EvilGlobals::githubCache()->iterate('/orgs/boostorg/events'));
+    }
+
+    static function downloadEventsImpl($events) {
         $db = EvilGlobals::database();
         $db->begin();
 
@@ -95,8 +99,7 @@ class GitHubEventQueue extends Object {
         $new_last_id = null;
         $event_row = null;
 
-        foreach(EvilGlobals::githubCache()->iterate('/orgs/boostorg/events')
-                as $event) {
+        foreach($events as $event) {
             if ($event->id <= $last_id) { break; }
             if (!$new_last_id) { $new_last_id = $event->id; }
             $event_row = self::addGitHubEvent($event);
