@@ -289,9 +289,8 @@ class Db_Impl extends Object {
         $success = $statement && $statement->execute($query_args);
         if (!$success) { return false; }
         $object = $statement->fetchObject(self::$entity_object);
-        if ($object) {
-            $object->__meta = new Db_EntityMetaData($this, $table_name, false);
-        }
+        if (!$object) { return null; }
+        $object->__meta = new Db_EntityMetaData($this, $table_name, false);
         return $object;
     }
 

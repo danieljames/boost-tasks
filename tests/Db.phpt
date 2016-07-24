@@ -305,6 +305,37 @@ class DbTest extends TestBase
         Assert::equal(array(array('value' => '10')), Db::getAll('SELECT value FROM test WHERE id=?', array('1')));
         Assert::equal(array(), Db::getAll('SELECT value FROM test WHERE id=?', array('2')));
     }
+
+    function testFind() {
+        Db::setup("sqlite::memory:");
+        Assert::true(Db::exec("
+            CREATE TABLE test(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                value INTEGER
+            );"));
+        Assert::truthy($x = Db::dispense('test'));
+        $x->value = 10;
+        Assert::true($x->store());
+
+        $entities = Db::find('test');
+        Assert::equal(array(0), array_keys($entities));
+        Assert::equal('10', $entities[0]->value);
+
+        $entities = Db::find('test', 'id=?', array('1'));
+        Assert::equal(array(0), array_keys($entities));
+        Assert::equal('10', $entities[0]->value);
+
+        $entities = Db::find('test', 'id=?', array('2'));
+        Assert::equal(array(), $entities);
+
+        Assert::truthy($entity = Db::findOne('test'));
+        Assert::equal('10', $entity->value);
+
+        Assert::truthy($entity = Db::findOne('test', 'id=?', array('1')));
+        Assert::equal('10', $entity->value);
+
+        Assert::null(Db::findOne('test', 'id=?', array('2')));
+    }
 }
 
 $test = new DbTest();
