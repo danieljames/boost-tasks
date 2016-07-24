@@ -3,6 +3,8 @@
 
 require_once(__DIR__.'/vendor/autoload.php');
 
+use BoostTasks\TempDirectory;
+
 function main() {
     $options = CommandLineOptions::process($_SERVER['argv'],
         'Update the website development documentation from BinTray.');
@@ -57,7 +59,7 @@ function update_documentation($branch) {
         Log::debug("{$branch} documentation: Extracting to {$destination_path}.");
 
         // Extract into a temporary directory.
-        $temp_directory = new TemporaryDirectory("{$archives_path}/tmp");
+        $temp_directory = new TempDirectory("{$archives_path}/tmp");
         $extract_path = extract_single_root_archive($file_path, $temp_directory->path);
 
         // Add the version details.
@@ -109,61 +111,6 @@ function extract_single_root_archive($file_path, $tmpdir) {
         throw new RuntimeException("Multiple roots in archive");
     }
     return "{$subdir}/".reset($new_directories);
-}
-
-class TemporaryDirectory {
-    var $path;
-
-    function __construct($tmp_root = null) {
-        if (is_null($tmp_root)) { $tmp_root = sys_get_temp_dir(); }
-
-        if (!is_dir($tmp_root)) {
-            throw new RuntimeException("Temporary directory doesn't exist: {$tmp_root}");
-        }
-
-        if (!is_writable($tmp_root)) {
-            throw new RuntimeException("Temporary directory isn't writable: {$tmp_root}");
-        }
-
-        // Create temporary directory.
-        // Race condition here, but seems unlikely to be a real problem.
-        $temp_name = tempnam($tmp_root, "download");
-        if (!$temp_name) { return false; }
-        if (strpos($temp_name, "{$tmp_root}/") !== 0) {
-            throw new RuntimeException("Incorrect location for temporary directory.");
-        }
-        unlink($temp_name);
-        mkdir($temp_name);
-        $temp_name = realpath($temp_name);
-        if (!$temp_name || !is_dir($temp_name) || strpos($temp_name, "{$tmp_root}/") !== 0) {
-            throw new RuntimeException("Something went wrong creating temporary directory.");
-        }
-
-        $this->path = $temp_name;
-    }
-
-    function __destruct() {
-        if ($this->path) { recursive_remove($this->path); }
-    }
-
-    function getPath() {
-        return $this->path;
-    }
-}
-
-// TODO: Better error handling.
-function recursive_remove($path) {
-    if (is_file($path) || is_link($path)) {
-        unlink($path);
-    }
-    else if (is_dir($path)) {
-        foreach(scandir($path) as $child) {
-            if ($child == '.' || $child == '..') { continue; }
-            $child_path = "{$path}/{$child}";
-            recursive_remove($child_path);
-        }
-        rmdir($path);
-    }
 }
 
 class BinTrayCache {
@@ -298,7 +245,7 @@ class BinTrayCache {
             $delete_before = max($children) - 5*60*60;
             foreach($children as $child_dir => $timestamp) {
                 if ($timestamp < $delete_before) {
-                    recursive_remove("{$dir}/{$child_dir}");
+                    TempDirectory::recursiveRemove("{$dir}/{$child_dir}");
                 }
             }
         }
