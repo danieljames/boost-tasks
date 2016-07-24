@@ -111,7 +111,18 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
         $temp_directory = new TempDirectory();
         Assert::exception(function() use($temp_directory, $reader) {
             $reader->readConfig("{$temp_directory->path}/config.neon");
-        }, 'RuntimeException');
+        }, 'RuntimeException', '#Unable to read#');
+    }
+
+    function testInvalidSettings() {
+        // Currently only detected when trying to read in a configuration option.
+        $read = new EvilGlobals_SettingsReader(array(
+            'username' => array('type' => 'blah blah blah'),
+        ), __DIR__);
+
+        Assert::exception(function() use($read) {
+            $read->readConfig(__DIR__.'/test-config1.neon');
+        }, 'LogicException', '#Invalid setting type#');
     }
 
     function testSimpleSettings() {

@@ -286,6 +286,8 @@ class EvilGlobals_SettingsReader {
         case 'private':
             // Should really make it look like 'unknown setting' warning.
             throw new RuntimeException("Private setting: {$key}");
+        default:
+            throw new LogicException("Invalid setting type: {$setting_details['type']}");
         }
     }
 
