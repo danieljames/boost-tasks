@@ -95,6 +95,7 @@ class Db_Impl extends Object {
 
     public function __construct($pdo) {
         $this->pdo_connection = $pdo;
+        $this->pdo_connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
     public function transaction($callback) {
@@ -113,70 +114,52 @@ class Db_Impl extends Object {
     }
 
     public function begin() {
-        if (!$this->pdo_connection->beginTransaction()) {
-            throw new RuntimeException('Error starting transaction');
-        }
+        return $this->pdo_connection->beginTransaction();
     }
 
     public function commit() {
-        if (!$this->pdo_connection->commit()) {
-            throw new RuntimeException('Error starting transaction');
-        }
+        return $this->pdo_connection->commit();
     }
 
     public function rollback() {
-        if (!$this->pdo_connection->rollback()) {
-            throw new RuntimeException('Error starting transaction');
-        }
+        return $this->pdo_connection->rollback();
     }
 
     public function exec($sql, $query_args = array()) {
         $statement = $this->pdo_connection->prepare($sql);
-        if (!$statement) {
-            throw new RuntimeException("Error preparing statement.");
-        }
-        $success = $statement->execute($query_args);
-        if (!$success) {
-            throw new RuntimeException("Error executing query.");
-        }
+        return $statement && $statement->execute($query_args);
     }
 
     public function getAll($sql, $query_args = array()) {
         $statement = $this->pdo_connection->prepare($sql);
-        if (!$statement) {
-            throw new RuntimeException("Error preparing statement.");
+        if ($statement && $statement->execute($query_args)) {
+            return $statement->fetchAll(PDO::FETCH_ASSOC);
         }
-        $success = $statement->execute($query_args);
-        if (!$success) {
-            throw new RuntimeException("Error running query.");
+        else {
+            return false;
         }
-        return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getCell($sql, $query_args = array()) {
         $statement = $this->pdo_connection->prepare($sql);
-        if (!$statement) {
-            throw new RuntimeException("Error preparing statement.");
+        if ($statement && $statement->execute($query_args)) {
+            // TODO: What if query is empty????
+            return $statement->fetchColumn(0);
         }
-        $success = $statement->execute($query_args);
-        if (!$success) {
-            throw new RuntimeException("Error running query.");
+        else {
+            return false;
         }
-        // TODO: What if query is empty????
-        return $statement->fetchColumn(0);
     }
 
     public function getRow($sql, $query_args = array()) {
         $statement = $this->pdo_connection->prepare($sql);
-        if (!$statement) {
-            throw new RuntimeException("Error preparing statement.");
+        if ($statement && $statement->execute($query_args)) {
+            // TODO: What if query is empty????
+            return $statement->fetch(PDO::FETCH_ASSOC);
         }
-        $success = $statement->execute($query_args);
-        if (!$success) {
-            throw new RuntimeException("Error running query.");
+        else {
+            return false;
         }
-        // TODO: What if query is empty????
-        return $statement->fetch(PDO::FETCH_ASSOC);
     }
 
     public function dispense($table_name) {
@@ -184,13 +167,8 @@ class Db_Impl extends Object {
         case 'sqlite':
             $sql = "PRAGMA table_info(`{$table_name}`)";
             $statement = $this->pdo_connection->prepare($sql);
-            if (!$statement) {
-                throw new RuntimeException("Error preparing statement.");
-            }
-            $success = $statement->execute(array());
-            if (!$success) {
-                throw new RuntimeException("Error getting table details for {$table_name}");
-            }
+            $success = $statement && $statement->execute(array());
+            if (!$success) { return false; }
 
             $found = false;
             $object = new self::$entity_object();
@@ -243,7 +221,7 @@ class Db_Impl extends Object {
                     $object->{$name} = Db_Default::$instance;
                     break;
                 default:
-                    echo "Unrecognized default: {$default}";
+                    Log::warning("Unrecognized default: {$default}");
                     break;
                 }
             }
@@ -252,13 +230,8 @@ class Db_Impl extends Object {
         case 'mysql':
             $sql = "DESCRIBE `{$table_name}`";
             $statement = $this->pdo_connection->prepare($sql);
-            if (!$statement) {
-                throw new RuntimeException("Error preparing statement.");
-            }
-            $success = $statement->execute(array());
-            if (!$success) {
-                throw new RuntimeException("Error getting table details for {$table_name}");
-            }
+            $success = $statement && $statement->execute(array());
+            if (!$success) { return false; }
 
             $object = new self::$entity_object();
             while($column = $statement->fetchObject()) {
@@ -294,13 +267,8 @@ class Db_Impl extends Object {
         if ($query && strtolower(substr($query, 0, 6)) !== 'order ') { $sql .= "WHERE "; }
         $sql .= $query;
         $statement = $this->pdo_connection->prepare($sql);
-        if (!$statement) {
-            throw new RuntimeException("Error preparing statement.");
-        }
-        $success = $statement->execute($query_args);
-        if (!$success) {
-            throw new RuntimeException("Error running query.");
-        }
+        $success = $statement && $statement->execute($query_args);
+        if (!$success) { return false; }
 
         $result = array();
         while($object = $statement->fetchObject(self::$entity_object)) {
@@ -317,17 +285,12 @@ class Db_Impl extends Object {
         $sql = "SELECT * FROM `{$table_name}`";
         if ($query && strtolower(substr($query, 0, 6)) !== 'order ') { $sql .= " WHERE {$query}"; }
         $statement = $this->pdo_connection->prepare($sql);
-        if (!$statement) {
-            throw new RuntimeException("Error preparing statement.");
-        }
-        $success = $statement->execute($query_args);
-        if (!$success) {
-            throw new RuntimeException("Error running query.");
-        }
+        $success = $statement && $statement->execute($query_args);
+        if (!$success) { return false; }
         $object = $statement->fetchObject(self::$entity_object);
-        if (!$object) { return null; }
-        $object->__meta = new Db_EntityMetaData(
-            $this, $table_name, false);
+        if ($object) {
+            $object->__meta = new Db_EntityMetaData($this, $table_name, false);
+        }
         return $object;
     }
 
@@ -404,22 +367,19 @@ class Db_Impl extends Object {
             }
 
             $statement = $this->pdo_connection->prepare($sql);
-            if (!$statement) {
-                throw new RuntimeException("Error preparing statement.");
-            }
-            $success = $statement->execute($query_args);
-            if (!$success) {
-                throw new RuntimeException("Error inserting object.");
-            }
+            $success = $statement && $statement->execute($query_args);
+            if (!$success) { return false; }
             $object->id = $this->pdo_connection->lastInsertId();
             $object->__meta->is_new = false;
 
             if ($default_columns) {
                 $new_values = $this->getRow('SELECT '.implode(',', $default_columns).
                     " FROM `{$table_name}` WHERE id = ?", array($object->id));
-                if (!$new_values) { throw new RuntimeException("Error getting generated values.\n"); }
+                if (!$new_values) { return false; }
                 foreach($new_values as $key => $value) { $object->$key = $value; }
             }
+
+            return true;
         } else {
             // TODO: What if id has been updated?
             if ($default_columns) { throw new RuntimeException("Default in update object.\n"); }
@@ -431,13 +391,7 @@ class Db_Impl extends Object {
             $query_args[] = $id;
 
             $statement = $this->pdo_connection->prepare($sql);
-            if (!$statement) {
-                throw new RuntimeException("Error preparing statement.");
-            }
-            $success = $statement->execute($query_args);
-            if (!$success) {
-                throw new RuntimeException("Error updating object.");
-            }
+            return $statement && $statement->execute($query_args);
         }
     }
 
@@ -451,13 +405,7 @@ class Db_Impl extends Object {
         $query_args = array($id);
 
         $statement = $this->pdo_connection->prepare($sql);
-        if (!$statement) {
-            throw new RuntimeException("Error preparing statement.");
-        }
-        $success = $statement->execute($query_args);
-        if (!$success) {
-            throw new RuntimeException("Error deleting object.");
-        }
+        return $statement && $statement->execute($query_args);
     }
 
     public static function isoDateTime() {
