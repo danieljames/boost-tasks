@@ -110,6 +110,32 @@ class BinTrayCache {
         return true;
     }
 
+    function latestDownload($branch) {
+        $children = $this->scanBranch($branch);
+        $latest_path = null;
+        $latest_date = null;
+        foreach($children as $child_dir => $timestamp) {
+            if (!$latest_path || $timestamp > $latest_date) {
+                $latest_path = $child_dir;
+                $latest_date = $timestamp;
+            }
+        }
+
+        // Just grab any file from this directory.
+        foreach(scandir($latest_path) as $hash) {
+            if ($hash[0] == '.') { continue; }
+            foreach(scandir("{$latest_path}/{$hash}") as $file) {
+                list($basename, $extension) = explode('.', $file, 2);
+                if (in_array($extension, array('tar.bz2', 'tar.gz', 'zip'))) {
+                    return array(
+                        'hash' => $hash,
+                        'path' => "{$latest_path}/{$hash}/{$file}",
+                    );
+                }
+            }
+        }
+    }
+
     function cleanup($branch = null) {
         $branches = array();
         if (is_null($branch)) {

@@ -1,0 +1,130 @@
+#!/usr/bin/env php
+<?php
+
+require_once(__DIR__.'/vendor/autoload.php');
+
+use BoostTasks\BinTrayCache;
+use BoostTasks\TempDirectory;
+
+function main() {
+    $build_inspect = false;
+
+    $options = CommandLineOptions::process($_SERVER['argv'],
+        'Run inspect on the latest cached downloads from bintray.');
+    EvilGlobals::init($options);
+
+    // Get archive path setting.
+    $archives_path = EvilGlobals::settings('website-archives');
+    if (!$archives_path) {
+        throw new RuntimeException("website-archives not set");
+    }
+    if (!is_dir($archives_path)) {
+        throw new RuntimeException("website-archives not a directory");
+    }
+    $archives_path = rtrim($archives_path, '/');
+
+    // Get cowic login details for FTP.
+
+    $cowic_username = EvilGlobals::settings('cowic-username');
+    $cowic_password = EvilGlobals::settings('cowic-password');
+
+    // Utility objects.
+
+    $temp_directory = new TempDirectory("{$archives_path}/tmp");
+    $cache = new BinTrayCache;
+
+    // Get hardlinks of latest downloads.
+    // A bit of race condition here, but minimised by making a hardlink.
+    // Might tweak the cache implementation so that it's less likely to
+    // delete a file here.
+
+    $develop_path = null;
+    $develop_file = $cache->latestDownload('develop');
+    if ($develop_file) {
+        $develop_path = "{$temp_directory->path}/develop/".basename($develop_file['path']);
+        mkdir(dirname($develop_path));
+        link($develop_file['path'], $develop_path);
+    }
+
+    $master_path = null;
+    $master_file = $cache->latestDownload('master');
+    if ($master_file) {
+        $master_path = "{$temp_directory->path}/master/".basename($master_file['path']);
+        mkdir(dirname($master_path));
+        link($master_file['path'], $master_path);
+    }
+
+    // Build inspect.
+
+    if ($build_inspect) {
+        if (!$master_path) {
+            Log::error("Error getting master tarball for inspect.");
+            return;
+        }
+
+        $build_path = "{$temp_directory->path}/build-inspect";
+        mkdir($build_path);
+        $build_path = $cache->extractSingleRootArchive($master_path, $build_path);
+
+        Process::run("b2 -q dist-bin", "{$build_path}/tools/inspect/build", null, null, 60*30);
+
+        $inspect_exec = "{$build_path}/dist/bin/inspect";
+    }
+    else {
+        $inspect_exec = "inspect";
+    }
+
+    $branches = array();
+    if ($master_path) { $branches['master'] = $master_path; }
+    if ($develop_path) { $branches['develop'] = $develop_path; }
+
+    foreach ($branches as $branch => $path) {
+        $extract_path = "{$temp_directory->path}/boost-{$branch}";
+        mkdir($extract_path);
+        $extract_path = $cache->extractSingleRootArchive($master_path, $extract_path);
+
+        $inspect_tmp_name = "docs-inspect-{$branch}.html.upload";
+        $inspect_final_name = "docs-inspect-{$branch}.html";
+        $inspect_path = "{$temp_directory->path}/{$inspect_final_name}";
+
+        // TODO: inspect returns an exit status of 1 when something goes wrong
+        //       and whenever it finds any errors to report - which is always.
+        //       So currently the exit status is completely useless here.
+        //       Maybe either add a flag to inspect, or change the exit
+        //       codes to be more informative.
+        $status = Process::status(
+            "{$inspect_exec} '{$extract_path}' > '{$inspect_path}'",
+            $extract_path, null, null, 60*30);
+
+        if (!is_null($cowic_username)) {
+            $ftp_id = ftp_connect('boost.cowic.de');
+            if (!$ftp_id) {
+                Log::error("Unable to connect to boost.cowic.de to upload inspect report");
+            }
+
+            if ($ftp_id) {
+                if (!ftp_login($ftp_id, $cowic_username, $cowic_password)) {
+                    Log::error("Error logging in to boost.cowic.de to upload inspect report");
+                    $ftp_id = null;
+                }
+            }
+
+            if ($ftp_id) {
+                $success =
+                    ftp_put($ftp_id, "rc/{$inspect_tmp_name}", $inspect_path, FTP_BINARY) &&
+                    ftp_rename($ftp_id, "rc/{$inspect_tmp_name}", "rc/{$inspect_final_name}");
+                ftp_close($ftp_id);
+
+                if (!$success) {
+                    Log::error("Error uploading inspect report to boost.cowic.de");
+                }
+            }
+        }
+
+        // Keep a copy of the inspect file for reference.
+        $report_path = EvilGlobals::dataPath('inspect');
+        copy($inspect_path, "{$report_path}/{$inspect_final_name}");
+    }
+}
+
+main();

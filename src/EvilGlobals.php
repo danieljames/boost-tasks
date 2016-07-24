@@ -14,6 +14,8 @@ class EvilGlobals extends Object {
         'username' => array('type' => 'string'),
         'password' => array('type' => 'password'),
         'github-webhook-secret' => array('type' => 'password'),
+        'cowic-username' => array('type' => 'string'),
+        'cowic-password' => array('type' => 'password'),
         'website-data' => array('type' => 'path'),
         'website-archives' => array('type' => 'path'),
         'push-to-repo' => array('type' => 'boolean', 'default' => false),
