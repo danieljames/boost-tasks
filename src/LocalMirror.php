@@ -77,10 +77,11 @@ class LocalMirror extends Object {
 
         foreach ($repos as $row) {
             $self = $this;
-            $db->transaction(function() use($self, $db, $row) {
+            $mirror_table = self::$mirror_table;
+            $db->transaction(function() use($self, $mirror_table, $db, $row) {
                 // Q: Error checks?
-                $repo_entry = $db->load(self::$mirror_table, $row['id']);
-                $this->updateMirror($repo_entry->path, $repo_entry->url);
+                $repo_entry = $db->load($mirror_table, $row['id']);
+                $self->updateMirror($repo_entry->path, $repo_entry->url);
                 $repo_entry->dirty = false;
                 $repo_entry->store();
             });
