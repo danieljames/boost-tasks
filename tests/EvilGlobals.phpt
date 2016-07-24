@@ -199,6 +199,22 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
         }, 'RuntimeException');
     }
 
+    function testArraySetting() {
+        $reader = new EvilGlobals_SettingsReader(array(
+            'array1' => array('type' => 'array', 'sub' => array('type' => 'string')),
+            'array2' => array('type' => 'array', 'sub' => array('type' => 'string'), 'default' => array()),
+            'array3' => array('type' => 'array', 'sub' => array('type' => 'string'), 'default' => array('1')),
+        ), __DIR__);
+
+        $settings1 = $reader->initialSettings();
+        Assert::null($settings1['array1']);
+        Assert::equal(array(), $settings1['array2']);
+        Assert::equal(array('1'), $settings1['array3']);
+
+        $safe = $reader->outputSettings($settings1);
+        Assert::equal(array('array2','array3'), array_keys($safe));
+    }
+
     function testPathSetting() {
         $reader = new EvilGlobals_SettingsReader(array(
             'path1' => array('type' => 'path', 'default' => '.'),
@@ -270,7 +286,6 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
         Assert::equal(array('password' => array('private')), $settings);
         $safe = $reader->outputSettings($settings);
         Assert::equal(array('password' => array('********')), $safe);
-
     }
 }
 

@@ -303,11 +303,13 @@ class EvilGlobals_SettingsReader {
     }
 
     function outputSettingsValue($value, $setting_details) {
+        if (is_null($value)) { return null; }
+
         switch($setting_details['type']) {
         case 'private':
             return null;
         case 'password':
-            return is_null($value) ? null : '********';
+            return '********';
         case 'array':
         case 'map':
             $result = array();
