@@ -86,6 +86,10 @@ function main() {
             "{$inspect_exec} '{$extract_path}' > '{$inspect_path}'",
             $extract_path, null, null, 60*30);
 
+        // Keep a copy of the inspect file for reference.
+        $report_path = EvilGlobals::dataPath('inspect');
+        copy($inspect_path, "{$report_path}/{$inspect_final_name}");
+
         if (!is_null($cowic_username)) {
             $ftp_id = ftp_connect('boost.cowic.de');
             if (!$ftp_id) {
@@ -110,10 +114,6 @@ function main() {
                 }
             }
         }
-
-        // Keep a copy of the inspect file for reference.
-        $report_path = EvilGlobals::dataPath('inspect');
-        copy($inspect_path, "{$report_path}/{$inspect_final_name}");
     }
 }
 
