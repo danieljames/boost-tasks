@@ -13,16 +13,6 @@ function main() {
         'Run inspect on the latest cached downloads from bintray.');
     EvilGlobals::init($options);
 
-    // Get archive path setting.
-    $archives_path = EvilGlobals::settings('website-archives');
-    if (!$archives_path) {
-        throw new RuntimeException("website-archives not set");
-    }
-    if (!is_dir($archives_path)) {
-        throw new RuntimeException("website-archives not a directory");
-    }
-    $archives_path = rtrim($archives_path, '/');
-
     // Get cowic login details for FTP.
 
     $cowic_username = EvilGlobals::settings('cowic-username');
@@ -30,7 +20,7 @@ function main() {
 
     // Utility objects.
 
-    $temp_directory = new TempDirectory("{$archives_path}/tmp");
+    $temp_directory = new TempDirectory(EvilGlobals::dataPath('inspect'));
     $cache = new BinTrayCache;
 
     // Get hardlinks of latest downloads.
