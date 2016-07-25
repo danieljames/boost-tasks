@@ -105,6 +105,7 @@ function main() {
 
             if ($ftp_id) {
                 $success =
+                    ftp_pasv($ftp_id, true) &&
                     ftp_put($ftp_id, $inspect_tmp_name, $inspect_path, FTP_BINARY) &&
                     ftp_rename($ftp_id, $inspect_tmp_name, $inspect_final_name);
                 ftp_close($ftp_id);
