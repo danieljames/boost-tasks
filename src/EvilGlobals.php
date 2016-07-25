@@ -10,7 +10,7 @@ use BoostTasks\Db;
 
 class EvilGlobals extends Object {
     static $settings_types = array(
-        'data' => array('type' => 'path', 'default' => '../update-data'),
+        'data' => array('type' => 'path', 'default' => 'var/data'),
         'username' => array('type' => 'string'),
         'password' => array('type' => 'password'),
         'github-webhook-secret' => array('type' => 'password'),
