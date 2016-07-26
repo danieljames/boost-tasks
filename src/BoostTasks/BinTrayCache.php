@@ -5,6 +5,7 @@ namespace BoostTasks;
 use EvilGlobals;
 use RuntimeException;
 use Log;
+use Process;
 
 class BinTrayCache {
     var $path;
@@ -109,40 +110,108 @@ class BinTrayCache {
         return true;
     }
 
+    function latestDownload($branch) {
+        $children = $this->scanBranch($branch);
+        $latest_path = null;
+        $latest_date = null;
+        foreach($children as $child_dir => $timestamp) {
+            if (!$latest_path || $timestamp > $latest_date) {
+                $latest_path = $child_dir;
+                $latest_date = $timestamp;
+            }
+        }
+
+        // Just grab any file from this directory.
+        foreach(scandir($latest_path) as $hash) {
+            if ($hash[0] == '.') { continue; }
+            foreach(scandir("{$latest_path}/{$hash}") as $file) {
+                list($basename, $extension) = explode('.', $file, 2);
+                if (in_array($extension, array('tar.bz2', 'tar.gz', 'zip'))) {
+                    return array(
+                        'hash' => $hash,
+                        'path' => "{$latest_path}/{$hash}/{$file}",
+                    );
+                }
+            }
+        }
+    }
+
     function cleanup($branch = null) {
-        $dirs = array();
+        $branches = array();
         if (is_null($branch)) {
             foreach(scandir($this->path) as $dir) {
                 if ($dir[0] === '.') { continue; }
-                $dirs[] = realpath("{$this->path}/{$dir}");
+                $branches[] = $dir;
             }
         }
         else {
-            // Error if branch doesn't exist?
-            $path = realpath("{$this->path}/{$branch}");
-            if ($path) { $dirs[] = $path; }
+            $branches = array($branch);
         }
 
-        foreach($dirs as $dir) {
-            $children = array();
-            foreach(scandir($dir) as $child) {
-                if ($child[0] === '.') { continue; }
-                // Q: Accept any time? Or just the ones that are generated.
-                $timestamp = strtotime($child);
-                if ($timestamp === FALSE) {
-                    Log::warning("Invalid cache dir: {$dir}/{$child}");
-                }
-                else {
-                    $children[$child] = $timestamp;
-                }
-            }
-
+        foreach($branches as $x) {
+            $children = $this->scanBranch($x);
             $delete_before = max($children) - 5*60*60;
             foreach($children as $child_dir => $timestamp) {
                 if ($timestamp < $delete_before) {
-                    TempDirectory::recursiveRemove("{$dir}/{$child_dir}");
+                    TempDirectory::recursiveRemove("{$child_dir}");
                 }
             }
         }
+    }
+
+    private function scanBranch($branch) {
+        $children = array();
+
+        $dir = realpath("{$this->path}/{$branch}");
+        if (!$dir) { return $children; }
+
+        foreach(scandir($dir) as $child) {
+            if ($child[0] === '.') { continue; }
+            // Q: Accept any time? Or just the ones that are generated.
+            $timestamp = strtotime($child);
+            if ($timestamp === FALSE) {
+                Log::warning("Invalid cache dir: {$dir}/{$child}");
+            }
+            else {
+                $children["{$dir}/{$child}"] = $timestamp;
+            }
+        }
+
+        return $children;
+    }
+
+    function extractSingleRootArchive($file_path, $tmpdir) {
+        $subdir = "{$tmpdir}/new";
+        mkdir($subdir);
+
+        list($base_name, $extension) = explode('.', basename($file_path), 2);
+
+        switch($extension) {
+        case 'tar.bz2':
+            Process::run("tar -xjf '{$file_path}'", $subdir, null, null, 60*10);
+            break;
+        case 'tar.gz':
+            Process::run("tar -xzf '{$file_path}'", $subdir, null, null, 60*10);
+            break;
+        case '7z':
+            Process::run("7z x '{$file_path}'", $subdir, null, null, 60*10);
+            break;
+        case 'zip':
+            Process::run("unzip '{$file_path}'", $subdir, null, null, 60*10);
+            break;
+        default:
+            assert(false);
+        }
+
+        // Find the extracted tarball in the temporary directory.
+        $new_directories = array_filter(scandir($subdir),
+            function($x) { return $x[0] != '.'; });
+        if (count($new_directories) == 0) {
+            throw new RuntimeException("Error extracting archive");
+        }
+        else if (count($new_directories) != 1) {
+            throw new RuntimeException("Multiple roots in archive");
+        }
+        return "{$subdir}/".reset($new_directories);
     }
 }
