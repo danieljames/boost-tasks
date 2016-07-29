@@ -28,33 +28,30 @@ function main() {
     // Might tweak the cache implementation so that it's less likely to
     // delete a file here.
 
-    $develop_path = null;
-    $develop_file = $cache->latestDownload('develop');
-    if ($develop_file) {
-        $develop_path = "{$temp_directory->path}/develop/".basename($develop_file['path']);
-        mkdir(dirname($develop_path));
-        link($develop_file['path'], $develop_path);
-    }
-
-    $master_path = null;
-    $master_file = $cache->latestDownload('master');
-    if ($master_file) {
-        $master_path = "{$temp_directory->path}/master/".basename($master_file['path']);
-        mkdir(dirname($master_path));
-        link($master_file['path'], $master_path);
+    $branches = array();
+    foreach(array('develop', 'master') as $branch) {
+        $details = $cache->latestDownload($branch);
+        if ($details) {
+            $archive_path = "{$temp_directory->path}/{$branch}/".basename($details['path']);
+            mkdir(dirname($archive_path));
+            link($details['path'], $archive_path);
+            $details['archive_path'] = $archive_path;
+            $branches[$branch] = $details;
+        }
     }
 
     // Build inspect.
 
     if ($build_inspect) {
-        if (!$master_path) {
+        if (!array_key_exists('master', $branches)) {
             Log::error("Error getting master tarball for inspect.");
             return;
         }
 
         $build_path = "{$temp_directory->path}/build-inspect";
         mkdir($build_path);
-        $build_path = $cache->extractSingleRootArchive($master_path, $build_path);
+        $build_path = $cache->extractSingleRootArchive(
+            $branches['master']['archive_path'], $build_path);
 
         Process::run("b2 -q dist-bin", "{$build_path}/tools/inspect/build", null, null, 60*30);
 
@@ -64,14 +61,10 @@ function main() {
         $inspect_exec = "inspect";
     }
 
-    $branches = array();
-    if ($master_path) { $branches['master'] = $master_path; }
-    if ($develop_path) { $branches['develop'] = $develop_path; }
-
-    foreach ($branches as $branch => $path) {
+    foreach ($branches as $branch => $details) {
         $extract_path = "{$temp_directory->path}/boost-{$branch}";
         mkdir($extract_path);
-        $extract_path = $cache->extractSingleRootArchive($master_path, $extract_path);
+        $extract_path = $cache->extractSingleRootArchive($details['archive_path'], $extract_path);
 
         $inspect_tmp_name = "docs-inspect-{$branch}.html.upload";
         $inspect_final_name = "docs-inspect-{$branch}.html";
