@@ -75,8 +75,11 @@ function main() {
         //       So currently the exit status is completely useless here.
         //       Maybe either add a flag to inspect, or change the exit
         //       codes to be more informative.
+        // TODO: This is the SHA1 of the tarball, not the version!
+        //       Need to change BintrayCache to retain the version hash, and maybe
+        //       other details.
         $status = Process::status(
-            "{$inspect_exec} '{$extract_path}' > '{$inspect_path}'",
+            "{$inspect_exec} '{$extract_path}' -version-string '{$details['hash']}' > '{$inspect_path}'",
             $extract_path, null, null, 60*30);
 
         // Keep a copy of the inspect file for reference.
