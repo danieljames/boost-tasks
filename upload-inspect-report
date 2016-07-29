@@ -7,7 +7,7 @@ use BoostTasks\BinTrayCache;
 use BoostTasks\TempDirectory;
 
 function main() {
-    $build_inspect = false;
+    $build_inspect = true;
 
     $options = CommandLineOptions::process($_SERVER['argv'],
         'Run inspect on the latest cached downloads from bintray.');
