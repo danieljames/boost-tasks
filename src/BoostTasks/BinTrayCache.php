@@ -119,30 +119,30 @@ class BinTrayCache {
         return true;
     }
 
+    // TODO: Would be nice if the returned data was in the same format as
+    //       fetchDetails/getFileDetails.
     function latestDownload($branch) {
         $children = $this->scanBranch($branch);
-        $latest_path = null;
-        $latest_date = null;
-        foreach($children as $child_dir => $timestamp) {
-            if (!$latest_path || $timestamp > $latest_date) {
-                $latest_path = $child_dir;
-                $latest_date = $timestamp;
-            }
-        }
+        arsort($children);
+        foreach ($children as $child_dir => $timestamp) {
+            foreach(glob("{$child_dir}/*/*.meta") as $meta_path) {
+                if (preg_match('@^(.*[.](?:tar.bz2|tar.gz|zip))[.]meta$@', $meta_path, $matches)) {
+                    $file_path = $matches[1];
 
-        // Just grab any meta file from this directory.
-        foreach(glob("{$latest_path}/*/*.meta") as $meta_path) {
-            if (preg_match('@^(.*[.](?:tar.bz2|tar.gz|zip))[.]meta$@', $meta_path, $matches)) {
-                $file_path = $matches[1];
+                    $meta = json_decode(file_get_contents($meta_path), true);
+                    if (!$meta) {
+                        Log::warning("Unable to decode meta file at {$meta_path}");
+                        continue;
+                    }
 
-                $meta = json_decode(file_get_contents($meta_path), true);
-                if (!$meta) {
-                    Log::warning("Unable to decode meta file at {$meta_path}");
-                    continue;
+                    if (hash_file('sha256', $file_path) != $meta['sha256']) {
+                        Log::warning("Hash doesn't match meta file at {$file_path}");
+                        continue;
+                    }
+
+                    $meta['path'] = $file_path;
+                    return $meta;
                 }
-
-                $meta['path'] = $file_path;
-                return $meta;
             }
         }
     }
@@ -170,6 +170,10 @@ class BinTrayCache {
         }
     }
 
+    // Returns array of path => timestamp.
+    // Q: Is this silly? Sorting the path name lexicographically
+    //    should work fine. I suppose the date format might change
+    //    one day.
     private function scanBranch($branch) {
         $children = array();
 
