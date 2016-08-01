@@ -130,17 +130,19 @@ class BinTrayCache {
             }
         }
 
-        // Just grab any file from this directory.
-        foreach(scandir($latest_path) as $hash) {
-            if ($hash[0] == '.') { continue; }
-            foreach(scandir("{$latest_path}/{$hash}") as $file) {
-                list($basename, $extension) = explode('.', $file, 2);
-                if (in_array($extension, array('tar.bz2', 'tar.gz', 'zip'))) {
-                    return array(
-                        'hash' => $hash,
-                        'path' => "{$latest_path}/{$hash}/{$file}",
-                    );
+        // Just grab any meta file from this directory.
+        foreach(glob("{$latest_path}/*/*.meta") as $meta_path) {
+            if (preg_match('@^(.*[.](?:tar.bz2|tar.gz|zip))[.]meta$@', $meta_path, $matches)) {
+                $file_path = $matches[1];
+
+                $meta = json_decode(file_get_contents($meta_path), true);
+                if (!$meta) {
+                    Log::warning("Unable to decode meta file at {$meta_path}");
+                    continue;
                 }
+
+                $meta['path'] = $file_path;
+                return $meta;
             }
         }
     }
