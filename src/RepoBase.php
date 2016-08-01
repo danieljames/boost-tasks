@@ -40,7 +40,7 @@ class RepoBase extends Object {
         try {
             $this->command("fetch -p --quiet {$remote}");
         }
-        catch (Process_Exception $e) {
+        catch (Process_FailedExitCode $e) {
             // Workaround for a bug in old versions of git.
             //
             // For details see:
