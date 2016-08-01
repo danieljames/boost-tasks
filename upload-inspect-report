@@ -70,13 +70,19 @@ function main() {
         $inspect_final_name = "docs-inspect-{$branch}.html";
         $inspect_path = "{$temp_directory->path}/{$inspect_final_name}";
 
+        $version_string = "a snapshot of {$branch}";
+        $version_string .= ", commit ".substr($details['version'], 0, 10);
+        if ($created = strtotime($details['created'])) {
+            $version_string .= ", created on ".date(DATE_RFC850, $created);
+        }
+
         // TODO: inspect returns an exit status of 1 when something goes wrong
         //       and whenever it finds any errors to report - which is always.
         //       So currently the exit status is completely useless here.
         //       Maybe either add a flag to inspect, or change the exit
         //       codes to be more informative.
         $status = Process::status(
-            "{$inspect_exec} '{$extract_path}' -version-string '{$details['version']}' > '{$inspect_path}'",
+            "{$inspect_exec} '{$extract_path}' -version-string '{$version_string}' > '{$inspect_path}'",
             $extract_path, null, null, 60*30);
 
         // Keep a copy of the inspect file for reference.
