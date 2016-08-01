@@ -65,18 +65,27 @@ class BinTrayCache {
         // 'repo' is actually the branch, that's just the way bintray is organised.
         $download_dir = "{$this->path}/{$file->repo}/{$date}/{$file->sha1}";
         $download_path = "{$download_dir}/{$file->name}";
+        $meta_path = "{$download_path}.meta";
 
-        if (!is_file($download_path)) {
+        if (!is_file($meta_path)) {
             if (!is_dir($download_dir)) {
                 mkdir($download_dir, 0777, true);
             }
 
-            if (!$this->downloadFile(
-                "http://dl.bintray.com/boostorg/{$file->repo}/{$file->name}",
-                $download_path))
-            {
-                return null;
+            if (is_file($download_path) && hash_file('sha256', $download_path) != $file->sha256) {
+                unlink($download_path);
             }
+
+            if (!is_file($download_path)) {
+                if (!$this->downloadFile(
+                    "http://dl.bintray.com/boostorg/{$file->repo}/{$file->name}",
+                    $download_path))
+                {
+                    return null;
+                }
+            }
+
+            file_put_contents($meta_path, json_encode($file));
         }
 
         if (hash_file('sha256', $download_path) != $file->sha256) {
@@ -110,27 +119,29 @@ class BinTrayCache {
         return true;
     }
 
+    // TODO: Would be nice if the returned data was in the same format as
+    //       fetchDetails/getFileDetails.
     function latestDownload($branch) {
         $children = $this->scanBranch($branch);
-        $latest_path = null;
-        $latest_date = null;
-        foreach($children as $child_dir => $timestamp) {
-            if (!$latest_path || $timestamp > $latest_date) {
-                $latest_path = $child_dir;
-                $latest_date = $timestamp;
-            }
-        }
+        arsort($children);
+        foreach ($children as $child_dir => $timestamp) {
+            foreach(glob("{$child_dir}/*/*.meta") as $meta_path) {
+                if (preg_match('@^(.*[.](?:tar.bz2|tar.gz|zip))[.]meta$@', $meta_path, $matches)) {
+                    $file_path = $matches[1];
 
-        // Just grab any file from this directory.
-        foreach(scandir($latest_path) as $hash) {
-            if ($hash[0] == '.') { continue; }
-            foreach(scandir("{$latest_path}/{$hash}") as $file) {
-                list($basename, $extension) = explode('.', $file, 2);
-                if (in_array($extension, array('tar.bz2', 'tar.gz', 'zip'))) {
-                    return array(
-                        'hash' => $hash,
-                        'path' => "{$latest_path}/{$hash}/{$file}",
-                    );
+                    $meta = json_decode(file_get_contents($meta_path), true);
+                    if (!$meta) {
+                        Log::warning("Unable to decode meta file at {$meta_path}");
+                        continue;
+                    }
+
+                    if (hash_file('sha256', $file_path) != $meta['sha256']) {
+                        Log::warning("Hash doesn't match meta file at {$file_path}");
+                        continue;
+                    }
+
+                    $meta['path'] = $file_path;
+                    return $meta;
                 }
             }
         }
@@ -159,6 +170,10 @@ class BinTrayCache {
         }
     }
 
+    // Returns array of path => timestamp.
+    // Q: Is this silly? Sorting the path name lexicographically
+    //    should work fine. I suppose the date format might change
+    //    one day.
     private function scanBranch($branch) {
         $children = array();
 
