@@ -65,18 +65,27 @@ class BinTrayCache {
         // 'repo' is actually the branch, that's just the way bintray is organised.
         $download_dir = "{$this->path}/{$file->repo}/{$date}/{$file->sha1}";
         $download_path = "{$download_dir}/{$file->name}";
+        $meta_path = "{$download_path}.meta";
 
-        if (!is_file($download_path)) {
+        if (!is_file($meta_path)) {
             if (!is_dir($download_dir)) {
                 mkdir($download_dir, 0777, true);
             }
 
-            if (!$this->downloadFile(
-                "http://dl.bintray.com/boostorg/{$file->repo}/{$file->name}",
-                $download_path))
-            {
-                return null;
+            if (is_file($download_path) && hash_file('sha256', $download_path) != $file->sha256) {
+                unlink($download_path);
             }
+
+            if (!is_file($download_path)) {
+                if (!$this->downloadFile(
+                    "http://dl.bintray.com/boostorg/{$file->repo}/{$file->name}",
+                    $download_path))
+                {
+                    return null;
+                }
+            }
+
+            file_put_contents($meta_path, json_encode($file));
         }
 
         if (hash_file('sha256', $download_path) != $file->sha256) {
