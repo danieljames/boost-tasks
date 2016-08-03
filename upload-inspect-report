@@ -62,8 +62,8 @@ function main() {
         $build_path = $cache->extractSingleRootArchive(
             $branches['master']['archive_path'], $build_path);
 
-        Process::run("b2 -q dist-bin", "{$build_path}/tools/inspect/build", null, null, 60*30);
-
+        Process::run("{$build_path}/tools/build/bootstrap.sh", "{$build_path}/tools/build", null, null, 60*30);
+        Process::run("{$build_path}/tools/build/b2 -q dist-bin", "{$build_path}/tools/inspect/build", null, null, 60*30);
         $inspect_exec = "{$build_path}/dist/bin/inspect";
     }
     else {
