@@ -17,24 +17,14 @@ function main() {
 
     $report_path = EvilGlobals::dataPath('inspect');
     $upload_path = EvilGlobals::dataPath('inspect/upload');
-    $temp_directory = new TempDirectory(EvilGlobals::dataPath('inspect'));
     $cache = new BinTrayCache;
 
-    // Get hardlinks of latest downloads.
-    // Not downloading because the cache doesn't support multiple processes.
-    // A bit of race condition here, but minimised by making a hardlink ASAP.
-    // Might tweak the cache implementation so that it's less likely to
-    // delete a file here.
-
+    // Get details of latest downloads and see if they need to be inspected.
     $branches = array();
     $to_inspect = array();
     foreach(array('develop', 'master') as $branch) {
         $details = $cache->latestDownload($branch);
         if ($details) {
-            $archive_path = "{$temp_directory->path}/{$branch}/".basename($details['path']);
-            mkdir(dirname($archive_path));
-            link($details['path'], $archive_path);
-            $details['archive_path'] = $archive_path;
             $details['sha1_path'] = "{$report_path}/{$branch}-sha1.txt";
             $branches[$branch] = $details;
 
@@ -44,6 +34,20 @@ function main() {
     }
 
     if (!$to_inspect) { return; }
+
+    // Get hardlinks of latest downloads.
+    // Not downloading because the cache doesn't support multiple processes.
+    // There is a bit of race condition here, but minimised by making a hardlink
+    // fairly quickly.
+    // Might tweak the cache implementation so that it's less likely to
+    // delete a file here.
+    $temp_directory = new TempDirectory(EvilGlobals::dataPath('inspect'));
+    foreach($branches as $branch => $details) {
+        $archive_path = "{$temp_directory->path}/{$branch}/".basename($details['path']);
+        mkdir(dirname($archive_path));
+        link($details['path'], $archive_path);
+        $branches[$branch]['archive_path'] = $archive_path;
+    }
 
     // Build inspect.
 
