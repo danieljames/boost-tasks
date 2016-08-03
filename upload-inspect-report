@@ -31,7 +31,12 @@ function main() {
         }
     }
 
-    if (!$to_inspect) { return; }
+    if (!$to_inspect) {
+        Log::info("Inspect: nothing to do.");
+        return;
+    }
+
+    Log::info("Inspect: running for ". implode(", ", $to_inspect).".");
 
     // Get hardlinks of latest downloads.
     // Not downloading because the cache doesn't support multiple processes.
