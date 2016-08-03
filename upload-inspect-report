@@ -13,13 +13,10 @@ function main() {
         'Run inspect on the latest cached downloads from bintray.');
     EvilGlobals::init($options);
 
-    // Get cowic login details for FTP.
+    // Setup directories.
 
-    $cowic_username = EvilGlobals::settings('cowic-username');
-    $cowic_password = EvilGlobals::settings('cowic-password');
-
-    // Utility objects.
-
+    $report_path = EvilGlobals::dataPath('inspect');
+    $upload_path = EvilGlobals::dataPath('inspect/upload');
     $temp_directory = new TempDirectory(EvilGlobals::dataPath('inspect'));
     $cache = new BinTrayCache;
 
@@ -66,7 +63,7 @@ function main() {
         mkdir($extract_path);
         $extract_path = $cache->extractSingleRootArchive($details['archive_path'], $extract_path);
 
-        $inspect_tmp_name = "docs-inspect-{$branch}.html.upload";
+        // Note: if you change the name, will also need to change upload_files.
         $inspect_final_name = "docs-inspect-{$branch}.html";
         $inspect_path = "{$temp_directory->path}/{$inspect_final_name}";
 
@@ -85,36 +82,63 @@ function main() {
             "{$inspect_exec} '{$extract_path}' -version-string '{$version_string}' > '{$inspect_path}'",
             $extract_path, null, null, 60*30);
 
-        // Keep a copy of the inspect file for reference.
-        $report_path = EvilGlobals::dataPath('inspect');
+        // Keep a copy of the inspect file, and copy into upload directory.
         copy($inspect_path, "{$report_path}/{$inspect_final_name}");
+        copy($inspect_path, "{$upload_path}/{$inspect_final_name}");
+    }
 
-        if (!is_null($cowic_username)) {
-            $ftp_id = ftp_connect('boost.cowic.de');
-            if (!$ftp_id) {
-                Log::error("Unable to connect to boost.cowic.de to upload inspect report");
-            }
+    upload_files($upload_path);
+}
 
-            if ($ftp_id) {
-                if (!ftp_login($ftp_id, $cowic_username, $cowic_password)) {
-                    Log::error("Error logging in to boost.cowic.de to upload inspect report");
-                    $ftp_id = null;
-                }
-            }
+function upload_files($upload_path) {
+    $files_to_upload = glob("{$upload_path}/docs-inspect-*.html");
+    if (!$files_to_upload) { return true; }
 
-            if ($ftp_id) {
-                $success =
-                    ftp_pasv($ftp_id, true) &&
-                    ftp_put($ftp_id, $inspect_tmp_name, $inspect_path, FTP_BINARY) &&
-                    ftp_rename($ftp_id, $inspect_tmp_name, $inspect_final_name);
-                ftp_close($ftp_id);
 
-                if (!$success) {
-                    Log::error("Error uploading inspect report to boost.cowic.de");
-                }
-            }
+    // Get cowic login details for FTP.
+
+    $cowic_username = EvilGlobals::settings('cowic-username');
+    $cowic_password = EvilGlobals::settings('cowic-password');
+
+    if (is_null($cowic_username) || is_null($cowic_password)) {
+        Log::warning("Not uploading inspect reports as login details not set.");
+        return false;
+    }
+
+    $ftp_id = ftp_connect('boost.cowic.de');
+    if (!$ftp_id) {
+        Log::error("Unable to connect to boost.cowic.de to upload inspect report");
+        return false;
+    }
+
+    if (!ftp_login($ftp_id, $cowic_username, $cowic_password)) {
+        Log::error("Error logging in to boost.cowic.de to upload inspect report");
+        return false;
+    }
+
+    $return = true;
+
+    foreach ($files_to_upload as $inspect_path) {
+        $inspect_final_name = basename($inspect_path);
+        $inspect_tmp_name = "{$inspect_final_name}.upload";
+
+        $success =
+            ftp_pasv($ftp_id, true) &&
+            ftp_put($ftp_id, $inspect_tmp_name, $inspect_path, FTP_BINARY) &&
+            ftp_rename($ftp_id, $inspect_tmp_name, $inspect_final_name);
+
+        if (!$success) {
+            Log::error("Error uploading {$inspect_final_name} report to boost.cowic.de");
+            $return = false;
+        }
+        else {
+            unlink($inspect_path);
         }
     }
+
+    ftp_close($ftp_id);
+
+    return $return;
 }
 
 main();
