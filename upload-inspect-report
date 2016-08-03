@@ -21,11 +21,13 @@ function main() {
     $cache = new BinTrayCache;
 
     // Get hardlinks of latest downloads.
-    // A bit of race condition here, but minimised by making a hardlink.
+    // Not downloading because the cache doesn't support multiple processes.
+    // A bit of race condition here, but minimised by making a hardlink ASAP.
     // Might tweak the cache implementation so that it's less likely to
     // delete a file here.
 
     $branches = array();
+    $to_inspect = array();
     foreach(array('develop', 'master') as $branch) {
         $details = $cache->latestDownload($branch);
         if ($details) {
@@ -33,9 +35,15 @@ function main() {
             mkdir(dirname($archive_path));
             link($details['path'], $archive_path);
             $details['archive_path'] = $archive_path;
+            $details['sha1_path'] = "{$report_path}/{$branch}-sha1.txt";
             $branches[$branch] = $details;
+
+            $last_sha1 = is_file($details['sha1_path']) ? trim(file_get_contents($details['sha1_path'])) : '';
+            if ($details['sha1'] != $last_sha1) { $to_inspect[] = $branch; }
         }
     }
+
+    if (!$to_inspect) { return; }
 
     // Build inspect.
 
@@ -58,7 +66,8 @@ function main() {
         $inspect_exec = "inspect";
     }
 
-    foreach ($branches as $branch => $details) {
+    foreach ($to_inspect as $branch) {
+        $details = $branches[$branch];
         $extract_path = "{$temp_directory->path}/boost-{$branch}";
         mkdir($extract_path);
         $extract_path = $cache->extractSingleRootArchive($details['archive_path'], $extract_path);
@@ -83,8 +92,9 @@ function main() {
             $extract_path, null, null, 60*30);
 
         // Keep a copy of the inspect file, and copy into upload directory.
-        copy($inspect_path, "{$report_path}/{$inspect_final_name}");
         copy($inspect_path, "{$upload_path}/{$inspect_final_name}");
+        copy($inspect_path, "{$report_path}/{$inspect_final_name}");
+        file_put_contents($details['sha1_path'], $details['sha1']);
     }
 
     upload_files($upload_path);
