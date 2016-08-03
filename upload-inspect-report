@@ -7,8 +7,6 @@ use BoostTasks\BinTrayCache;
 use BoostTasks\TempDirectory;
 
 function main() {
-    $build_inspect = true;
-
     $options = CommandLineOptions::process($_SERVER['argv'],
         'Run inspect on the latest cached downloads from bintray.');
     EvilGlobals::init($options);
@@ -51,24 +49,21 @@ function main() {
 
     // Build inspect.
 
-    if ($build_inspect) {
-        if (!array_key_exists('master', $branches)) {
-            Log::error("Error getting master tarball for inspect.");
-            return;
-        }
-
-        $build_path = "{$temp_directory->path}/build-inspect";
-        mkdir($build_path);
-        $build_path = $cache->extractSingleRootArchive(
-            $branches['master']['archive_path'], $build_path);
-
-        Process::run("{$build_path}/tools/build/bootstrap.sh", "{$build_path}/tools/build", null, null, 60*30);
-        Process::run("{$build_path}/tools/build/b2 -q dist-bin", "{$build_path}/tools/inspect/build", null, null, 60*30);
-        $inspect_exec = "{$build_path}/dist/bin/inspect";
+    if (!array_key_exists('master', $branches)) {
+        Log::error("Error getting master tarball for inspect.");
+        return;
     }
-    else {
-        $inspect_exec = "inspect";
-    }
+
+    $build_path = "{$temp_directory->path}/build-inspect";
+    mkdir($build_path);
+    $build_path = $cache->extractSingleRootArchive(
+        $branches['master']['archive_path'], $build_path);
+
+    Process::run("{$build_path}/tools/build/bootstrap.sh", "{$build_path}/tools/build", null, null, 60*30);
+    Process::run("{$build_path}/tools/build/b2 -q dist-bin", "{$build_path}/tools/inspect/build", null, null, 60*30);
+    $inspect_exec = "{$build_path}/dist/bin/inspect";
+
+    // Run inspect.
 
     foreach ($to_inspect as $branch) {
         $details = $branches[$branch];
