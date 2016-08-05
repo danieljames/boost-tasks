@@ -87,14 +87,15 @@ function main() {
             $version_string .= ", created on ".date(DATE_RFC850, $created);
         }
 
-        // TODO: inspect returns an exit status of 1 when something goes wrong
-        //       and whenever it finds any errors to report - which is always.
-        //       So currently the exit status is completely useless here.
-        //       Maybe either add a flag to inspect, or change the exit
-        //       codes to be more informative.
+        // Status: 0 = no errors, 1 = inspect errors, 2 = error running inspect.
+        // TODO: Would be good to get stderr.
         $status = Process::status(
             "{$inspect_exec} '{$extract_path}' -version-string '{$version_string}' > '{$inspect_path}'",
             $extract_path, null, null, 60*30);
+        if ($status != 0 && $status != 1) {
+            Log::error("Inspect: error running inspect for {$branch}");
+            continue;
+        }
 
         // Keep a copy of the inspect file, and copy into upload directory.
         copy($inspect_path, "{$upload_path}/{$inspect_final_name}");
