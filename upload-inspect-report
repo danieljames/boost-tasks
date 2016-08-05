@@ -54,15 +54,16 @@ function main() {
 
     // Build inspect.
 
-    if (!array_key_exists('master', $branches)) {
-        Log::error("Error getting master tarball for inspect.");
+    $build_branch = 'develop';
+    if (!array_key_exists($build_branch, $branches)) {
+        Log::error("Error getting {$build_branch} tarball for inspect.");
         return;
     }
 
     $build_path = "{$temp_directory->path}/build-inspect";
     mkdir($build_path);
     $build_path = $cache->extractSingleRootArchive(
-        $branches['master']['archive_path'], $build_path);
+        $branches[$build_branch]['archive_path'], $build_path);
 
     Process::run("{$build_path}/tools/build/bootstrap.sh", "{$build_path}/tools/build", null, null, 60*30);
     Process::run("{$build_path}/tools/build/b2 -q dist-bin", "{$build_path}/tools/inspect/build", null, null, 60*30);
