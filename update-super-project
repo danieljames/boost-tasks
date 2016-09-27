@@ -31,7 +31,7 @@ function main($args) {
                 $record->name = 'settings';
             }
             $record->value = $settings;
-            $record->updated_on = Db::isoDateTime();
+            $record->updated_on = new DateTime();
             $record->store();
 
             $history = $db->dispense('history');

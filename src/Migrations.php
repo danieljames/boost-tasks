@@ -10,6 +10,7 @@ class Migrations extends Object {
         'Migrations::migration_PullRequestEvent',
         'Migrations::migration_PullRequest',
         'Migrations::migration_PullRequestEventState',
+        'Migrations::migration_HistoryDates',
     );
 
     static function migrate($db) {
@@ -37,10 +38,10 @@ class Migrations extends Object {
             CREATE TABLE `event` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `github_id` TEXT, `branch` TEXT, `repo` TEXT, `payload` TEXT, `created` NUMERIC, `sequence_start` INTEGER, `type` TEXT);
             CREATE TABLE `eventstate` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `start_id` TEXT, `last_id` TEXT, `name` TEXT);
             CREATE TABLE `githubcache` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `url` TEXT, `next_url` TEXT, `etag` TEXT, `body` TEXT);
-            CREATE TABLE `history` (id INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT, `value` TEXT, `updated_on` NUMERIC);
+            CREATE TABLE `history` (id INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT, `value` TEXT, `updated_on` DATETIME);
             CREATE TABLE `mirror` (id INTEGER PRIMARY KEY AUTOINCREMENT, `path` TEXT, `dirty` INTEGER, `url` TEXT);
             CREATE TABLE `queue` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT, `last_github_id` TEXT, `type` TEXT);
-            CREATE TABLE `variable` (id INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT, `value` TEXT, `updated_on` NUMERIC);
+            CREATE TABLE `variable` (id INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT, `value` TEXT, `updated_on` DATETIME);
             CREATE INDEX index_foreignkey_event_github ON `event` (github_id);
             CREATE INDEX index_foreignkey_eventstate_last ON `eventstate` (last_id);
             CREATE INDEX index_foreignkey_eventstate_start ON `eventstate` (start_id);
@@ -92,5 +93,30 @@ class Migrations extends Object {
             ALTER TABLE `pull_request_event`
             ADD COLUMN `pull_request_state` TEXT
         ');
+    }
+
+    static function migration_HistoryDates($db) {
+        // I've been using isoDateTime for dates, which was the standard
+        // redbean way of doing it, but is problematic since it doesn't
+        // include the timezone. It returns dates in php's configured
+        // timezone, but sqlite assumes dates are UTC, so the times are
+        // all wrong. Update every date in the format that isoDateTime
+        // returns.
+
+        foreach($db->getAll('SELECT id, updated_on FROM history') as $record) {
+            if (preg_match('@^\d{1,4}-\d{1,2}-\d{1,2} \d\d:\d\d:\d\d$@', $record['updated_on'])) {
+                $date = new DateTime($record['updated_on']);
+                $db->exec('UPDATE history SET updated_on = ? WHERE id = ?',
+                    array($date->format('Y-m-d H:i:sP'), $record['id']));
+            }
+        }
+
+        foreach($db->getAll('SELECT id, updated_on FROM variable') as $record) {
+            if (preg_match('@^\d{1,4}-\d{1,2}-\d{1,2} \d\d:\d\d:\d\d$@', $record['updated_on'])) {
+                $date = new DateTime($record['updated_on']);
+                $db->exec('UPDATE variable SET updated_on = ? WHERE id = ?',
+                    array($date->format('Y-m-d H:i:sP'), $record['id']));
+            }
+        }
     }
 }

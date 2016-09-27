@@ -49,7 +49,6 @@ class Db {
     static function convertToBeans($table_name, $objects) { return self::$instance->convertToBeans($table_name, $objects); }
     static function store($object) { return $object->store(); }
     static function trash($object) { return $object->trash(); }
-    static function isoDateTime() { return Db_Impl::isoDateTime(); }
 }
 
 // A database entity.
@@ -406,10 +405,5 @@ class Db_Impl extends Object {
 
         $statement = $this->pdo_connection->prepare($sql);
         return $statement && $statement->execute($query_args);
-    }
-
-    public static function isoDateTime() {
-        // TODO: Time zone?
-        return date('Y-m-d H:i:s');
     }
 }
