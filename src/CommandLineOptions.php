@@ -20,8 +20,8 @@ class CommandLineOptions extends Object
         $this->specs = $specs;
     }
 
-    // Returns an array of options, or an exit code.
-    static function process($args, $description, $specs = null) {
+    // Return GetOptionKit\OptionResult, or and exit code
+    static function processArgs($args, $description, $specs = null) {
         if (!$specs) { $specs = new OptionCollection(); }
         $specs->add('help', "Diplay command line usage.")
             ->defaultValue(false);
@@ -36,7 +36,7 @@ class CommandLineOptions extends Object
 
         try {
             $parser = new OptionParser($specs);
-            $options = $parser->parse($args)->toArray();
+            $result = $parser->parse($args);
         } catch (InvalidOptionException $e) {
             $x->usage($e->getMessage());
             return 1;
@@ -45,12 +45,18 @@ class CommandLineOptions extends Object
             return 1;
         }
 
-        if ($options['help']) {
+        if ($result->get('help')) {
             $x->usage();
             return 0;
         }
 
-        return $options;
+        return $result;
+    }
+
+    // Returns an array of options, or an exit code.
+    static function process($args, $description, $specs = null) {
+        $result = self::processArgs($args, $description, $specs);
+        return is_object($result) ? $result->toArray() : $result;
     }
 
     function usage($message = null) {
