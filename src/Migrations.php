@@ -102,6 +102,10 @@ class Migrations extends Object {
         // timezone, but sqlite assumes dates are UTC, so the times are
         // all wrong. Update every date in the format that isoDateTime
         // returns.
+        //
+        // Turns out this isn't really necessary as I set the timezone
+        // to UTC in the init script. Still it's probably better to
+        // include the timezone anyway.
 
         foreach($db->getAll('SELECT id, updated_on FROM history') as $record) {
             if (preg_match('@^\d{1,4}-\d{1,2}-\d{1,2} \d\d:\d\d:\d\d$@', $record['updated_on'])) {
