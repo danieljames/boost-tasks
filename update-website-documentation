@@ -66,6 +66,22 @@ function update_documentation($branch) {
         // Add the version details.
         file_put_contents("{$extract_path}/.bintray-version", $file->version);
 
+        // Find and remove redirects to master.
+        foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(
+            "{$extract_path}/doc/html")) as $file)
+        {
+            $path = $file->getPathname();
+            $extension = pathinfo($path, PATHINFO_EXTENSION);
+            if (filesize($path) <= 2000 && ($extension == 'htm' || $extension == 'html') &&
+                preg_match(
+                    '@<meta\s+http-equiv\s*=\s*["\']?refresh["\']?\s+content\s*=\s*["\']0;\s*URL=http://www.boost.org/doc/libs/master/@i',
+                    file_get_contents($path)))
+            {
+                echo "Removing redirect to master at {$path}.\n";
+                unlink($path);
+            }
+        }
+
         // Replace the old documentation.
         // Would be nice to overwrite old archive in a cleaner manner...
         if (realpath($destination_path)) { rename($destination_path, "{$temp_directory->path}/old"); }
