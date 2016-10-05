@@ -65,8 +65,8 @@ function main() {
     $build_path = $cache->extractSingleRootArchive(
         $branches[$build_branch]['archive_path'], $build_path);
 
-    Process::run("{$build_path}/tools/build/bootstrap.sh", "{$build_path}/tools/build", null, null, 60*30);
-    Process::run("{$build_path}/tools/build/b2 -q dist-bin", "{$build_path}/tools/inspect/build", null, null, 60*30);
+    Process::run("{$build_path}/tools/build/bootstrap.sh", "{$build_path}/tools/build", null, null, 60*5);
+    Process::run("{$build_path}/tools/build/b2 -q dist-bin", "{$build_path}/tools/inspect/build", null, null, 60*5);
     $inspect_exec = "{$build_path}/dist/bin/inspect";
 
     // Run inspect.
@@ -91,7 +91,7 @@ function main() {
         // TODO: Would be good to get stderr.
         $status = Process::status(
             "{$inspect_exec} '{$extract_path}' -version-string '{$version_string}' > '{$inspect_path}'",
-            $extract_path, null, null, 60*30);
+            $extract_path, null, null, 60*5);
         if ($status != 0 && $status != 1) {
             Log::error("Inspect: error running inspect for {$branch}");
             continue;
