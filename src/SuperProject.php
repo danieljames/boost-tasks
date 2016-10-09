@@ -137,11 +137,9 @@ class SuperProject extends Repo {
 
         if (!$updates) return false;
 
-        natcasesort($names);
-
         $text_updates = '';
-        $message = 'Update ' . implode(', ', $names)." from {$this->submodule_branch}";
-        Log::info("Commit to {$this->branch}: {$message}");
+        $message = $this->getUpdateMessage($names);
+        Log::info("Commit to {$this->branch}: {$message}"));
 
         foreach ($updates as $path => $hash) {
             $text_updates .=
@@ -152,6 +150,14 @@ class SuperProject extends Repo {
         $this->command("commit -m '{$message}'");
 
         return true;
+    }
+
+    function getUpdateMessage($names) {
+        natcasesort($names);
+
+        $message = 'Update ' .implode(', ', $names)." from {$this->submodule_branch}";
+
+        return $message;
     }
 }
 

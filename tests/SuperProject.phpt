@@ -166,6 +166,22 @@ class SuperProjectTest extends TestBase {
             $hash3
         );
     }
+
+    function testCommitMessages() {
+        $x = new SuperProject(array(
+            'path' => __DIR__,
+            'superproject-branch' => 'super-branch',
+            'submodule-branch' => 'sub-branch',
+        ));
+
+        Assert::same(
+            'Update world from sub-branch',
+            $x->getUpdateMessage(array('world')));
+
+        Assert::same(
+            'Update bash, bish, bosh from sub-branch',
+            $x->getUpdateMessage(array('bish', 'bash', 'bosh')));
+    }
 }
 
 $test = new SuperProjectTest();
