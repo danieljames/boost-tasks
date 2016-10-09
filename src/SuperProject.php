@@ -140,7 +140,7 @@ class SuperProject extends Repo {
         natcasesort($names);
 
         $text_updates = '';
-        $message = 'Update ' . implode(', ', $names)." from {$this->submodule_branch}.";
+        $message = 'Update ' . implode(', ', $names)." from {$this->submodule_branch}";
         Log::info("Commit to {$this->branch}: {$message}");
 
         foreach ($updates as $path => $hash) {
