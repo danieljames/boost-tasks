@@ -138,8 +138,8 @@ class SuperProject extends Repo {
         if (!$updates) return false;
 
         $text_updates = '';
-        $message = 'Update ' . implode(', ', $names)." from {$this->submodule_branch}.";
-        Log::info("Commit to {$this->branch}: {$message}");
+        $message = $this->getUpdateMessage($names);
+        Log::info("Commit to {$this->branch}: ".strtok($message, "\n"));
 
         foreach ($updates as $path => $hash) {
             $text_updates .=
@@ -147,9 +147,29 @@ class SuperProject extends Repo {
         }
 
         $this->commandWithInput('update-index --index-info', $text_updates);
-        $this->command("commit -m '{$message}'");
+        $this->commandWithInput("commit -F -", $message);
 
         return true;
+    }
+
+    function getUpdateMessage($names) {
+        natcasesort($names);
+
+        $update = 'Update ' .implode(', ', $names);
+        $message = "{$update} from {$this->submodule_branch}";
+
+        // Git recommends that the short message is 50 character or less,
+        // which seems unreasonably short to me, but there you go.
+        if (strlen($message) > 50) {
+            $message = "Update ".count($names).
+                (count($names) == 1 ? " submodule" : " submodules").
+                " from {$this->submodule_branch}";
+            $message .= "\n\n";
+            $message .= wordwrap($update, 72);
+            $message .= ".\n";
+        }
+
+        return $message;
     }
 }
 
