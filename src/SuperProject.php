@@ -137,6 +137,8 @@ class SuperProject extends Repo {
 
         if (!$updates) return false;
 
+        natcasesort($names);
+
         $text_updates = '';
         $message = 'Update ' . implode(', ', $names)." from {$this->submodule_branch}.";
         Log::info("Commit to {$this->branch}: {$message}");
