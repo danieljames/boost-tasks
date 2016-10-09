@@ -181,6 +181,29 @@ class SuperProjectTest extends TestBase {
         Assert::same(
             'Update bash, bish, bosh from sub-branch',
             $x->getUpdateMessage(array('bish', 'bash', 'bosh')));
+
+        Assert::same(
+            "Update 7 submodules from sub-branch\n\n".
+            "Update bang, bash, bish, bosh, sir, thank you, wham.\n",
+            $x->getUpdateMessage(
+                array('bish', 'bash', 'bosh', 'wham', 'bang',
+                    'thank you', 'sir')));
+
+        Assert::same(
+            "Update 8 submodules from sub-branch\n\n".
+            "Update five potatoes, four, more, one potato, seven potatoes, six\n".
+            "potatoes, three potatoes, two potatoes.\n",
+            $x->getUpdateMessage(
+                array('one potato', 'two potatoes', 'three potatoes',
+                'four', 'five potatoes', 'six potatoes', 'seven potatoes',
+                'more')));
+
+        Assert::same(
+            "Update 1 submodule from sub-branch\n\n".
+            "Update silly long submodule name that wouldn't really happen in the real\n".
+            "world.\n",
+            $x->getUpdateMessage(
+                array("silly long submodule name that wouldn't really happen in the real world")));
     }
 }
 
