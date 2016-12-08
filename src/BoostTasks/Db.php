@@ -384,7 +384,7 @@ class Db_Impl extends Object {
             if ($default_columns) { throw new RuntimeException("Default in update object.\n"); }
 
             $sql = "UPDATE `{$table_name}` SET ";
-            $sql .= implode(',', array_map(function($name) { return "{$name} = ?"; }, array_keys($update)));
+            $sql .= implode(',', array_map(function($name) { return "`{$name}` = ?"; }, array_keys($update)));
             $sql .= " WHERE {$id_name} = ?";
             $query_args = array_values($update);
             $query_args[] = $id;

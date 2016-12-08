@@ -11,6 +11,7 @@ class Migrations extends Object {
         'Migrations::migration_PullRequest',
         'Migrations::migration_PullRequestEventState',
         'Migrations::migration_HistoryDates',
+        'Migrations::migration_MirrorPriority',
     );
 
     static function migrate($db) {
@@ -122,5 +123,28 @@ class Migrations extends Object {
                     array($date->format('Y-m-d H:i:sP'), $record['id']));
             }
         }
+    }
+
+    static function migration_MirrorPriority($db) {
+        $db->exec('
+            ALTER TABLE `mirror`
+            ADD COLUMN `priority` INTEGER DEFAULT 0
+        ');
+
+        $db->exec('
+            UPDATE `mirror` SET `priority` = 0
+        ');
+
+        $boost_mirror = $db->findOne('mirror', 'path = ?', array('/boostorg/boost.git'));
+        if (!$boost_mirror) {
+            // If there isn't already an entry create one. The other
+            // fields should be set the first time it's updated.
+            $boost_mirror = $db->dispense('mirror');
+            $boost_mirror->path = '/boostorg/boost.git';
+            $boost_mirror->dirty = false;
+        }
+        $boost_mirror->priority = -1;
+        $boost_mirror->store();
+
     }
 }

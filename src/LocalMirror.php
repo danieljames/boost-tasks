@@ -67,13 +67,16 @@ class LocalMirror extends Object {
             $entry->path = $path;
             $entry->dirty = $dirty;
         }
+        // Note: Even if there already was a record in the database,
+        // the URL might not be set, e.g. if it was created to set the
+        // priority.
         $entry->url = $url;
         $db->store($entry);
     }
 
     function fetchDirty() {
         $db = EvilGlobals::database();
-        $repos = $db->getAll('SELECT id FROM `'.self::$mirror_table.'` WHERE dirty = ?', Array(true));
+        $repos = $db->getAll('SELECT id FROM `'.self::$mirror_table.'` WHERE dirty = ? ORDER BY `priority`, `path`', Array(true));
 
         foreach ($repos as $row) {
             $self = $this;
