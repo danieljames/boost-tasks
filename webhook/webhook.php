@@ -35,6 +35,9 @@ function webhook_push_handler($event) {
         'build' => array(
            'refs/heads/website' => '/home/www/shared/build-site',
         ),
+        'documentation-fixes' => array(
+           'refs/heads/master' => '/home/www/shared/repos/documentation-fixes',
+        ),
     );
 
     $payload = $event->payload;
