@@ -21,19 +21,19 @@ try {
     mkdir($dst);
 
     $repo = new RepoBase(__DIR__);
-    $hash = $repo->command("rev-parse HEAD");
+    $hash = trim($repo->commandWithOutput("rev-parse HEAD"));
     $repo->command("archive {$hash} | tar -x -C {$dst}");
     file_put_contents("{$dst}/commit_hash.txt", $hash);
-    
+
     #Process::run("rm -r {$dst}/nbproject");
     Process::run("rm {$dst}/upload-this-to-server");
     Process::run("rsync --exclude var --exclude vendor -azv --delete-after {$dst}/ dnljms@boost.org:boost-tasks/");
 
     // Record the upload.
     $repo->command("fetch -p");
-    $tree_hash = $repo->commandWithOutput("git rev-parse {$hash}^{tree}");
-    $commit_hash = $repo->commandWithOutput("git commit-tree -m Upload -p origin/upload -p {$hash} {$tree_hash}");
-    $repo->command("git push origin {$commit_hash}:upload");
+    $tree_hash = trim($repo->commandWithOutput("rev-parse {$hash}^{tree}"));
+    $commit_hash = trim($repo->commandWithOutput("commit-tree -m Upload -p origin/upload -p {$hash} {$tree_hash}"));
+    $repo->command("push origin {$commit_hash}:upload");
 }
 catch (\RuntimeException $e) {
     Log::error("Runtime exception: {$e}");
