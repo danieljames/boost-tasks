@@ -16,14 +16,7 @@ class WebsiteRepo extends Repo {
     function updateDocumentationList($mirror, $version) {
         $website_repo = $this; // NOTE: Need to work on PHP 5.3.
         return $this->attemptAndPush(function() use($website_repo, $mirror, $version) {
-            // If there isn't a config file in the default location, create an
-            // empty local config file so that the website scripts won't fail.
-            if (!is_file('/home/www/shared/config.php')) {
-                $local_config_file = $website_repo->path.'/common/code/boost_config_local.php';
-                if (!is_file($local_config_file)) {
-                    file_put_contents($local_config_file, '');
-                }
-            }
+            $website_repo->setupForRun();
 
             // Update the documentation list
             passthru('php '.
@@ -42,10 +35,28 @@ class WebsiteRepo extends Repo {
         });
     }
 
+    function updateInProgressReleaseNotes() {
+        $website_repo = $this; // NOTE: Need to work on PHP 5.3.
+        return $this->attemptAndPush(function() use($website_repo) {
+            $website_repo->setupForRun();
+
+            // Update the documentation list
+            passthru('php '.
+                $website_repo->path.'/site-tools/update-pages.php '.
+                '--in-progress-only');
+
+            $message = "Rebuild in progress release notes";
+
+            return $website_repo->commitAll($message);
+        });
+    }
+
     function updateSuperProject($super) {
         $website_repo = $this; // NOTE: Need to work on PHP 5.3.
         Log::info("Update maintainer list for {$super->branch}.");
         return $super->attemptAndPush(function() use ($super, $website_repo) {
+            $website_repo->setupForRun();
+
             // Update the maintainer list.
             passthru('php '.
                 $website_repo->path.'/site-tools/update-repo.php '.
@@ -55,5 +66,16 @@ class WebsiteRepo extends Repo {
             $message = "Update maintainer list.";
             return $super->commitAll($message);
         });
+    }
+
+    function setupForRun() {
+        // If there isn't a config file in the default location, create an
+        // empty local config file so that the website scripts won't fail.
+        if (!is_file('/home/www/shared/config.php')) {
+            $local_config_file = $website_repo->path.'/common/code/boost_config_local.php';
+            if (!is_file($local_config_file)) {
+                file_put_contents($local_config_file, '');
+            }
+        }
     }
 }

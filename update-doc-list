@@ -24,6 +24,15 @@ function main($args) {
     $mirror->refresh();
     $mirror->fetchDirty();
 
+    // Rebuild the in progress release notes
+    $website_repo = new WebsiteRepo();
+    $result = $website_repo->updateInProgressReleaseNotes();
+    if (!$result) {
+        // Don't want a hard failure because of a syntax error in the release
+        // notes.
+        echo "Rebuilding the in progress release notes failed.\n";
+    }
+
     // Update the website repo.
     $website_repo = new WebsiteRepo();
     $result = $website_repo->updateDocumentationList($mirror, $version);
