@@ -106,7 +106,11 @@ class BinTrayCache {
             throw new RuntimeException("Problem opening local file to write to.");
         }
 
-        while (!feof($download_fh)) {
+        if (feof($download_fh)) {
+            throw new RuntimeException("Empty download.");
+        }
+
+        do {
             $chunk = fread($download_fh, 8192);
             if ($chunk === false) {
                 throw new RuntimeException("Problem reading chunk.");
@@ -114,7 +118,7 @@ class BinTrayCache {
             if (fwrite($save_fh, $chunk) === false) {
                 throw new RuntimeException("Problem writing chunk.");
             }
-        }
+        } while (!feof($download_fh));
 
         return true;
     }
