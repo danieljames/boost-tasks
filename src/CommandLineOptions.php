@@ -20,8 +20,27 @@ class CommandLineOptions extends Object
         $this->specs = $specs;
     }
 
-    // Return GetOptionKit\OptionResult, or and exit code
-    static function processArgs($args, $description, $specs = null) {
+    function processArgs() {
+        try {
+            $parser = new OptionParser($this->specs);
+            $result = $parser->parse($this->args);
+        } catch (InvalidOptionException $e) {
+            $this->usage($e->getMessage());
+            return 1;
+        } catch (InvalidOptionValue $e) {
+            $this->usage($e->getMessage());
+            return 1;
+        }
+
+        if ($result->get('help')) {
+            $this->usage();
+            return 0;
+        }
+
+        return $result;
+    }
+
+    static function create($args, $description, $specs = null) {
         if (!$specs) { $specs = new OptionCollection(); }
         $specs->add('help', "Diplay command line usage.")
             ->defaultValue(false);
@@ -32,30 +51,13 @@ class CommandLineOptions extends Object
         $specs->add('config-file:', "Configuration file.")
             ->isa('file');
 
-        $x = new CommandLineOptions($args, $description, $specs);
-
-        try {
-            $parser = new OptionParser($specs);
-            $result = $parser->parse($args);
-        } catch (InvalidOptionException $e) {
-            $x->usage($e->getMessage());
-            return 1;
-        } catch (InvalidOptionValue $e) {
-            $x->usage($e->getMessage());
-            return 1;
-        }
-
-        if ($result->get('help')) {
-            $x->usage();
-            return 0;
-        }
-
-        return $result;
+        return new CommandLineOptions($args, $description, $specs);
     }
 
     // Returns an array of options, or an exit code.
     static function process($args, $description, $specs = null) {
-        $result = self::processArgs($args, $description, $specs);
+        $x = self::create($args, $description, $specs);
+        $result = $x->processArgs();
         return is_object($result) ? $result->toArray() : $result;
     }
 
