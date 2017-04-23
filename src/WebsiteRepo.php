@@ -72,7 +72,7 @@ class WebsiteRepo extends Repo {
         // If there isn't a config file in the default location, create an
         // empty local config file so that the website scripts won't fail.
         if (!is_file('/home/www/shared/config.php')) {
-            $local_config_file = $website_repo->path.'/common/code/boost_config_local.php';
+            $local_config_file = $this->path.'/common/code/boost_config_local.php';
             if (!is_file($local_config_file)) {
                 file_put_contents($local_config_file, '');
             }

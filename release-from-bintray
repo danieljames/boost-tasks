@@ -4,15 +4,16 @@
 require_once(__DIR__.'/vendor/autoload.php');
 
 use BoostTasks\BinTrayCache;
+use BoostTasks\Documentation;
 
 define('GET_RELEASE_DOWNLOAD_USAGE', "
-Usage: {} bintray_url
+Usage: {} bintray_version
 
-Downloads the release details from bintray. Example URLs:
+Downloads the release details from bintray. Example versions:
 
-https://dl.bintray.com/boostorg/beta/1.64.0.rc.1/
-https://dl.bintray.com/boostorg/beta/1.64.0.beta.1/
-https://dl.bintray.com/boostorg/release/1.64.0/
+1.64.0.rc.1
+1.64.0.beta.1
+1.64.0
 
 ");
 
@@ -22,14 +23,14 @@ function main($args) {
     $options = $command_line_options->processArgs();
     if (is_numeric($options)) { exit($options); }
 
-    $url = null;
+    $bintray_version = null;
 
     switch (count($options->arguments)) {
     case 0:
-        echo $command_line_options->usage("Error: url required.\n\nUsage: ".basename(__FILE__)." url");
+        echo $command_line_options->usage("Error: version required.\n\nUsage: ".basename(__FILE__)." version");
         exit(1);
     case 1:
-        $url = $options->arguments[0]->arg;
+        $bintray_version = $options->arguments[0]->arg;
         break;
     default:
         echo $command_line_options->usage("Error: too many arguments");
@@ -37,16 +38,6 @@ function main($args) {
     }
 
     EvilGlobals::init($options->toArray());
-
-    if (!preg_match(
-        '@^https?://dl.bintray.com/boostorg/(beta|release)/([^/]+)/(?:source|binaries/?)?$@',
-        $url, $match)) {
-        echo "Unable to interpret URL: {$url}\n";
-        exit(1);
-    }
-
-    $category = $match[1];
-    $bintray_version = $match[2];
 
     // Get a copy of the website, and start up the php libs.
     $website_repo = new WebsiteRepo();
@@ -66,7 +57,18 @@ function main($args) {
         exit(1);
     }
 
+    // Work out the bintray version
+    if ($is_release_candidate || $version_object->is_beta()) {
+        $category = 'beta';
+    } else {
+        $category = 'release';
+    }
+
+    // Download the documentation
+    Documentation::install($bintray_version, $version_object->dir());
+
     // Get the download details from bintray
+    // TODO: This was already downloaded for the documentation.
     $downloads = get_download_details($category, $bintray_version);
 
     if (!$downloads) {
@@ -75,20 +77,18 @@ function main($args) {
     }
 
     // Update releases
-    $releases = new BoostReleases(__DIR__.'/../generated/state/release.txt');
+    $releases = new BoostReleases($website_repo->path.'/generated/state/release.txt');
     $download_page = "https://dl.bintray.com/boostorg/{$category}/{$bintray_version}/source/";
     $releases->set_release_data('boost', $version_object, array(
         'download_page' => $download_page,
         'downloads' => $downloads,
     ));
     if (!$is_release_candidate) {
-        $releases->setReleaseStatus('boost', $version, 'released');
+        $releases->setReleaseStatus('boost', $version_object, 'released');
     }
     $releases->save();
 
     if (!$is_release_candidate) {
-        // TODO: Download from bintray, and extract into place (sort of like
-        //       update-website-documentation in boost-tasks)
         // TODO: Update documentation location (scan-documentation.php)
         // TODO: Update doc list from release (update-doc-list.php).
         // TODO: Update 'latest' in doc list (or remove need for it?)

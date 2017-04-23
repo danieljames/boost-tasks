@@ -14,16 +14,27 @@ class BinTrayCache {
         $this->path = EvilGlobals::dataPath('bintray');
     }
 
-    function fetchDetails($branch) {
-        $files = file_get_contents(
-            "https://api.bintray.com/packages/boostorg/{$branch}/snapshot/files");
+    function fetchDetails($bintray_version) {
+        if ($bintray_version == 'master' || $bintray_version == 'develop') {
+            $url = "https://api.bintray.com/packages/boostorg/{$bintray_version}/snapshot/files";
+            $path = '';
+        } else if (preg_match('@.*(beta|rc)\.?\d*$@', $bintray_version)) {
+            $url = "https://api.bintray.com/packages/boostorg/beta/boost/files";
+            $path = "{$bintray_version}/source/";
+        } else {
+            $url = "https://api.bintray.com/packages/boostorg/release/boost/files";
+            $path = "{$bintray_version}/source/";
+        }
+
+        $files = file_get_contents($url);
         if (!$files) {
             throw new RuntimeException("Error downloading file details from bintray.");
         }
-        return self::getFileDetails($files);
+
+        return self::getFileDetails($files, $path);
     }
 
-    static function getFileDetails($files) {
+    static function getFileDetails($files, $path_prefix = '') {
         // Not using 7zip files because 7z doesn't seem to be installed on the server.
         $extension_priorities = array_flip(array('tar.bz2', 'tar.gz', 'zip'));
         $low_priority = 100;
@@ -35,10 +46,12 @@ class BinTrayCache {
 
         $file_list = array();
         foreach($files as $x) {
-            list($x_base_name, $x_extension) = explode('.', $x->name, 2);
-            if (array_key_exists($x_extension, $extension_priorities)) {
-                $x->priority = $extension_priorities[$x_extension];
-                $file_list[] = $x;
+            if (substr($x->path, 0, strlen($path_prefix)) == $path_prefix) {
+                list($x_base_name, $x_extension) = explode('.', $x->name, 2);
+                if (array_key_exists($x_extension, $extension_priorities)) {
+                    $x->priority = $extension_priorities[$x_extension];
+                    $file_list[] = $x;
+                }
             }
         }
         if (!$file_list) {
@@ -78,7 +91,7 @@ class BinTrayCache {
 
             if (!is_file($download_path)) {
                 if (!$this->downloadFile(
-                    "http://dl.bintray.com/boostorg/{$file->repo}/{$file->name}",
+                    "http://dl.bintray.com/boostorg/{$file->repo}/{$file->path}",
                     $download_path))
                 {
                     return null;
@@ -151,16 +164,16 @@ class BinTrayCache {
         }
     }
 
-    function cleanup($branch = null) {
+    function cleanup($file = null) {
         $branches = array();
-        if (is_null($branch)) {
+        if (is_null($file)) {
             foreach(scandir($this->path) as $dir) {
                 if ($dir[0] === '.') { continue; }
                 $branches[] = $dir;
             }
         }
         else {
-            $branches = array($branch);
+            $branches = array($file->repo);
         }
 
         foreach($branches as $x) {
