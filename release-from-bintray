@@ -111,10 +111,6 @@ function main($args) {
 
     if (!$is_release_candidate) {
         // TODO: Update 'latest' in doc list (or remove need for it?)
-
-        // TODO: Reuse download if already preseent - might be a release
-        //       candidate, so maybe not. Or store its details so that
-        //       they can be compared later.
     }
 }
 
