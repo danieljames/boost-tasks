@@ -40,16 +40,19 @@ function main($args) {
     EvilGlobals::init($options->toArray());
 
     // Get a copy of the website, and start up the php libs.
+
     $website_repo = new WebsiteRepo();
     $website_repo->setupCleanCheckout();
     $website_repo->setupForRun();
     require_once($website_repo->path.'/common/code/boost.php');
 
     // Strip release candidate details as BoostVersion doesn't understand them.
+
     $is_release_candidate = preg_match("@^(.*)[.]rc[.]?\d*$@", $bintray_version, $match);
     $version2 = $is_release_candidate ? $match[1] : $bintray_version;
 
     // Parse the version
+
     try {
         $version_object = BoostVersion::from($version2);
     } catch (BoostVersion_Exception $e) {
@@ -58,6 +61,7 @@ function main($args) {
     }
 
     // Work out the bintray version
+
     if ($is_release_candidate || $version_object->is_beta()) {
         $category = 'beta';
     } else {
@@ -65,14 +69,17 @@ function main($args) {
     }
 
     // Download the documentation
+
     $install_path = Documentation::install($bintray_version, $version_object->dir());
 
-    Log::info("Update documentation list");
     // Update documentation list
+
+    Log::info("Update documentation list");
     passthru("php {$website_repo->path}/site-tools/update-doc-list.php ".
         "--quiet {$install_path} {$version_object}");
 
     // Get the download details from bintray
+
     // TODO: This was already downloaded for the documentation.
     $downloads = get_download_details($category, $bintray_version);
 
@@ -82,6 +89,7 @@ function main($args) {
     }
 
     // Update releases
+
     Log::info("Update release data");
     $releases = new BoostReleases($website_repo->path.'/generated/state/release.txt');
     $download_page = "https://dl.bintray.com/boostorg/{$category}/{$bintray_version}/source/";
@@ -96,9 +104,13 @@ function main($args) {
     }
     $releases->save();
 
+    // Rebuild pages
+
+    Log::info("Rebuild website pages");
+    passthru("php {$website_repo->path}/site-tools/update-pages.php");
+
     if (!$is_release_candidate) {
         // TODO: Update 'latest' in doc list (or remove need for it?)
-        // TODO: Regenerate pages (update-pages.php).
 
         // TODO: Reuse download if already preseent - might be a release
         //       candidate, so maybe not. Or store its details so that
