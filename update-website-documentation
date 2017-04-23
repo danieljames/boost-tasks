@@ -16,26 +16,11 @@ function main() {
     foreach(array('master', 'develop') as $branch) {
         try {
             Documentation::install($branch, $branch);
-            update_documentation($branch);
         }
         catch(RuntimeException $e) {
             Log::error($e);
         }
     }
-}
-
-function update_documentation($branch) {
-    // Get archive path setting.
-    $archives_path = EvilGlobals::settings('website-archives');
-    if (!$archives_path) {
-        throw new RuntimeException("website-archives not set");
-    }
-    if (!is_dir($archives_path)) {
-        throw new RuntimeException("website-archives not a directory");
-    }
-    $archives_path = rtrim($archives_path, '/');
-
-    Documentation::install($branch, $branch);
 }
 
 main();
