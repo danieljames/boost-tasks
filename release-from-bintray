@@ -65,7 +65,12 @@ function main($args) {
     }
 
     // Download the documentation
-    Documentation::install($bintray_version, $version_object->dir());
+    $install_path = Documentation::install($bintray_version, $version_object->dir());
+
+    Log::info("Update documentation list");
+    // Update documentation list
+    passthru("php {$website_repo->path}/site-tools/update-doc-list.php ".
+        "--quiet {$install_path} {$version_object}");
 
     // Get the download details from bintray
     // TODO: This was already downloaded for the documentation.
@@ -77,6 +82,7 @@ function main($args) {
     }
 
     // Update releases
+    Log::info("Update release data");
     $releases = new BoostReleases($website_repo->path.'/generated/state/release.txt');
     $download_page = "https://dl.bintray.com/boostorg/{$category}/{$bintray_version}/source/";
     $releases->set_release_data('boost', $version_object, array(
@@ -91,7 +97,6 @@ function main($args) {
     $releases->save();
 
     if (!$is_release_candidate) {
-        // TODO: Update doc list from release (update-doc-list.php).
         // TODO: Update 'latest' in doc list (or remove need for it?)
         // TODO: Regenerate pages (update-pages.php).
 

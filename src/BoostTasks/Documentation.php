@@ -30,7 +30,7 @@ class Documentation {
         foreach($cache->fetchDetails($bintray_version) as $file) {
             if ($version == $file->version) {
                 Log::info("{$bintray_version} documentation: Already installed: {$file->name}, version {$file->version}.");
-                return;
+                return $destination_path;
             }
 
             Log::info("{$bintray_version} documentation: Attempt to install {$file->name}, version {$file->version}.");
@@ -74,7 +74,7 @@ class Documentation {
 
             $cache->cleanup($file);
             Log::info("{$bintray_version} documentation: Successfully installed documentation.");
-            return;
+            return $destination_path;
         }
 
         throw new RuntimeException("Unable to download any of the files.");
