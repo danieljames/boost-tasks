@@ -108,6 +108,11 @@ function main($args) {
 
     Log::info("Rebuild website pages");
     passthru("php {$website_repo->path}/site-tools/update-pages.php");
+
+    // TODO: Push to github
+    //       Not doing it just yet, as I want to manually check that the update
+    //       is okay. Will have to wait until the next beta to find out for
+    //       sure.
 }
 
 function get_download_details($category, $bintray_version) {
