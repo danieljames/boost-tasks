@@ -76,7 +76,11 @@ function main($args) {
 
     Log::info("Update documentation list");
     passthru("php {$website_repo->path}/site-tools/update-doc-list.php ".
-        "--quiet {$install_path} {$version_object}");
+        "--quiet {$install_path} {$version_object}", $status);
+    if ($status != 0) {
+        echo "Error running update-doc-list.php\n";
+        exit(1);
+    }
 
     // Get the download details from bintray
 
@@ -107,7 +111,11 @@ function main($args) {
     // Rebuild pages
 
     Log::info("Rebuild website pages");
-    passthru("php {$website_repo->path}/site-tools/update-pages.php");
+    passthru("php {$website_repo->path}/site-tools/update-pages.php", $status);
+    if ($status != 0) {
+        echo "Error running update-pages\n";
+        exit(1);
+    }
 
     // TODO: Push to github
     //       Not doing it just yet, as I want to manually check that the update

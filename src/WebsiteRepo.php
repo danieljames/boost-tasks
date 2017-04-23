@@ -20,10 +20,12 @@ class WebsiteRepo extends Repo {
 
             // Update the documentation list
             passthru('php '.
-                $website_repo->path.'/site-tools/update-doc-list.php '.
-                '--quiet '.
-                $mirror->mirror_root.'/boostorg/boost.git '.
-                $version);
+                "{$website_repo->path}/site-tools/update-doc-list.php ".
+                "--quiet {$mirror->mirror_root}/boostorg/boost.git {$version}",
+                $status);
+            if ($status != 0) {
+                throw new RuntimeException("Error running update-doc-list.php");
+            }
 
             if ($version) {
                 $message = "Update documentation list for ".$version;
@@ -42,8 +44,11 @@ class WebsiteRepo extends Repo {
 
             // Update the documentation list
             passthru('php '.
-                $website_repo->path.'/site-tools/update-pages.php '.
-                '--in-progress-only');
+                "{$website_repo->path}/site-tools/update-pages.php ".
+                "--in-progress-only", $status);
+            if ($status != 0) {
+                throw new RuntimeException("Error running update-pages.php");
+            }
 
             $message = "Rebuild in progress release notes";
 
@@ -59,9 +64,11 @@ class WebsiteRepo extends Repo {
 
             // Update the maintainer list.
             passthru('php '.
-                $website_repo->path.'/site-tools/update-repo.php '.
-                $super->path.' '.
-                $super->branch);
+                "{$website_repo->path}/site-tools/update-repo.php ".
+                "{$super->path} {$super->branch}", $status);
+            if ($status != 0) {
+                throw new RuntimeException("Error running update-repo.php");
+            }
 
             $message = "Update maintainer list.";
             return $super->commitAll($message);
