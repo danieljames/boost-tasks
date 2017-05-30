@@ -62,7 +62,7 @@ class Documentation {
                         '@<meta\s+http-equiv\s*=\s*["\']?refresh["\']?\s+content\s*=\s*["\']0;\s*URL=http://www.boost.org/doc/libs/master/@i',
                         file_get_contents($path)))
                 {
-                    echo "Removing redirect to master at {$path}.\n";
+                    echo "Removing redirect to master from {$bintray_version} at {$path}.\n";
                     unlink($path);
                 }
             }
