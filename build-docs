@@ -1,5 +1,0 @@
-#!/bin/sh
-
-cd $(dirname $0)
-./mirror
-exec ./doc-build/build-docs $@

@@ -53,21 +53,25 @@ class BinTrayCacheTest extends TestBase
         $json = json_encode(array(
             array(
                 'name' => 'boost_1_62_0.tar.bz2',
+                'path' => 'boost_1_62_0.tar.bz2',
                 'version' => 'aaaaaaaa',
                 'created' => '2016-07-04',
             ),
             array(
                 'name' => 'boost_1_62_0.zip',
+                'path' => 'boost_1_62_0.zip',
                 'version' => 'bbbbbbbbb',
                 'created' => '2016-07-05',
             ),
             array(
                 'name' => 'boost_1_62_0.tar.gz',
+                'path' => 'boost_1_62_0.tar.gz',
                 'version' => 'bbbbbbbbb',
                 'created' => '2016-07-05',
             ),
             array(
                 'name' => 'boost_1_62_0.7z',
+                'path' => 'boost_1_62_0.7z',
                 'version' => 'bbbbbbbbb',
                 'created' => '2016-07-05',
             ),
@@ -88,11 +92,13 @@ class BinTrayCacheTest extends TestBase
         $json = json_encode(array(
             array(
                 'name' => 'boost_1_62_0.tar.bz2',
+                'path' => 'boost_1_62_0.tar.bz2',
                 'version' => 'aaaaaaaa',
                 'created' => '2016-07-04',
             ),
             array(
                 'name' => 'boost_1_62_0.tar.bz2',
+                'path' => 'boost_1_62_0.tar.bz2',
                 'version' => 'bbbbbbbbb',
                 'created' => '2016-07-05',
             ),
@@ -110,11 +116,13 @@ class BinTrayCacheTest extends TestBase
         $json = json_encode(array(
             array(
                 'name' => 'boost_1_62_0.7z',
+                'path' => 'boost_1_62_0.7z',
                 'version' => 'aaaaaaaa',
                 'created' => '2016-07-04',
             ),
             array(
                 'name' => 'boost_1_62_0.txt',
+                'path' => 'boost_1_62_0.txt',
                 'version' => 'bbbbbbbbb',
                 'created' => '2016-07-05',
             ),

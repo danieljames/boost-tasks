@@ -360,7 +360,7 @@ class Db_Impl extends Object {
                 }
             }
             else {
-                $sql .= '('.implode(',', array_keys($update)).') ';
+                $sql .= '(`'.implode('`,`', array_keys($update)).'`) ';
                 $sql .= 'VALUES('.str_repeat('?,', count($update) - 1).'?)';
                 $query_args = array_values($update);
             }

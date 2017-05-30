@@ -1,0 +1,177 @@
+#!/usr/bin/env php
+<?php
+
+require_once(__DIR__.'/vendor/autoload.php');
+
+use BoostTasks\BinTrayCache;
+use BoostTasks\Documentation;
+
+define('GET_RELEASE_DOWNLOAD_USAGE', "
+Usage: {} bintray_version
+
+Downloads the release details from bintray. Example versions:
+
+1.64.0.rc.1
+1.64.0.beta.1
+1.64.0
+
+");
+
+function main($args) {
+    $command_line_options = CommandLineOptions::create($_SERVER['argv'],
+        "Download the release details from bintray.");
+    $options = $command_line_options->processArgs();
+    if (is_numeric($options)) { exit($options); }
+
+    $bintray_version = null;
+
+    switch (count($options->arguments)) {
+    case 0:
+        echo $command_line_options->usage("Error: version required.\n\nUsage: ".basename(__FILE__)." version");
+        exit(1);
+    case 1:
+        $bintray_version = $options->arguments[0]->arg;
+        break;
+    default:
+        echo $command_line_options->usage("Error: too many arguments");
+        exit(1);
+    }
+
+    EvilGlobals::init($options->toArray());
+
+    // Get a copy of the website, and start up the php libs.
+
+    $website_repo = new WebsiteRepo();
+    $website_repo->setupCleanCheckout();
+    $website_repo->setupForRun();
+    require_once($website_repo->path.'/common/code/boost.php');
+
+    // Strip release candidate details as BoostVersion doesn't understand them.
+
+    $is_release_candidate = preg_match("@^(.*)[.]rc[.]?\d*$@", $bintray_version, $match);
+    $version2 = $is_release_candidate ? $match[1] : $bintray_version;
+
+    // Parse the version
+
+    try {
+        $version_object = BoostVersion::from($version2);
+    } catch (BoostVersion_Exception $e) {
+        echo "Failed to interpret version {$bintray_version}\n";
+        exit(1);
+    }
+
+    // Work out the bintray version
+
+    if ($is_release_candidate || $version_object->is_beta()) {
+        $category = 'beta';
+    } else {
+        $category = 'release';
+    }
+
+    // Download the documentation
+
+    $install_path = Documentation::install($bintray_version, $version_object->dir());
+
+    // Update documentation list
+
+    Log::info("Update documentation list");
+    passthru("php {$website_repo->path}/site-tools/update-doc-list.php ".
+        "--quiet {$install_path} {$version_object}", $status);
+    if ($status != 0) {
+        echo "Error running update-doc-list.php\n";
+        exit(1);
+    }
+
+    // Get the download details from bintray
+
+    // TODO: This was already downloaded for the documentation.
+    $downloads = get_download_details($category, $bintray_version);
+
+    if (!$downloads) {
+        echo "Didn't find any downloads on Bintray.\n";
+        exit(1);
+    }
+
+    // Update releases
+
+    Log::info("Update release data");
+    $releases = new BoostReleases($website_repo->path.'/generated/state/release.txt');
+    $download_page = "https://dl.bintray.com/boostorg/{$category}/{$bintray_version}/source/";
+    $releases->set_release_data('boost', $version_object, array(
+        'download_page' => $download_page,
+        'downloads' => $downloads,
+    ));
+    $short_doc_dir = str_replace('boost_', '', $version_object->dir());
+    $releases->addDocumentation('boost', $version_object, "/doc/libs/{$short_doc_dir}/");
+    if (!$is_release_candidate) {
+        $releases->setReleaseStatus('boost', $version_object, 'released');
+    }
+    $releases->save();
+
+    // Rebuild pages
+
+    Log::info("Rebuild website pages");
+    passthru("php {$website_repo->path}/site-tools/update-pages.php", $status);
+    if ($status != 0) {
+        echo "Error running update-pages\n";
+        exit(1);
+    }
+
+    // TODO: Push to github
+    //       Not doing it just yet, as I want to manually check that the update
+    //       is okay. Will have to wait until the next beta to find out for
+    //       sure.
+}
+
+function get_download_details($category, $bintray_version) {
+    $bintray_api_url = "https://api.bintray.com/packages/boostorg/{$category}/boost/files";
+
+    $details = file_get_contents($bintray_api_url);
+    if ($details === false) {
+        echo "Error downloading details from bintray API\n";
+        exit(1);
+    }
+
+    $details = json_decode($details);
+    if (is_null($details)) {
+        echo "Error decoding json from bintray\n";
+        exit(1);
+    }
+
+    $extensions = array(
+        'bz2' => 'unix',
+        'gz' => 'unix',
+        'zip' => 'windows',
+        '7z' => 'windows',
+    );
+
+    $path_matcher = '@^'.preg_quote($bintray_version, '@').'/(binaries|source)/([^/]*)$@';
+    $downloads = array();
+    foreach($details as $x) {
+        if (preg_match($path_matcher, $x->path, $match)) {
+            $section = $match[1];
+            $filename = $match[2];
+            switch ($section) {
+            case 'source':
+                $extension = pathinfo($filename, PATHINFO_EXTENSION);
+                if (array_key_exists($extension, $extensions)) {
+                    $downloads[$extension] = array(
+                        'line_endings' => $extensions[$extension],
+                        'url' => "https://dl.bintray.com/boostorg/{$category}/{$x->path}",
+                        'sha256' => $x->sha256
+                    );
+                }
+                break;
+            case 'binaries':
+                // TODO
+                break;
+            default:
+                assert(false);
+            }
+        }
+    }
+
+    return $downloads;
+}
+
+main($_SERVER['argv']);
