@@ -3,7 +3,6 @@
 namespace BoostTasks;
 
 use PDO;
-use stdClass;
 use RuntimeException;
 use Exception;
 use Nette\Object;
@@ -25,6 +24,10 @@ class Db {
         return new Db_Impl(new PDO($dsn, $username, $password));
     }
 
+    static function createFromPdo($pdo) {
+        return new Db_Impl($pdo);
+    }
+
     static function initSqlite($path) {
         self::$instance = self::createSqlite($path);
         return true;
@@ -40,11 +43,13 @@ class Db {
     static function rollback() { return self::$instance->rollback(); }
     static function exec($sql, $query_args=array()) { return self::$instance->exec($sql, $query_args); }
     static function getAll($sql, $query_args=array()) { return self::$instance->getAll($sql, $query_args); }
+    static function getCol($sql, $query_args=array()) { return self::$instance->getCol($sql, $query_args); }
     static function getCell($sql, $query_args=array()) { return self::$instance->getCell($sql, $query_args); }
     static function getRow($sql, $query_args=array()) { return self::$instance->getRow($sql, $query_args); }
     static function dispense($table_name) { return self::$instance->dispense($table_name); }
     static function load($table_name, $id) { return self::$instance->load($table_name, $id); }
     static function find($table_name, $query = '', $query_args = array()) { return self::$instance->find($table_name, $query, $query_args); }
+    static function findAll($table_name, $order_limit = '') { return self::$instance->findAll($table_name, $order_limit); }
     static function findOne($table_name, $query = '', $query_args = array()) { return self::$instance->findOne($table_name, $query, $query_args); }
     static function convertToBeans($table_name, $objects) { return self::$instance->convertToBeans($table_name, $objects); }
     static function store($object) { return $object->store(); }
@@ -53,9 +58,6 @@ class Db {
 
 // A database entity.
 // Fields are dynamically added.
-// Note: Not extending Nette\Object because it has fields
-//       dynamically added. Need to think about doing that
-//       in a safer manner.
 class Db_Entity {
     var $__meta;
 
@@ -65,6 +67,18 @@ class Db_Entity {
 
     function trash() {
         return $this->__meta->connection->trash($this);
+    }
+
+    function __set($name, $value) {
+        if ($this->__meta) {
+            throw new RuntimeException("Unknown column: {$name}");
+        } else {
+            $this->$name = $value;
+        }
+    }
+
+    function __get($name) {
+        throw new RuntimeException("Unknown column: {$name}");
     }
 }
 
@@ -97,6 +111,11 @@ class Db_Impl extends Object {
     public function __construct($pdo) {
         $this->pdo_connection = $pdo;
         $this->pdo_connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->pdo_connection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+    }
+
+    public function getDriverName() {
+        return $this->pdo_connection->getAttribute(PDO::ATTR_DRIVER_NAME);
     }
 
     public function transaction($callback) {
@@ -141,6 +160,20 @@ class Db_Impl extends Object {
         }
     }
 
+    public function getCol($sql, $query_args = array()) {
+        $statement = $this->pdo_connection->prepare($sql);
+        if ($statement && $statement->execute($query_args)) {
+            $col = array();
+            while ($row = $statement->fetch(PDO::FETCH_NUM)) {
+                $col[] = $row[0];
+            }
+            return $col;
+        }
+        else {
+            return false;
+        }
+    }
+
     public function getCell($sql, $query_args = array()) {
         $statement = $this->pdo_connection->prepare($sql);
         if ($statement && $statement->execute($query_args)) {
@@ -163,7 +196,7 @@ class Db_Impl extends Object {
     }
 
     public function dispense($table_name) {
-        switch($this->pdo_connection->getAttribute(PDO::ATTR_DRIVER_NAME)) {
+        switch($this->getDriverName()) {
         case 'sqlite':
             $sql = "PRAGMA table_info(`{$table_name}`)";
             $statement = $this->pdo_connection->prepare($sql);
@@ -242,7 +275,7 @@ class Db_Impl extends Object {
                 else if (strtolower($column->Default) == 'current_timestamp' &&
                     (strtolower($column->Type) === 'timestamp' || strtolower($column->Type) === 'datetime'))
                 {
-                    $object->{$name} = Connection_Default::$instance;
+                    $object->{$name} = Db_Default::$instance;
                 }
                 else {
                     $object->{$name} = $column->Default;
@@ -264,8 +297,13 @@ class Db_Impl extends Object {
     public function find($table_name, $query = '', array $query_args = array()) {
         $query = trim($query);
         $sql = "SELECT * FROM `{$table_name}` ";
-        if ($query && strtolower(substr($query, 0, 6)) !== 'order ') { $sql .= "WHERE "; }
-        $sql .= $query;
+        if ($query) {
+            if (preg_match('/^(order|limit)\b/i', $query)) {
+                $sql .= $query;
+            } else {
+                $sql .= "WHERE {$query}";
+            }
+        }
         $statement = $this->pdo_connection->prepare($sql);
         $success = $statement && $statement->execute($query_args);
         if (!$success) { return false; }
@@ -280,10 +318,22 @@ class Db_Impl extends Object {
         return $result;
     }
 
+    /* Redbean has a 'findAll' method which is identical to 'find'. I guess it's for
+     * backwards compatibility. */
+    public function findAll($table_name, $query = '', array $query_args = array()) {
+        return $this->find($table_name, $query, $query_args);
+    }
+
     public function findOne($table_name, $query = '', array $query_args = array()) {
         $query = trim($query);
         $sql = "SELECT * FROM `{$table_name}`";
-        if ($query && strtolower(substr($query, 0, 6)) !== 'order ') { $sql .= " WHERE {$query}"; }
+        if ($query) {
+            if (preg_match('/^(order|limit)\b/i', $query)) {
+                $sql .= $query;
+            } else {
+                $sql .= "WHERE {$query}";
+            }
+        }
         $statement = $this->pdo_connection->prepare($sql);
         $success = $statement && $statement->execute($query_args);
         if (!$success) { return false; }
@@ -341,7 +391,7 @@ class Db_Impl extends Object {
             }
         }
 
-        if (is_null($id_name)) { throw new RuntimeException("No id."); }
+        if (is_null($id_name) || !$id) { throw new RuntimeException("No id."); }
 
         if ($is_new) {
             if (!$id instanceof Db_Default) {
@@ -350,7 +400,7 @@ class Db_Impl extends Object {
 
             $sql = "INSERT INTO `{$table_name}` ";
             if (!$update) {
-                if ($this->pdo_connection->getAttribute(PDO::ATTR_DRIVER_NAME) == 'sqlite') {
+                if ($this->getDriverName() == 'sqlite') {
                     $sql .= "DEFAULT VALUES";
                     $query_args = array();
                 }
