@@ -12,6 +12,7 @@ class Migrations extends Object {
         'Migrations::migration_PullRequestEventState',
         'Migrations::migration_HistoryDates',
         'Migrations::migration_MirrorPriority',
+        'Migrations::migration_Unique',
     );
 
     static function migrate($db) {
@@ -146,5 +147,76 @@ class Migrations extends Object {
         $boost_mirror->priority = -1;
         $boost_mirror->store();
 
+    }
+
+    static function migration_Unique($db) {
+        $tables = [
+            'event' => [
+                'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'github_id' => 'TEXT UNIQUE',
+                'type' => 'TEXT',
+                'branch' => 'TEXT',
+                'repo' => 'TEXT',
+                'payload' => 'TEXT',
+                'created' => 'NUMERIC',
+                'sequence_start' => 'INTEGER',
+            ],
+            'eventstate' => [
+                'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'name' => 'TEXT UNIQUE',
+                'start_id' => 'TEXT',
+                'last_id' => 'TEXT',
+            ],
+            'githubcache' => [
+                'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'url' => 'TEXT UNIQUE',
+                'next_url' => 'TEXT',
+                'etag' => 'TEXT',
+                'body' => 'TEXT',
+            ],
+            'history' => [
+                'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'name' => 'TEXT',
+                'value' => 'TEXT',
+                'updated_on' => 'NUMERIC',
+            ],
+            'mirror' => [
+                'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'url' => 'TEXT UNIQUE',
+                'path' => 'TEXT UNIQUE',
+                'dirty' => 'INTEGER',
+                'priority' => 'INTEGER DEFAULT 0',
+            ],
+            'queue' => [
+                'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'name' => 'TEXT UNIQUE',
+                'last_github_id' => 'TEXT',
+                'type' => 'TEXT',
+            ],
+            'variable' => [
+                'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'name' => 'TEXT UNIQUE',
+                'value' => 'TEXT',
+                'updated_on' => 'NUMERIC',
+            ]
+        ];
+
+        foreach($tables as $table => $columns) {
+            $table_old = "{$table}_old_20170604";
+            $db->exec("ALTER TABLE `$table` RENAME TO `{$table_old}`");
+            $create_table_sql = "CREATE TABLE `$table` (\n";
+            $columns_sql = [];
+            foreach($columns as $name => $type) {
+                $columns_sql[] = "    `{$name}` $type";
+            }
+            $create_table_sql .=  implode(",\n", $columns_sql);
+            $create_table_sql .= "\n)";
+            $db->exec($create_table_sql);
+            $db->exec("INSERT INTO `{$table}` (`".
+                implode("`, `", array_keys($columns)).
+                "`) SELECT `".
+                implode("`, `", array_keys($columns)).
+                "` FROM {$table_old}");
+        }
     }
 }
