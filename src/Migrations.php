@@ -150,8 +150,8 @@ class Migrations extends Object {
     }
 
     static function migration_Unique($db) {
-        $tables = [
-            'event' => [
+        $tables = array(
+            'event' => array(
                 'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
                 'github_id' => 'TEXT UNIQUE',
                 'type' => 'TEXT',
@@ -160,52 +160,52 @@ class Migrations extends Object {
                 'payload' => 'TEXT',
                 'created' => 'NUMERIC',
                 'sequence_start' => 'INTEGER',
-            ],
-            'eventstate' => [
+            ),
+            'eventstate' => array(
                 'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
                 'name' => 'TEXT UNIQUE',
                 'start_id' => 'TEXT',
                 'last_id' => 'TEXT',
-            ],
-            'githubcache' => [
+            ),
+            'githubcache' => array(
                 'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
                 'url' => 'TEXT UNIQUE',
                 'next_url' => 'TEXT',
                 'etag' => 'TEXT',
                 'body' => 'TEXT',
-            ],
-            'history' => [
+            ),
+            'history' => array(
                 'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
                 'name' => 'TEXT',
                 'value' => 'TEXT',
                 'updated_on' => 'NUMERIC',
-            ],
-            'mirror' => [
+            ),
+            'mirror' => array(
                 'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
                 'url' => 'TEXT UNIQUE',
                 'path' => 'TEXT UNIQUE',
                 'dirty' => 'INTEGER',
                 'priority' => 'INTEGER DEFAULT 0',
-            ],
-            'queue' => [
+            ),
+            'queue' => array(
                 'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
                 'name' => 'TEXT UNIQUE',
                 'last_github_id' => 'TEXT',
                 'type' => 'TEXT',
-            ],
-            'variable' => [
+            ),
+            'variable' => array(
                 'id' => 'INTEGER PRIMARY KEY AUTOINCREMENT',
                 'name' => 'TEXT UNIQUE',
                 'value' => 'TEXT',
                 'updated_on' => 'NUMERIC',
-            ]
-        ];
+            )
+        );
 
         foreach($tables as $table => $columns) {
             $table_old = "{$table}_old_20170604";
             $db->exec("ALTER TABLE `$table` RENAME TO `{$table_old}`");
             $create_table_sql = "CREATE TABLE `$table` (\n";
-            $columns_sql = [];
+            $columns_sql = array();
             foreach($columns as $name => $type) {
                 $columns_sql[] = "    `{$name}` $type";
             }
