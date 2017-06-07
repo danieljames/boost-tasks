@@ -5,6 +5,7 @@ namespace BoostTasks;
 use PDO;
 use RuntimeException;
 use Exception;
+use Iterator;
 use Nette\Object;
 
 // This is an incredibly crude little library for database stuff that I
@@ -46,11 +47,13 @@ class Db {
     static function getCol($sql, $query_args=array()) { return self::$instance->getCol($sql, $query_args); }
     static function getCell($sql, $query_args=array()) { return self::$instance->getCell($sql, $query_args); }
     static function getRow($sql, $query_args=array()) { return self::$instance->getRow($sql, $query_args); }
+    static function getIterator($sql, $query_args=array()) { return self::$instance->getIterator($sql, $query_args); }
     static function dispense($table_name) { return self::$instance->dispense($table_name); }
     static function load($table_name, $id) { return self::$instance->load($table_name, $id); }
     static function find($table_name, $query = '', $query_args = array()) { return self::$instance->find($table_name, $query, $query_args); }
     static function findAll($table_name, $order_limit = '') { return self::$instance->findAll($table_name, $order_limit); }
     static function findOne($table_name, $query = '', $query_args = array()) { return self::$instance->findOne($table_name, $query, $query_args); }
+    static function findIterator($table_name, $query = '', $query_args = array()) { return self::$instance->findIterator($table_name, $query, $query_args); }
     static function convertToBeans($table_name, $objects) { return self::$instance->convertToBeans($table_name, $objects); }
     static function store($object) { return $object->store(); }
     static function trash($object) { return $object->trash(); }
@@ -157,6 +160,16 @@ class Db_Impl extends Object {
         }
         else {
             return false;
+        }
+    }
+
+    public function getIterator($sql, $query_args = array()) {
+        $statement = $this->pdo_connection->prepare($sql);
+        if ($statement && $statement->execute($query_args)) {
+            return new Db_SelectIterator($statement);
+        }
+        else {
+            throw new RuntimeException("Error creating get iterator");
         }
     }
 
@@ -295,23 +308,11 @@ class Db_Impl extends Object {
     }
 
     public function find($table_name, $query = '', array $query_args = array()) {
-        $query = trim($query);
-        $sql = "SELECT * FROM `{$table_name}` ";
-        if ($query) {
-            if (preg_match('/^(order|limit)\b/i', $query)) {
-                $sql .= $query;
-            } else {
-                $sql .= "WHERE {$query}";
-            }
-        }
-        $statement = $this->pdo_connection->prepare($sql);
-        $success = $statement && $statement->execute($query_args);
-        if (!$success) { return false; }
+        $statement = $this->createFindStatement($table_name, $query, $query_args);
+        if (!$statement) { return false; }
 
         $result = array();
-        while($object = $statement->fetchObject(self::$entity_object)) {
-            $object->__meta = new Db_EntityMetaData(
-                $this, $table_name, false);
+        while($object = $this->_fetchBean($table_name, $statement)) {
             $result[] = $object;
         }
 
@@ -325,6 +326,20 @@ class Db_Impl extends Object {
     }
 
     public function findOne($table_name, $query = '', array $query_args = array()) {
+        $statement = $this->createFindStatement($table_name, $query, $query_args);
+        if (!$statement) { return false; }
+        return $this->_fetchBean($table_name, $statement);
+    }
+
+    public function findIterator($table_name, $query = '', array $query_args = array()) {
+        $statement = $this->createFindStatement($table_name, $query, $query_args);
+        if (!$statement) {
+            throw new RuntimeException("Error creating find iterator");
+        }
+        return new Db_Iterator($this, $table_name, $statement);
+    }
+
+    private function createFindStatement($table_name, $query, array $query_args) {
         $query = trim($query);
         $sql = "SELECT * FROM `{$table_name}`";
         if ($query) {
@@ -336,7 +351,11 @@ class Db_Impl extends Object {
         }
         $statement = $this->pdo_connection->prepare($sql);
         $success = $statement && $statement->execute($query_args);
-        if (!$success) { return false; }
+        return $success ? $statement : false;
+    }
+
+    // Public so that the iterator can use it...
+    public function _fetchBean($table_name, $statement) {
         $object = $statement->fetchObject(self::$entity_object);
         if (!$object) { return null; }
         $object->__meta = new Db_EntityMetaData($this, $table_name, false);
@@ -455,5 +474,100 @@ class Db_Impl extends Object {
 
         $statement = $this->pdo_connection->prepare($sql);
         return $statement && $statement->execute($query_args);
+    }
+}
+
+class Db_Iterator implements Iterator {
+    var $db;
+    var $table_name;
+    var $statement;
+    var $index = 0;
+    var $current;
+
+    function __construct($db, $table_name, $statement) {
+        $this->db = $db;
+        $this->table_name = $table_name;
+        $this->statement = $statement;
+        $this->fetchObject();
+    }
+
+    function current() {
+        if ($this->current === null) {
+            throw new RuntimeException("current() called past end of database iterator.");
+        }
+        return $this->current;
+    }
+
+    function key() {
+        return $this->index;
+    }
+
+    function next() {
+        $this->fetchObject();
+        ++$this->index;
+    }
+
+    function rewind() {
+        if ($this->index) {
+            throw new RuntimeException("Db_Iterator doesn't support rewind.");
+        }
+    }
+
+    function valid() {
+        return $this->current !== null;
+    }
+
+    private function fetchObject() {
+        $this->current = $this->db->_fetchBean($this->table_name, $this->statement);
+        if (!$this->current) {
+            $this->db = null;
+            $this->statement = null;
+        }
+    }
+}
+
+class Db_SelectIterator implements Iterator {
+    var $statement;
+    var $index = 0;
+    var $current;
+
+    function __construct($statement) {
+        $this->statement = $statement;
+        $this->fetchRow();
+    }
+
+    function current() {
+        if ($this->current === null) {
+            throw new RuntimeException("current() called past end of database iterator.");
+        }
+        return $this->current;
+    }
+
+    function key() {
+        return $this->index;
+    }
+
+    function next() {
+        $this->fetchRow();
+        ++$this->index;
+    }
+
+    function rewind() {
+        if ($this->index) {
+            throw new RuntimeException("Db_Iterator doesn't support rewind.");
+        }
+    }
+
+    function valid() {
+        return $this->current !== null;
+    }
+
+    private function fetchRow() {
+        $this->current = $this->statement->fetch(PDO::FETCH_ASSOC);
+        if (!$this->current) {
+            $this->current = null;
+            $this->db = null;
+            $this->statement = null;
+        }
     }
 }
