@@ -88,12 +88,12 @@ class Db_Entity {
 // A little bit of extra data about the entity.
 class Db_EntityMetaData extends Object {
     var $connection;
-    var $table_name;
+    var $table;
     var $is_new;
 
-    function __construct($connection, $table_name, $is_new) {
+    function __construct($connection, $table, $is_new) {
         $this->connection = $connection;
-        $this->table_name = $table_name;
+        $this->table = $table;
         $this->is_new = $is_new;
     }
 }
@@ -225,7 +225,7 @@ class Db_Impl extends Object {
         foreach ($table->columns as $name => $default_value) {
             $object->{$name} = $default_value;
         }
-        $object->__meta = new Db_EntityMetaData($this, $table_name, true);
+        $object->__meta = new Db_EntityMetaData($this, $table, true);
         return $object;
     }
 
@@ -284,11 +284,12 @@ class Db_Impl extends Object {
     public function _fetchBean($table_name, $statement) {
         $object = $statement->fetchObject(self::$entity_object);
         if (!$object) { return null; }
-        $object->__meta = new Db_EntityMetaData($this, $table_name, false);
+        $object->__meta = new Db_EntityMetaData($this, $this->getTable($table_name), false);
         return $object;
     }
 
     public function convertToBeans($table_name, $objects) {
+        $table = $this->getTable($table_name);
         $result = array();
         foreach($objects as $array) {
             if (!is_array($array)) {
@@ -298,15 +299,14 @@ class Db_Impl extends Object {
             foreach($array as $key => $value) {
                 $object->$key = $value;
             }
-            $object->__meta = new Db_EntityMetaData(
-                $this, $table_name, false);
+            $object->__meta = new Db_EntityMetaData($this, $table, false);
             $result[] = $object;
         }
         return $result;
     }
 
     public function store($object) {
-        $table_name = $object->__meta->table_name;
+        $table_name = $object->__meta->table->name;
         $is_new = $object->__meta->is_new;
 
         $update = array();
@@ -391,7 +391,7 @@ class Db_Impl extends Object {
 
     public function trash($object) {
         $id = $object->id;
-        $table_name = $object->__meta->table_name;
+        $table_name = $object->__meta->table->name;
         if (!$id) {
             throw new RuntimeException("No id.");
         }
