@@ -159,8 +159,9 @@ class SuperProject extends Repo {
                 if (array_key_exists($submodule->path, $updates)) {
                     // TODO: Github URLs aren't a good identifier, as the same repo
                     //       can have multiple URLs.
+                    $url = "https://github.com/{$submodule->github_name}.git";
                     Log::info("Schedule mirror fetch for: {$url}");
-                    $mirror->update("https://github.com/{$submodule->github_name}.git", true);
+                    $mirror->update($url, true);
                 }
             }
         }
