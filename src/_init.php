@@ -1,6 +1,10 @@
 <?php
 
-// Set up autoloading.
+// Path constants
+
+define('BOOST_TASKS_ROOT', dirname(__DIR__));
+
+// Set up autoloading, if not already done
 
 require_once __DIR__.'/../vendor/autoload.php';
 

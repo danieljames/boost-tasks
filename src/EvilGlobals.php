@@ -40,7 +40,7 @@ class EvilGlobals extends Object {
         if (is_numeric($options)) { exit($options); }
 
         if (!self::$settings_reader) {
-            self::$settings_reader = new EvilGlobals_SettingsReader(self::$settings_types, __DIR__.'/..');
+            self::$settings_reader = new EvilGlobals_SettingsReader(self::$settings_types, BOOST_TASKS_ROOT);
         }
         self::$instance = new EvilGlobals($options);
     }
@@ -77,7 +77,7 @@ class EvilGlobals extends Object {
                 if ($path instanceof SplFileInfo) { $path = $path->getRealPath(); }
             }
             else {
-                $path = __DIR__.'/../var/config.neon';
+                $path = BOOST_TASKS_ROOT.'/var/config.neon';
                 if (!is_file($path)) {
                     echo "Config file not found.\n\n";
                     echo "See README.md for configuration instructions.\n";
