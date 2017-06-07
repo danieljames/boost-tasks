@@ -98,6 +98,16 @@ class Db_EntityMetaData extends Object {
     }
 }
 
+class Db_TableSchema extends Object {
+    var $name;
+    var $columns;
+
+    function __construct($name, $columns) {
+        $this->name = $name;
+        $this->columns = $columns;
+    }
+}
+
 // Used for automatically filled in fields.
 // TODO: Could do a lot better by tracking when a field is set, or perhaps
 //       even by not setting such fields in a new entity.
@@ -110,6 +120,7 @@ Db_Default::$instance = new Db_Default();
 class Db_Impl extends Object {
     static $entity_object = 'BoostTasks\\Db_Entity';
     var $pdo_connection;
+    var $schema = Array();
 
     public function __construct($pdo) {
         $this->pdo_connection = $pdo;
@@ -209,97 +220,12 @@ class Db_Impl extends Object {
     }
 
     public function dispense($table_name) {
-        switch($this->getDriverName()) {
-        case 'sqlite':
-            $sql = "PRAGMA table_info(`{$table_name}`)";
-            $statement = $this->pdo_connection->prepare($sql);
-            $success = $statement && $statement->execute(array());
-            if (!$success) { return false; }
-
-            $found = false;
-            $object = new self::$entity_object();
-            while($column = $statement->fetchObject()) {
-                $found = true;
-                $name = $column->name;
-                $default = trim(strtolower($column->dflt_value));
-                if ($default === '') { $default = 'null'; }
-                switch($default[0]) {
-                case 'n':
-                    // Crude attempt at support autoincrementing columns.
-                    if ($default === 'null' && $column->pk) {
-                        $object->{$name} = Db_Default::$instance;
-                    }
-                    else {
-                        $object->{$name} = null;
-                    }
-                    break;
-                case '"':
-                    if (preg_match('@^"(.*)"$@', $column->dflt_value, $matches)) {
-                        $object->{$name} = str_replace('""', '"', $matches[1]);
-                    }
-                    else {
-                        throw new RuntimeException("Invalid string default");
-                    }
-                    break;
-                case "'":
-                    if (preg_match('@^\'(.*)\'$@', $column->dflt_value, $matches)) {
-                        $object->{$name} = str_replace("''", "'", $matches[1]);
-                    }
-                    else {
-                        throw new RuntimeException("Invalid string default");
-                    }
-                    break;
-                case '`':
-                    if (preg_match('@^`(.*)`$@', $column->dflt_value, $matches)) {
-                        $object->{$name} = str_replace('``', '`', $matches[1]);
-                    }
-                    else {
-                        throw new RuntimeException("Invalid string default");
-                    }
-                    break;
-                case '+': case '-':
-                case '0': case '1': case '2': case '3': case '4':
-                case '5': case '6': case '7': case '8': case '9':
-                    $object->{$name} = $default;
-                    break;
-                case 'c': // current_date/current_time/current_timestamp
-                case '(': // expression
-                    $object->{$name} = Db_Default::$instance;
-                    break;
-                default:
-                    Log::warning("Unrecognized default: {$default}");
-                    break;
-                }
-            }
-            if (!$found) { throw new RuntimeException("Error finding table: {$table_name}.\n"); }
-            break;
-        case 'mysql':
-            $sql = "DESCRIBE `{$table_name}`";
-            $statement = $this->pdo_connection->prepare($sql);
-            $success = $statement && $statement->execute(array());
-            if (!$success) { return false; }
-
-            $object = new self::$entity_object();
-            while($column = $statement->fetchObject()) {
-                $name = $column->Field;
-                if (preg_match('@\bauto_increment\b@', strtolower($column->Extra))) {
-                    $object->{$name} = Db_Default::$instance;
-                }
-                else if (strtolower($column->Default) == 'current_timestamp' &&
-                    (strtolower($column->Type) === 'timestamp' || strtolower($column->Type) === 'datetime'))
-                {
-                    $object->{$name} = Db_Default::$instance;
-                }
-                else {
-                    $object->{$name} = $column->Default;
-                }
-            }
-            break;
-        default:
-            echo "Unrecognized database type";
+        $table = $this->getTable($table_name);
+        $object = new self::$entity_object();
+        foreach ($table->columns as $name => $default_value) {
+            $object->{$name} = $default_value;
         }
         $object->__meta = new Db_EntityMetaData($this, $table_name, true);
-
         return $object;
     }
 
@@ -474,6 +400,112 @@ class Db_Impl extends Object {
 
         $statement = $this->pdo_connection->prepare($sql);
         return $statement && $statement->execute($query_args);
+    }
+
+    private function getTable($table_name) {
+        if (array_key_exists($table_name, $this->schema)) { return $this->schema[$table_name]; }
+        switch($this->getDriverName()) {
+        case 'sqlite':
+            return $this->schema[$table_name] = $this->getTableFromSqlite($table_name);
+        case 'mysql':
+            return $this->schema[$table_name] = $this->getTableFromMysql($table_name);
+        default:
+            echo "Unrecognized database type";
+            exit(1);
+        }
+    }
+
+    private function getTableFromSqlite($table_name) {
+        $sql = "PRAGMA table_info(`{$table_name}`)";
+        $statement = $this->pdo_connection->prepare($sql);
+        $success = $statement && $statement->execute(array());
+        if (!$success) { throw new RuntimeException("Error finding table: {$table_name}.\n"); }
+
+        $columns = array();
+
+        while($column = $statement->fetchObject()) {
+            $name = $column->name;
+            $default = trim(strtolower($column->dflt_value));
+            if ($default === '') { $default = 'null'; }
+            switch($default[0]) {
+            case 'n':
+                // Crude attempt at support autoincrementing columns.
+                if ($default === 'null' && $column->pk) {
+                    $default_value = Db_Default::$instance;
+                }
+                else {
+                    $default_value = null;
+                }
+                break;
+            case '"':
+                if (preg_match('@^"(.*)"$@', $column->dflt_value, $matches)) {
+                    $default_value = str_replace('""', '"', $matches[1]);
+                }
+                else {
+                    throw new RuntimeException("Invalid string default");
+                }
+                break;
+            case "'":
+                if (preg_match('@^\'(.*)\'$@', $column->dflt_value, $matches)) {
+                    $default_value = str_replace("''", "'", $matches[1]);
+                }
+                else {
+                    throw new RuntimeException("Invalid string default");
+                }
+                break;
+            case '`':
+                if (preg_match('@^`(.*)`$@', $column->dflt_value, $matches)) {
+                    $default_value = str_replace('``', '`', $matches[1]);
+                }
+                else {
+                    throw new RuntimeException("Invalid string default");
+                }
+                break;
+            case '+': case '-':
+            case '0': case '1': case '2': case '3': case '4':
+            case '5': case '6': case '7': case '8': case '9':
+                $default_value = $default;
+                break;
+            case 'c': // current_date/current_time/current_timestamp
+            case '(': // expression
+                $default_value = Db_Default::$instance;
+                break;
+            default:
+                Log::warning("Unrecognized default: {$default}");
+                break;
+            }
+
+            $columns[$column->name] = $default_value;
+        }
+        if (!$columns) { throw new RuntimeException("Error finding table: {$table_name}.\n"); }
+
+        return new Db_TableSchema($table_name, $columns);
+    }
+
+    private function getTableFromMysql($table_name) {
+        $sql = "DESCRIBE `{$table_name}`";
+        $statement = $this->pdo_connection->prepare($sql);
+        $success = $statement && $statement->execute(array());
+        if (!$success) { throw new RuntimeException("Error finding table: {$table_name}.\n"); }
+
+        $columsn = array();
+        while($column = $statement->fetchObject()) {
+            $name = $column->Field;
+            if (preg_match('@\bauto_increment\b@', strtolower($column->Extra))) {
+                $default_value = Db_Default::$instance;
+            }
+            else if (strtolower($column->Default) == 'current_timestamp' &&
+                (strtolower($column->Type) === 'timestamp' || strtolower($column->Type) === 'datetime'))
+            {
+                $default_value = Db_Default::$instance;
+            }
+            else {
+                $default_value = $column->Default;
+            }
+            $columns[$name] = $default_value;
+        }
+
+        return new Db_TableSchema($table_name, $columns);
     }
 }
 
