@@ -343,7 +343,7 @@ class Db_Impl extends Object {
         $query = trim($query);
         $sql = "SELECT * FROM `{$table_name}`";
         if ($query) {
-            if (preg_match('/^(order|limit)\b/i', $query)) {
+            if (preg_match('/^(where|join|order|limit)\b/i', $query)) {
                 $sql .= $query;
             } else {
                 $sql .= "WHERE {$query}";
