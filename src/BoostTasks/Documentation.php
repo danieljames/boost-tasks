@@ -36,16 +36,7 @@ class Documentation {
             Log::info("{$bintray_version} documentation: Attempt to install {$file->name}, version {$file->version}.");
 
             // Download tarball.
-            try {
-                $file_path = $cache->cachedDownload($file);
-            } catch (RuntimeException $e) {
-                // TODO: Better error handling. This doesn't distinguish between
-                //       things which should cause us to give up entirely, and
-                //       things which should cause us to try the next possible download.
-                Log::info("Download error: {$e->getMessage()}");
-                $file_path = null;
-            }
-
+            $file_path = $cache->cachedDownload($file);
             if (!$file_path) {
                 Log::info("Download failed.");
                 continue;

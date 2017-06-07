@@ -61,7 +61,7 @@ class SuperProject extends Repo {
             // Include any events that have arrived since starting this update.
             $queue->downloadMoreEvents();
             $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
-            return $self->updateHashes($submodules);
+            return $self->updateHashes($submodules, true);
         });
     }
 
@@ -113,9 +113,10 @@ class SuperProject extends Repo {
      * Update the repo to use the given submodule hashes.
      *
      * @param Array $hashes
+     * @param boolean $mark_mirror_dirty
      * @return boolean True if a change was committed.
      */
-    function updateHashes($submodules) {
+    function updateHashes($submodules, $mark_mirror_dirty = false) {
         $paths = Array();
         foreach($submodules as $submodule) {
             if ($submodule->updated_hash_value) {
@@ -148,6 +149,21 @@ class SuperProject extends Repo {
 
         $this->commandWithInput('update-index --index-info', $text_updates);
         $this->commandWithInput("commit -F -", $message);
+
+        // A bit of hack, tell the mirror to fetch any updated submodules.
+        // The main concern is that sometimes the event queue misses a
+        // push event, and the update is caught by 'updateAllSubmoduleHashes'.
+        if ($mark_mirror_dirty) {
+            $mirror = new LocalMirror;
+            foreach($submodules as $submodule) {
+                if (array_key_exists($submodule->path, $updates)) {
+                    // TODO: Github URLs aren't a good identifier, as the same repo
+                    //       can have multiple URLs.
+                    Log::info("Schedule mirror fetch for: {$url}");
+                    $mirror->update("https://github.com/{$submodule->github_name}.git", true);
+                }
+            }
+        }
 
         return true;
     }
