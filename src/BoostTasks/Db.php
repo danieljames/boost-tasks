@@ -141,6 +141,12 @@ class Db_Impl extends Object {
         return $this->pdo_connection->getAttribute(PDO::ATTR_DRIVER_NAME);
     }
 
+    //
+    // Transactions
+    //
+
+    // Run $callback and wrap in a (possibly nested) transaction.
+    // If there's an exception rollback the transaction, even if nested.
     public function transaction($callback) {
         if ($this->nestedBegin() === false) {
             throw new RuntimeException("Error starting transaction");
@@ -249,6 +255,10 @@ class Db_Impl extends Object {
         return $connection;
     }
 
+    //
+    // SQL commands
+    //
+
     public function exec($sql, $query_args = array()) {
         $statement = $this->pdo_connection->prepare($sql);
         return $statement && $statement->execute($query_args);
@@ -308,6 +318,10 @@ class Db_Impl extends Object {
             return false;
         }
     }
+
+    //
+    // 'Bean' getters/finders
+    //
 
     public function dispense($table_name) {
         $table = $this->getTable($table_name);
@@ -400,6 +414,10 @@ class Db_Impl extends Object {
         return $object;
     }
 
+    //
+    // Convert to bean.
+    //
+
     public function convertToBeans($table_name, $objects) {
         $table = $this->getTable($table_name);
         $result = array();
@@ -420,6 +438,10 @@ class Db_Impl extends Object {
         }
         return $result;
     }
+
+    //
+    // Bean modifiers
+    //
 
     public function store($object) {
         $table_name = $object->__meta->table->name;
