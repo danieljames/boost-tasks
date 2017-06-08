@@ -141,12 +141,27 @@ class Db_Impl extends Object {
         return $this->pdo_connection->getAttribute(PDO::ATTR_DRIVER_NAME);
     }
 
+    private function error($message) {
+        $connection = $this->pdo_connection ?: $this->saved_pdo_connection;
+        switch($connection->getAttribute(PDO::ATTR_ERRMODE)) {
+        case PDO::ERRMODE_SILENT:
+            return false;
+        case PDO::ERRMODE_WARNING:
+            trigger_error($message, E_USER_WARNING);
+            return false;
+        default:
+            throw new RuntimeException($message);
+        }
+    }
+
     //
     // Transactions
     //
 
     // Run $callback and wrap in a (possibly nested) transaction.
     // If there's an exception rollback the transaction, even if nested.
+    //
+    // This throws exceptions on error regardless of PDO's error mode
     public function transaction($callback) {
         if ($this->nestedBegin() === false) {
             throw new RuntimeException("Error starting transaction");
@@ -166,7 +181,7 @@ class Db_Impl extends Object {
 
     public function begin() {
         if ($this->transaction_level) {
-            throw new RuntimeError("begin called inside of transaction");
+            return $this->error("begin called inside of transaction");
         }
         if (!$this->pdo_connection->beginTransaction()) { return false; }
         ++$this->transaction_level;
@@ -184,7 +199,7 @@ class Db_Impl extends Object {
 
     public function rollback() {
         if (!$this->transaction_level) {
-            throw new RuntimeError("rollback called outside of transaction");
+            return $this->error("rollback called outside of transaction");
         }
         if ($this->is_explicit_transaction) {
             --$this->transaction_level;
@@ -195,7 +210,7 @@ class Db_Impl extends Object {
 
     public function nestedRollback() {
         if ($this->transaction_level <= ($this->is_explicit_transaction ? 1 : 0)) {
-            throw new RuntimeError("nestedRollback called outside of nested transaction");
+            return $this->error("nestedRollback called outside of nested transaction");
         }
         --$this->transaction_level;
         return $this->rollbackTransactionImpl();
@@ -215,7 +230,7 @@ class Db_Impl extends Object {
 
     public function commit() {
         if (!$this->transaction_level || !$this->pdo_connection) {
-            throw new RuntimeError("commit called outside of active transaction");
+            return $this->error("commit called outside of active transaction");
         }
         if ($this->is_explicit_transaction) {
             --$this->transaction_level;
@@ -226,7 +241,7 @@ class Db_Impl extends Object {
 
     public function nestedEnd() {
         if ($this->transaction_level <= ($this->is_explicit_transaction ? 1 : 0)) {
-            throw new RuntimeError("nestedRollback called outside of nested transaction");
+            return $this->error("nestedRollback called outside of nested transaction");
         }
         --$this->transaction_level;
 
@@ -274,6 +289,7 @@ class Db_Impl extends Object {
         }
     }
 
+    // This throws exceptions on error regardless of PDO's error mode
     public function getIterator($sql, $query_args = array()) {
         $statement = $this->pdo_connection->prepare($sql);
         if ($statement && $statement->execute($query_args)) {
@@ -325,6 +341,8 @@ class Db_Impl extends Object {
 
     public function dispense($table_name) {
         $table = $this->getTable($table_name);
+        if (!$table) { return false; }
+
         $object = new self::$entity_object();
         foreach ($table->columns as $name => $default_value) {
             $object->{$name} = $default_value;
@@ -335,6 +353,7 @@ class Db_Impl extends Object {
 
     public function load($table_name, $id) {
         $table = $this->getTable($table_name);
+        if (!$table) { return false; }
 
         $args = func_get_args();
         array_shift($args);
@@ -380,6 +399,7 @@ class Db_Impl extends Object {
         return $this->_fetchBean($table, $statement);
     }
 
+    // This throws exceptions on error regardless of PDO's error mode
     public function findIterator($table_name, $query = '', array $query_args = array()) {
         $table = $this->getTable($table_name);
         if (!$table) {
@@ -431,6 +451,8 @@ class Db_Impl extends Object {
 
     public function convertToBeans($table_name, $objects) {
         $table = $this->getTable($table_name);
+        if (!$table) { return false; }
+
         $result = array();
         foreach($objects as $array) {
             if (!is_array($array)) {
@@ -523,7 +545,7 @@ class Db_Impl extends Object {
 
             $object->__meta->is_new = false;
         } else {
-            if ($default_columns) { throw new RuntimeException("Default in update object.\n"); }
+            if ($default_columns) { return $this->error("Default column in update object"); }
 
             $sql = "UPDATE `{$table_name}` SET ";
             $sql .= implode(',', array_map(function($name) { return "`{$name}` = ?"; }, array_keys($update)));
@@ -580,7 +602,7 @@ class Db_Impl extends Object {
         $sql = "PRAGMA table_info(`{$table_name}`)";
         $statement = $this->pdo_connection->prepare($sql);
         $success = $statement && $statement->execute(array());
-        if (!$success) { throw new RuntimeException("Error finding table: {$table_name}.\n"); }
+        if (!$success) { return $this->error("Error finding table: {$table_name}"); }
 
         $columns = array();
         $primary_key = array();
@@ -601,7 +623,7 @@ class Db_Impl extends Object {
                     $default_value = str_replace('""', '"', $matches[1]);
                 }
                 else {
-                    throw new RuntimeException("Invalid string default");
+                    return $this->error("Invalid string default");
                 }
                 break;
             case "'":
@@ -609,7 +631,7 @@ class Db_Impl extends Object {
                     $default_value = str_replace("''", "'", $matches[1]);
                 }
                 else {
-                    throw new RuntimeException("Invalid string default");
+                    return $this->error("Invalid string default");
                 }
                 break;
             case '`':
@@ -617,7 +639,7 @@ class Db_Impl extends Object {
                     $default_value = str_replace('``', '`', $matches[1]);
                 }
                 else {
-                    throw new RuntimeException("Invalid string default");
+                    return $this->error("Invalid string default");
                 }
                 break;
             case '+': case '-':
@@ -636,7 +658,7 @@ class Db_Impl extends Object {
 
             $columns[$column->name] = $default_value;
         }
-        if (!$columns) { throw new RuntimeException("Error finding table: {$table_name}.\n"); }
+        if (!$columns) { return $this->error("Error finding table: {$table_name}"); }
 
         ksort($primary_key);
         $primary_key = array_values($primary_key);
@@ -647,7 +669,7 @@ class Db_Impl extends Object {
             $sql = "PRAGMA index_list(`{$table_name}`)";
             $statement = $this->pdo_connection->prepare($sql);
             $success = $statement && $statement->execute(array());
-            if (!$success) { throw new RuntimeException("Error getting indexes for: {$table_name}.\n"); }
+            if (!$success) { return $this->error("Error getting indexes for: {$table_name}"); }
             while($column = $statement->fetchObject()) {
                 if ($column->origin == 'pk') {
                     $primary_key_name = $column->name;
@@ -661,7 +683,7 @@ class Db_Impl extends Object {
             $sql = "PRAGMA index_xinfo(`{$primary_key_name}`)";
             $statement = $this->pdo_connection->prepare($sql);
             $success = $statement && $statement->execute(array());
-            if (!$success) { throw new RuntimeException("Error getting primary key for: {$table_name}.\n"); }
+            if (!$success) { return $this->error("Error getting primary key for: {$table_name}"); }
             while($column = $statement->fetchObject()) {
                 if ($column->cid == -1) { $row_id = true; }
             }
@@ -678,7 +700,7 @@ class Db_Impl extends Object {
             else if (!array_key_exists('oid', $columns)) { $row_id = 'oid'; }
             else if (!array_key_exists('_rowid_', $columns)) { $row_id = '_rowid_'; }
             else if ($primary_key) { $row_id = null; }
-            else throw new RuntimeException("Can't get rowid column for {$table_name}");
+            else return $this->error("Can't get rowid column for {$table_name}");
         }
 
         if ($row_id) { $columns[$row_id] = Db_Default::$instance; }
@@ -690,7 +712,7 @@ class Db_Impl extends Object {
         $sql = "DESCRIBE `{$table_name}`";
         $statement = $this->pdo_connection->prepare($sql);
         $success = $statement && $statement->execute(array());
-        if (!$success) { throw new RuntimeException("Error finding table: {$table_name}.\n"); }
+        if (!$success) { return $this->error("Error finding table: {$table_name}"); }
 
         $columns = array();
         $primary_key = array();
@@ -716,7 +738,7 @@ class Db_Impl extends Object {
         }
 
         if (!$primary_key) {
-            throw new RuntimeException("Mysql currently requires a primary key.");
+            return $this->error("Mysql currently requires a primary key");
         }
 
         // This is weird. Is it right?

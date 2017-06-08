@@ -13,9 +13,9 @@ class DbTest extends TestBase
         Assert::exception(function() use($db) {
             $db->exec('SELECT * FROM non_existant_table');
         }, 'PDOException', '#non_existant_table#');
-        //Assert::exception(function() use($db) {
-        //    $db->find('non_existant_table');
-        //}, 'PDOException', '#non_existant_table#');
+        Assert::exception(function() use($db) {
+            $db->find('non_existant_table');
+        }, 'RuntimeException', '#non_existant_table#');
         Assert::exception(function() use($db) {
             $db->dispense('non_existant_table');
         }, 'RuntimeException', '#non_existant_table#');
@@ -32,11 +32,8 @@ class DbTest extends TestBase
         $db = Db::createSqlite(':memory:');
         $db->pdo_connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
         Assert::false($db->exec('SELECT * FROM non_existant_table'));
-        //Assert::false($db->find('non_existant_table'));
-        // Q: Should dispense throw an exception here, or return false?
-        Assert::exception(function() use($db) {
-            $db->dispense('non_existant_table');
-        }, 'RuntimeException', '#non_existant_table#');
+        Assert::false($db->find('non_existant_table'));
+        Assert::false($db->dispense('non_existant_table'));
         Assert::true($db->exec("CREATE TABLE test(value TEXT)"));
         Assert::false($db->exec("CREATE TABLE test(value TEXT)"));
         Assert::false($db->exec("INSERT INTO test(values) SELECT 1"));
@@ -363,8 +360,8 @@ class DbTest extends TestBase
         }, 'RuntimeException');
 
         Db::$instance->pdo_connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
-        //Assert::false(Db::find('non_existant'));
-        //Assert::false(Db::findOne('non_existant'));
+        Assert::false(Db::find('non_existant'));
+        Assert::false(Db::findOne('non_existant'));
     }
 }
 
