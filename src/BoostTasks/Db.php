@@ -5,6 +5,7 @@ namespace BoostTasks;
 use PDO;
 use RuntimeException;
 use Exception;
+use Iterator;
 use Nette\Object;
 
 // This is an incredibly crude little library for database stuff that I
@@ -46,11 +47,13 @@ class Db {
     static function getCol($sql, $query_args=array()) { return self::$instance->getCol($sql, $query_args); }
     static function getCell($sql, $query_args=array()) { return self::$instance->getCell($sql, $query_args); }
     static function getRow($sql, $query_args=array()) { return self::$instance->getRow($sql, $query_args); }
+    static function getIterator($sql, $query_args=array()) { return self::$instance->getIterator($sql, $query_args); }
     static function dispense($table_name) { return self::$instance->dispense($table_name); }
     static function load($table_name, $id) { return self::$instance->load($table_name, $id); }
     static function find($table_name, $query = '', $query_args = array()) { return self::$instance->find($table_name, $query, $query_args); }
     static function findAll($table_name, $order_limit = '') { return self::$instance->findAll($table_name, $order_limit); }
     static function findOne($table_name, $query = '', $query_args = array()) { return self::$instance->findOne($table_name, $query, $query_args); }
+    static function findIterator($table_name, $query = '', $query_args = array()) { return self::$instance->findIterator($table_name, $query, $query_args); }
     static function convertToBeans($table_name, $objects) { return self::$instance->convertToBeans($table_name, $objects); }
     static function store($object) { return $object->store(); }
     static function trash($object) { return $object->trash(); }
@@ -85,13 +88,23 @@ class Db_Entity {
 // A little bit of extra data about the entity.
 class Db_EntityMetaData extends Object {
     var $connection;
-    var $table_name;
+    var $table;
     var $is_new;
 
-    function __construct($connection, $table_name, $is_new) {
+    function __construct($connection, $table, $is_new) {
         $this->connection = $connection;
-        $this->table_name = $table_name;
+        $this->table = $table;
         $this->is_new = $is_new;
+    }
+}
+
+class Db_TableSchema extends Object {
+    var $name;
+    var $columns;
+
+    function __construct($name, $columns) {
+        $this->name = $name;
+        $this->columns = $columns;
     }
 }
 
@@ -107,6 +120,7 @@ Db_Default::$instance = new Db_Default();
 class Db_Impl extends Object {
     static $entity_object = 'BoostTasks\\Db_Entity';
     var $pdo_connection;
+    var $schema = Array();
 
     public function __construct($pdo) {
         $this->pdo_connection = $pdo;
@@ -160,6 +174,16 @@ class Db_Impl extends Object {
         }
     }
 
+    public function getIterator($sql, $query_args = array()) {
+        $statement = $this->pdo_connection->prepare($sql);
+        if ($statement && $statement->execute($query_args)) {
+            return new Db_SelectIterator($statement);
+        }
+        else {
+            throw new RuntimeException("Error creating get iterator");
+        }
+    }
+
     public function getCol($sql, $query_args = array()) {
         $statement = $this->pdo_connection->prepare($sql);
         if ($statement && $statement->execute($query_args)) {
@@ -196,97 +220,12 @@ class Db_Impl extends Object {
     }
 
     public function dispense($table_name) {
-        switch($this->getDriverName()) {
-        case 'sqlite':
-            $sql = "PRAGMA table_info(`{$table_name}`)";
-            $statement = $this->pdo_connection->prepare($sql);
-            $success = $statement && $statement->execute(array());
-            if (!$success) { return false; }
-
-            $found = false;
-            $object = new self::$entity_object();
-            while($column = $statement->fetchObject()) {
-                $found = true;
-                $name = $column->name;
-                $default = trim(strtolower($column->dflt_value));
-                if ($default === '') { $default = 'null'; }
-                switch($default[0]) {
-                case 'n':
-                    // Crude attempt at support autoincrementing columns.
-                    if ($default === 'null' && $column->pk) {
-                        $object->{$name} = Db_Default::$instance;
-                    }
-                    else {
-                        $object->{$name} = null;
-                    }
-                    break;
-                case '"':
-                    if (preg_match('@^"(.*)"$@', $column->dflt_value, $matches)) {
-                        $object->{$name} = str_replace('""', '"', $matches[1]);
-                    }
-                    else {
-                        throw new RuntimeException("Invalid string default");
-                    }
-                    break;
-                case "'":
-                    if (preg_match('@^\'(.*)\'$@', $column->dflt_value, $matches)) {
-                        $object->{$name} = str_replace("''", "'", $matches[1]);
-                    }
-                    else {
-                        throw new RuntimeException("Invalid string default");
-                    }
-                    break;
-                case '`':
-                    if (preg_match('@^`(.*)`$@', $column->dflt_value, $matches)) {
-                        $object->{$name} = str_replace('``', '`', $matches[1]);
-                    }
-                    else {
-                        throw new RuntimeException("Invalid string default");
-                    }
-                    break;
-                case '+': case '-':
-                case '0': case '1': case '2': case '3': case '4':
-                case '5': case '6': case '7': case '8': case '9':
-                    $object->{$name} = $default;
-                    break;
-                case 'c': // current_date/current_time/current_timestamp
-                case '(': // expression
-                    $object->{$name} = Db_Default::$instance;
-                    break;
-                default:
-                    Log::warning("Unrecognized default: {$default}");
-                    break;
-                }
-            }
-            if (!$found) { throw new RuntimeException("Error finding table: {$table_name}.\n"); }
-            break;
-        case 'mysql':
-            $sql = "DESCRIBE `{$table_name}`";
-            $statement = $this->pdo_connection->prepare($sql);
-            $success = $statement && $statement->execute(array());
-            if (!$success) { return false; }
-
-            $object = new self::$entity_object();
-            while($column = $statement->fetchObject()) {
-                $name = $column->Field;
-                if (preg_match('@\bauto_increment\b@', strtolower($column->Extra))) {
-                    $object->{$name} = Db_Default::$instance;
-                }
-                else if (strtolower($column->Default) == 'current_timestamp' &&
-                    (strtolower($column->Type) === 'timestamp' || strtolower($column->Type) === 'datetime'))
-                {
-                    $object->{$name} = Db_Default::$instance;
-                }
-                else {
-                    $object->{$name} = $column->Default;
-                }
-            }
-            break;
-        default:
-            echo "Unrecognized database type";
+        $table = $this->getTable($table_name);
+        $object = new self::$entity_object();
+        foreach ($table->columns as $name => $default_value) {
+            $object->{$name} = $default_value;
         }
-        $object->__meta = new Db_EntityMetaData($this, $table_name, true);
-
+        $object->__meta = new Db_EntityMetaData($this, $table, true);
         return $object;
     }
 
@@ -295,23 +234,11 @@ class Db_Impl extends Object {
     }
 
     public function find($table_name, $query = '', array $query_args = array()) {
-        $query = trim($query);
-        $sql = "SELECT * FROM `{$table_name}` ";
-        if ($query) {
-            if (preg_match('/^(order|limit)\b/i', $query)) {
-                $sql .= $query;
-            } else {
-                $sql .= "WHERE {$query}";
-            }
-        }
-        $statement = $this->pdo_connection->prepare($sql);
-        $success = $statement && $statement->execute($query_args);
-        if (!$success) { return false; }
+        $statement = $this->createFindStatement($table_name, $query, $query_args);
+        if (!$statement) { return false; }
 
         $result = array();
-        while($object = $statement->fetchObject(self::$entity_object)) {
-            $object->__meta = new Db_EntityMetaData(
-                $this, $table_name, false);
+        while($object = $this->_fetchBean($table_name, $statement)) {
             $result[] = $object;
         }
 
@@ -325,10 +252,24 @@ class Db_Impl extends Object {
     }
 
     public function findOne($table_name, $query = '', array $query_args = array()) {
+        $statement = $this->createFindStatement($table_name, $query, $query_args);
+        if (!$statement) { return false; }
+        return $this->_fetchBean($table_name, $statement);
+    }
+
+    public function findIterator($table_name, $query = '', array $query_args = array()) {
+        $statement = $this->createFindStatement($table_name, $query, $query_args);
+        if (!$statement) {
+            throw new RuntimeException("Error creating find iterator");
+        }
+        return new Db_Iterator($this, $table_name, $statement);
+    }
+
+    private function createFindStatement($table_name, $query, array $query_args) {
         $query = trim($query);
         $sql = "SELECT * FROM `{$table_name}`";
         if ($query) {
-            if (preg_match('/^(order|limit)\b/i', $query)) {
+            if (preg_match('/^(where|join|order|limit)\b/i', $query)) {
                 $sql .= $query;
             } else {
                 $sql .= "WHERE {$query}";
@@ -336,14 +277,19 @@ class Db_Impl extends Object {
         }
         $statement = $this->pdo_connection->prepare($sql);
         $success = $statement && $statement->execute($query_args);
-        if (!$success) { return false; }
+        return $success ? $statement : false;
+    }
+
+    // Public so that the iterator can use it...
+    public function _fetchBean($table_name, $statement) {
         $object = $statement->fetchObject(self::$entity_object);
         if (!$object) { return null; }
-        $object->__meta = new Db_EntityMetaData($this, $table_name, false);
+        $object->__meta = new Db_EntityMetaData($this, $this->getTable($table_name), false);
         return $object;
     }
 
     public function convertToBeans($table_name, $objects) {
+        $table = $this->getTable($table_name);
         $result = array();
         foreach($objects as $array) {
             if (!is_array($array)) {
@@ -353,15 +299,14 @@ class Db_Impl extends Object {
             foreach($array as $key => $value) {
                 $object->$key = $value;
             }
-            $object->__meta = new Db_EntityMetaData(
-                $this, $table_name, false);
+            $object->__meta = new Db_EntityMetaData($this, $table, false);
             $result[] = $object;
         }
         return $result;
     }
 
     public function store($object) {
-        $table_name = $object->__meta->table_name;
+        $table_name = $object->__meta->table->name;
         $is_new = $object->__meta->is_new;
 
         $update = array();
@@ -446,7 +391,7 @@ class Db_Impl extends Object {
 
     public function trash($object) {
         $id = $object->id;
-        $table_name = $object->__meta->table_name;
+        $table_name = $object->__meta->table->name;
         if (!$id) {
             throw new RuntimeException("No id.");
         }
@@ -455,5 +400,206 @@ class Db_Impl extends Object {
 
         $statement = $this->pdo_connection->prepare($sql);
         return $statement && $statement->execute($query_args);
+    }
+
+    private function getTable($table_name) {
+        if (array_key_exists($table_name, $this->schema)) { return $this->schema[$table_name]; }
+        switch($this->getDriverName()) {
+        case 'sqlite':
+            return $this->schema[$table_name] = $this->getTableFromSqlite($table_name);
+        case 'mysql':
+            return $this->schema[$table_name] = $this->getTableFromMysql($table_name);
+        default:
+            echo "Unrecognized database type";
+            exit(1);
+        }
+    }
+
+    private function getTableFromSqlite($table_name) {
+        $sql = "PRAGMA table_info(`{$table_name}`)";
+        $statement = $this->pdo_connection->prepare($sql);
+        $success = $statement && $statement->execute(array());
+        if (!$success) { throw new RuntimeException("Error finding table: {$table_name}.\n"); }
+
+        $columns = array();
+
+        while($column = $statement->fetchObject()) {
+            $name = $column->name;
+            $default = trim(strtolower($column->dflt_value));
+            if ($default === '') { $default = 'null'; }
+            switch($default[0]) {
+            case 'n':
+                // Crude attempt at support autoincrementing columns.
+                if ($default === 'null' && $column->pk) {
+                    $default_value = Db_Default::$instance;
+                }
+                else {
+                    $default_value = null;
+                }
+                break;
+            case '"':
+                if (preg_match('@^"(.*)"$@', $column->dflt_value, $matches)) {
+                    $default_value = str_replace('""', '"', $matches[1]);
+                }
+                else {
+                    throw new RuntimeException("Invalid string default");
+                }
+                break;
+            case "'":
+                if (preg_match('@^\'(.*)\'$@', $column->dflt_value, $matches)) {
+                    $default_value = str_replace("''", "'", $matches[1]);
+                }
+                else {
+                    throw new RuntimeException("Invalid string default");
+                }
+                break;
+            case '`':
+                if (preg_match('@^`(.*)`$@', $column->dflt_value, $matches)) {
+                    $default_value = str_replace('``', '`', $matches[1]);
+                }
+                else {
+                    throw new RuntimeException("Invalid string default");
+                }
+                break;
+            case '+': case '-':
+            case '0': case '1': case '2': case '3': case '4':
+            case '5': case '6': case '7': case '8': case '9':
+                $default_value = $default;
+                break;
+            case 'c': // current_date/current_time/current_timestamp
+            case '(': // expression
+                $default_value = Db_Default::$instance;
+                break;
+            default:
+                Log::warning("Unrecognized default: {$default}");
+                break;
+            }
+
+            $columns[$column->name] = $default_value;
+        }
+        if (!$columns) { throw new RuntimeException("Error finding table: {$table_name}.\n"); }
+
+        return new Db_TableSchema($table_name, $columns);
+    }
+
+    private function getTableFromMysql($table_name) {
+        $sql = "DESCRIBE `{$table_name}`";
+        $statement = $this->pdo_connection->prepare($sql);
+        $success = $statement && $statement->execute(array());
+        if (!$success) { throw new RuntimeException("Error finding table: {$table_name}.\n"); }
+
+        $columsn = array();
+        while($column = $statement->fetchObject()) {
+            $name = $column->Field;
+            if (preg_match('@\bauto_increment\b@', strtolower($column->Extra))) {
+                $default_value = Db_Default::$instance;
+            }
+            else if (strtolower($column->Default) == 'current_timestamp' &&
+                (strtolower($column->Type) === 'timestamp' || strtolower($column->Type) === 'datetime'))
+            {
+                $default_value = Db_Default::$instance;
+            }
+            else {
+                $default_value = $column->Default;
+            }
+            $columns[$name] = $default_value;
+        }
+
+        return new Db_TableSchema($table_name, $columns);
+    }
+}
+
+class Db_Iterator implements Iterator {
+    var $db;
+    var $table_name;
+    var $statement;
+    var $index = 0;
+    var $current;
+
+    function __construct($db, $table_name, $statement) {
+        $this->db = $db;
+        $this->table_name = $table_name;
+        $this->statement = $statement;
+        $this->fetchObject();
+    }
+
+    function current() {
+        if ($this->current === null) {
+            throw new RuntimeException("current() called past end of database iterator.");
+        }
+        return $this->current;
+    }
+
+    function key() {
+        return $this->index;
+    }
+
+    function next() {
+        $this->fetchObject();
+        ++$this->index;
+    }
+
+    function rewind() {
+        if ($this->index) {
+            throw new RuntimeException("Db_Iterator doesn't support rewind.");
+        }
+    }
+
+    function valid() {
+        return $this->current !== null;
+    }
+
+    private function fetchObject() {
+        $this->current = $this->db->_fetchBean($this->table_name, $this->statement);
+        if (!$this->current) {
+            $this->db = null;
+            $this->statement = null;
+        }
+    }
+}
+
+class Db_SelectIterator implements Iterator {
+    var $statement;
+    var $index = 0;
+    var $current;
+
+    function __construct($statement) {
+        $this->statement = $statement;
+        $this->fetchRow();
+    }
+
+    function current() {
+        if ($this->current === null) {
+            throw new RuntimeException("current() called past end of database iterator.");
+        }
+        return $this->current;
+    }
+
+    function key() {
+        return $this->index;
+    }
+
+    function next() {
+        $this->fetchRow();
+        ++$this->index;
+    }
+
+    function rewind() {
+        if ($this->index) {
+            throw new RuntimeException("Db_Iterator doesn't support rewind.");
+        }
+    }
+
+    function valid() {
+        return $this->current !== null;
+    }
+
+    private function fetchRow() {
+        $this->current = $this->statement->fetch(PDO::FETCH_ASSOC);
+        if (!$this->current) {
+            $this->current = null;
+            $this->db = null;
+            $this->statement = null;
+        }
     }
 }

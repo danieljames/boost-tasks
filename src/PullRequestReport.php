@@ -26,7 +26,7 @@ class PullRequestReport extends Object {
         // TODO: This shouldn't be hard-coded.
         static $database = null;
         if (!$database) {
-            $database = Db::create('sqlite:'.__DIR__.'/../var/webhook-data/cache.db');
+            $database = Db::create('sqlite:'.BOOST_TASKS_ROOT.'/var/webhook-data/cache.db');
         }
         return $database;
     }
