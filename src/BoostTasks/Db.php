@@ -350,11 +350,14 @@ class Db_Impl extends Object {
     }
 
     public function find($table_name, $query = '', array $query_args = array()) {
-        $statement = $this->createFindStatement($table_name, $query, $query_args);
+        $table = $this->getTable($table_name);
+        if (!$table) { return false; }
+
+        $statement = $this->createFindStatement($table, $query, $query_args);
         if (!$statement) { return false; }
 
         $result = array();
-        while($object = $this->_fetchBean($table_name, $statement)) {
+        while($object = $this->_fetchBean($table, $statement)) {
             $result[] = $object;
         }
 
@@ -368,26 +371,34 @@ class Db_Impl extends Object {
     }
 
     public function findOne($table_name, $query = '', array $query_args = array()) {
-        $statement = $this->createFindStatement($table_name, $query, $query_args);
+        $table = $this->getTable($table_name);
+        if (!$table) { return false; }
+
+        $statement = $this->createFindStatement($table, $query, $query_args);
         if (!$statement) { return false; }
-        return $this->_fetchBean($table_name, $statement);
+
+        return $this->_fetchBean($table, $statement);
     }
 
     public function findIterator($table_name, $query = '', array $query_args = array()) {
-        $statement = $this->createFindStatement($table_name, $query, $query_args);
+        $table = $this->getTable($table_name);
+        if (!$table) {
+            throw new RuntimeException("Error finding table for iterator");
+        }
+
+        $statement = $this->createFindStatement($table, $query, $query_args);
         if (!$statement) {
             throw new RuntimeException("Error creating find iterator");
         }
-        return new Db_Iterator($this, $table_name, $statement);
+        return new Db_Iterator($this, $table, $statement);
     }
 
-    private function createFindStatement($table_name, $query, array $query_args) {
-        $table = $this->getTable($table_name);
+    private function createFindStatement($table, $query, array $query_args) {
         $sql = "SELECT ";
         $sql .= implode(', ', array_map(
-            function($x) use($table_name) { return "`{$table_name}`.`{$x}`"; },
+            function($x) use($table) { return "`{$table->name}`.`{$x}`"; },
             array_keys($table->columns)));
-        $sql .= " FROM `{$table_name}` ";
+        $sql .= " FROM `{$table->name}` ";
         if ($query) {
             if (preg_match('/^(where|join|order|limit)\b/i', $query)) {
                 $sql .= $query;
@@ -401,16 +412,16 @@ class Db_Impl extends Object {
     }
 
     // Public so that the iterator can use it...
-    public function _fetchBean($table_name, $statement) {
+    public function _fetchBean($table, $statement) {
         $object = $statement->fetchObject(self::$entity_object);
         if (!$object) { return null; }
 
         $primary_key = array();
-        foreach ($this->getTable($table_name)->primary_key as $column_name) {
+        foreach ($table->primary_key as $column_name) {
             $primary_key[$column_name] = $object->{$column_name};
         }
 
-        $object->__meta = new Db_EntityMetaData($this, $this->getTable($table_name), false, $primary_key);
+        $object->__meta = new Db_EntityMetaData($this, $table, false, $primary_key);
         return $object;
     }
 
@@ -430,7 +441,7 @@ class Db_Impl extends Object {
                 $object->$key = $value;
             }
             $primary_key = array();
-            foreach ($this->getTable($table_name)->primary_key as $column_name) {
+            foreach ($table->primary_key as $column_name) {
                 $primary_key[$column_name] = $object->{$column_name};
             }
             $object->__meta = new Db_EntityMetaData($this, $table, false, $primary_key);
@@ -718,14 +729,14 @@ class Db_Impl extends Object {
 
 class Db_Iterator implements Iterator {
     var $db;
-    var $table_name;
+    var $table;
     var $statement;
     var $index = 0;
     var $current;
 
-    function __construct($db, $table_name, $statement) {
+    function __construct($db, $table, $statement) {
         $this->db = $db;
-        $this->table_name = $table_name;
+        $this->table = $table;
         $this->statement = $statement;
         $this->fetchObject();
     }
@@ -757,7 +768,7 @@ class Db_Iterator implements Iterator {
     }
 
     private function fetchObject() {
-        $this->current = $this->db->_fetchBean($this->table_name, $this->statement);
+        $this->current = $this->db->_fetchBean($this->table, $this->statement);
         if (!$this->current) {
             $this->db = null;
             $this->statement = null;
