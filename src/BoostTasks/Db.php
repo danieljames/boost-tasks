@@ -126,7 +126,10 @@ Db_Default::$instance = new Db_Default();
 class Db_Impl extends Object {
     static $entity_object = 'BoostTasks\\Db_Entity';
     var $pdo_connection;
+    private $saved_pdo_connection;
     var $schema = Array();
+    var $is_explicit_transaction = false;
+    var $transaction_level = 0;
 
     public function __construct($pdo) {
         $this->pdo_connection = $pdo;
@@ -139,30 +142,111 @@ class Db_Impl extends Object {
     }
 
     public function transaction($callback) {
-        static $depth = 0;
-        if ($depth == 0) { $this->begin(); }
-        ++$depth;
+        if ($this->nestedBegin() === false) {
+            throw new RuntimeException("Error starting transaction");
+        }
+
         try { $result = call_user_func($callback); }
         catch(Exception $e) {
-            --$depth;
-            if ($depth == 0) { $this->rollback(); }
+            $this->nestedRollback();
             throw $e;
         }
-        --$depth;
-        if ($depth == 0) { $this->commit(); }
+
+        if (!$this->nestedEnd()) {
+            throw new RuntimeException("Error ending transaction");
+        }
         return $result;
     }
 
     public function begin() {
-        return $this->pdo_connection->beginTransaction();
+        if ($this->transaction_level) {
+            throw new RuntimeError("begin called inside of transaction");
+        }
+        if (!$this->pdo_connection->beginTransaction()) { return false; }
+        ++$this->transaction_level;
+        $this->is_explicit_transaction = true;
+        return true;
     }
 
-    public function commit() {
-        return $this->pdo_connection->commit();
+    public function nestedBegin() {
+        if (!$this->transaction_level) {
+            if (!$this->pdo_connection->beginTransaction()) { return false; }
+        }
+        ++$this->transaction_level;
+        return true;
     }
 
     public function rollback() {
-        return $this->pdo_connection->rollback();
+        if (!$this->transaction_level) {
+            throw new RuntimeError("rollback called outside of transaction");
+        }
+        if ($this->is_explicit_transaction) {
+            --$this->transaction_level;
+            $this->is_explicit_transaction = false;
+        }
+        return $this->rollbackTransactionImpl();
+    }
+
+    public function nestedRollback() {
+        if ($this->transaction_level <= ($this->is_explicit_transaction ? 1 : 0)) {
+            throw new RuntimeError("nestedRollback called outside of nested transaction");
+        }
+        --$this->transaction_level;
+        return $this->rollbackTransactionImpl();
+    }
+
+    private function rollbackTransactionImpl() {
+        if ($this->pdo_connection) {
+            if (!$this->endTransactionImpl()->rollback()) { return false; }
+        } else {
+            if (!$this->transaction_level) {
+                $this->pdo_connection = $this->saved_pdo_connection;
+                $this->saved_pdo_connection = null;
+            }
+        }
+        return true;
+    }
+
+    public function commit() {
+        if (!$this->transaction_level || !$this->pdo_connection) {
+            throw new RuntimeError("commit called outside of active transaction");
+        }
+        if ($this->is_explicit_transaction) {
+            --$this->transaction_level;
+            $this->is_explicit_transaction = false;
+        }
+        return !!$this->endTransactionImpl()->commit();
+    }
+
+    public function nestedEnd() {
+        if ($this->transaction_level <= ($this->is_explicit_transaction ? 1 : 0)) {
+            throw new RuntimeError("nestedRollback called outside of nested transaction");
+        }
+        --$this->transaction_level;
+
+        if ($this->pdo_connection) {
+            if (!$this->transaction_level) {
+                if (!$this->pdo_connection->commit()) { return false; }
+            }
+        } else {
+            if (!$this->transaction_level) {
+                $this->pdo_connection = $this->saved_pdo_connection;
+                $this->saved_pdo_connection = null;
+            }
+        }
+
+        return true;
+    }
+
+    // Prevent the user from doing anything more with the database after a transaction has ended,
+    // but the nested transactions haven't.
+    private function endTransactionImpl() {
+        $connection = $this->pdo_connection;
+        if ($this->transaction_level) {
+            $this->saved_pdo_connection = $this->pdo_connection;
+            $this->pdo_connection = null;
+        }
+        return $connection;
     }
 
     public function exec($sql, $query_args = array()) {
