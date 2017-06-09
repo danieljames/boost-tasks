@@ -120,7 +120,7 @@ class BinTrayCache {
         }
 
         if (feof($download_fh)) {
-            throw new RuntimeException("Empty download.");
+            throw new RuntimeException("Empty download: {$url}.");
         }
 
         do {
