@@ -606,11 +606,15 @@ class Db_Impl extends Object {
 
         $columns = array();
         $primary_key = array();
+        $is_pk_int = false;
 
         while($column = $statement->fetchObject()) {
             $name = $column->name;
             if ($column->pk) {
                 $primary_key[$column->pk] = $column->name;
+                if (strtolower($column->type) == 'integer') {
+                    $is_pk_int = true;
+                }
             }
             $default = trim(strtolower($column->dflt_value));
             if ($default === '') { $default = 'null'; }
@@ -663,35 +667,47 @@ class Db_Impl extends Object {
         ksort($primary_key);
         $primary_key = array_values($primary_key);
 
-        // Get the name of the primary key, in order to check if it includes a rowid.
-        $primary_key_name = null;
-        if ($primary_key) {
-            $sql = "PRAGMA index_list(`{$table_name}`)";
-            $statement = $this->pdo_connection->prepare($sql);
-            $success = $statement && $statement->execute(array());
-            if (!$success) { return $this->error("Error getting indexes for: {$table_name}"); }
-            while($column = $statement->fetchObject()) {
-                if ($column->origin == 'pk') {
-                    $primary_key_name = $column->name;
+        $sql = "SELECT sqlite_version() AS version";
+        $statement = $this->pdo_connection->query($sql);
+        if (!$statement) { return $this->error("Error getting sqlite3 version"); }
+        if (version_compare($statement->fetchObject()->version, '3.14', '<')) {
+            if (count($primary_key) == 1 && $is_pk_int) {
+                $row_id = $primary_key[0];
+            } else {
+                $row_id = true;
+            }
+
+        } else {
+            // Get the name of the primary key, in order to check if it includes a rowid.
+            $primary_key_name = null;
+            if ($primary_key) {
+                $sql = "PRAGMA index_list(`{$table_name}`)";
+                $statement = $this->pdo_connection->prepare($sql);
+                $success = $statement && $statement->execute(array());
+                if (!$success) { return $this->error("Error getting indexes for: {$table_name}"); }
+                while($column = $statement->fetchObject()) {
+                    if ($column->origin == 'pk') {
+                        $primary_key_name = $column->name;
+                    }
                 }
             }
-        }
 
-        // Check if the primary key includes a rowid
-        $row_id = null;
-        if ($primary_key_name) {
-            $sql = "PRAGMA index_xinfo(`{$primary_key_name}`)";
-            $statement = $this->pdo_connection->prepare($sql);
-            $success = $statement && $statement->execute(array());
-            if (!$success) { return $this->error("Error getting primary key for: {$table_name}"); }
-            while($column = $statement->fetchObject()) {
-                if ($column->cid == -1) { $row_id = true; }
+            // Check if the primary key includes a rowid
+            $row_id = null;
+            if ($primary_key_name) {
+                $sql = "PRAGMA index_xinfo(`{$primary_key_name}`)";
+                $statement = $this->pdo_connection->prepare($sql);
+                $success = $statement && $statement->execute(array());
+                if (!$success) { return $this->error("Error getting primary key for: {$table_name}"); }
+                while($column = $statement->fetchObject()) {
+                    if ($column->cid == -1) { $row_id = true; }
+                }
+            } else if ($primary_key) {
+                assert(count($primary_key) == 1);
+                $row_id = $primary_key[0];
+            } else {
+                $row_id = true;
             }
-        } else if ($primary_key) {
-            assert(count($primary_key) == 1);
-            $row_id = $primary_key[0];
-        } else {
-            $row_id = true;
         }
 
         // There's a rowid, but no name for it, so check if the standard names are available
