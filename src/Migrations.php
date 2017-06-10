@@ -337,7 +337,7 @@ class Migrations extends Object {
         foreach($tables as $table => $columns) {
             $table_old = "{$table}_old_20170604";
             self::renameTable($db, $table, $table_old);
-            self::createTable($db, table, $columns);
+            self::createTable($db, $table, $columns);
             $db->exec("INSERT INTO `{$table}` (`".
                 implode("`, `", array_keys($columns)).
                 "`) SELECT `".
