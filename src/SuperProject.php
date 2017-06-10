@@ -117,8 +117,22 @@ class SuperProject extends Repo {
         foreach ($queue->getEvents() as $event) {
             if ($event->branch == $this->submodule_branch) {
                 if (array_key_exists($event->repo, $submodules)) {
+                    $payload = json_decode($event->payload);
+                    assert($payload);
+
                     $submodule = $submodules[$event->repo];
-                    $updated_hash_value = json_decode($event->payload)->head;
+
+                    if ($submodule->current_hash_value == $payload->after) {
+                        $submodule->ignored_events = array();
+                        continue;
+                    }
+
+                    if ($submodule->current_hash_value != $payload->before) {
+                        $submodule->ignored_events[] = $event;
+                        continue;
+                    }
+
+                    $updated_hash_value = $payload->head;
                     if ($updated_hash_value == $submodule->pending_hash_value) {
                         $submodule->pending_hash_value = null;
                     }
@@ -127,10 +141,18 @@ class SuperProject extends Repo {
                         if (!$this->updateHashes($submodules)) {
                             throw new RuntimeException("Error updating submodules in git repo");
                         }
-                        assert(!$submodule->updated_hash_value);
+                        assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $updated_hash_value);
                         $updated = true;
                     }
                 }
+            }
+        }
+
+        foreach ($submodules as $submodule) {
+            if ($submodule->ignored_events) {
+                $events = count($submodule->ignored_events);
+                $events .= ($events == 1) ? " PushEvent" : " PushEvents";
+                Log::warning("Ignored {$events} for {$submodule->repo} as the hash does not the super project's current value");
             }
         }
 
@@ -234,6 +256,9 @@ class SuperProject_Submodule extends Object {
 
     /** Will be updated to this hash value eventually. */
     var $pending_hash_value;
+
+    /** Push events that have been ignored */
+    var $ignored_events = array();
 
     function __construct($name, $values) {
         $this->boost_name = $name;
