@@ -76,11 +76,18 @@ class SuperProject extends Repo {
 
     public function getSubmodules() {
         $submodules = array();
+        $submodule_by_path = array();
+        $paths = array();
         foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
             $submodule = new SuperProject_Submodule($name, $details);
             if ($submodule->github_name) {
                 $submodules[$submodule->github_name] = $submodule;
+                $submodule_by_path[$submodule->path] = $submodule;
+                $paths[] = $submodule->path;
             }
+        }
+        foreach ($this->currentHashes($paths) as $path => $hash) {
+            $submodule_by_path[$path]->current_hash_value = $hash;
         }
         return $submodules;
     }
@@ -117,20 +124,12 @@ class SuperProject extends Repo {
      * @return boolean True if a change was committed.
      */
     function updateHashes($submodules, $mark_mirror_dirty = false) {
-        $paths = Array();
-        foreach($submodules as $submodule) {
-            if ($submodule->updated_hash_value) {
-                $paths[] = $submodule->path;
-            }
-        }
-        $old_hashes = $this->currentHashes($paths);
-
         $updates = array();
         $names = array();
         foreach($submodules as $submodule) {
             if (!$submodule->updated_hash_value) { continue; }
 
-            if ($old_hashes[$submodule->path] != $submodule->updated_hash_value) {
+            if ($submodule->current_hash_value != $submodule->updated_hash_value) {
                 $updates[$submodule->path] = $submodule->updated_hash_value;
                 $names[] = preg_replace('@^(libs|tools)/@', '', $submodule->boost_name);
             }
@@ -203,7 +202,10 @@ class SuperProject_Submodule extends Object {
     /** Github's name for the submodule. */
     var $github_name;
 
-    /** The hash value currently in the repo. */
+    /** Hash currently in the superproject repo */
+    var $current_hash_value;
+
+    /** The hash value currently in the submodule repo. */
     var $updated_hash_value;
 
     function __construct($name, $values) {
