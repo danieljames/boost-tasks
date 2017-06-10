@@ -60,8 +60,13 @@ class SuperProject extends Repo {
             $self->updateAllSubmoduleHashes($submodules);
             // Include any events that have arrived since starting this update.
             $queue->downloadMoreEvents();
-            $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
-            return $self->updateHashes($submodules, true);
+            $updated = $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
+            foreach ($submodules as $submodule) {
+                assert(!$submodule->updated_hash_value);
+                $submodule->updated_hash_value = $submodule->pending_hash_value;
+            }
+            $updated |= $self->updateHashes($submodules, true);
+            return $updated;
         });
     }
 
@@ -69,8 +74,7 @@ class SuperProject extends Repo {
         $self = $this; // Has to work on php 5.3
         return $this->attemptAndPush(function() use($self, $queue) {
             $submodules = $self->getSubmodules();
-            $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
-            return $self->updateHashes($submodules);
+            return $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
         });
     }
 
@@ -100,20 +104,37 @@ class SuperProject extends Repo {
             //       https://developer.github.com/v3/repos/branches/#get-branch
             $ref = EvilGlobals::githubCache()->getJson(
                 "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
-            $submodule->updated_hash_value = $ref->object->sha;
+            if ($ref->object->sha != $submodule->current_hash_value) {
+                $submodule->pending_hash_value = $ref->object->sha;
+            }
         }
     }
 
     // Note: Public so that it can be called in a closure in PHP 5.3
     public function updateSubmoduleHashesFromEventQueue($queue, $submodules = null) {
+        $updated = false;
+
         foreach ($queue->getEvents() as $event) {
             if ($event->branch == $this->submodule_branch) {
                 if (array_key_exists($event->repo, $submodules)) {
-                    $submodules[$event->repo]->updated_hash_value
-                            = json_decode($event->payload)->head;
+                    $submodule = $submodules[$event->repo];
+                    $updated_hash_value = json_decode($event->payload)->head;
+                    if ($updated_hash_value == $submodule->pending_hash_value) {
+                        $submodule->pending_hash_value = null;
+                    }
+                    if ($updated_hash_value != $submodule->current_hash_value) {
+                        $submodule->updated_hash_value = $updated_hash_value;
+                        if (!$this->updateHashes($submodules)) {
+                            throw new RuntimeException("Error updating submodules in git repo");
+                        }
+                        assert(!$submodule->updated_hash_value);
+                        $updated = true;
+                    }
                 }
             }
         }
+
+        return $updated;
     }
 
     /**
@@ -132,6 +153,9 @@ class SuperProject extends Repo {
             if ($submodule->current_hash_value != $submodule->updated_hash_value) {
                 $updates[$submodule->path] = $submodule->updated_hash_value;
                 $names[] = preg_replace('@^(libs|tools)/@', '', $submodule->boost_name);
+
+                $submodule->current_hash_value = $submodule->updated_hash_value;
+                $submodule->updated_hash_value = null;
             }
         }
 
@@ -207,6 +231,9 @@ class SuperProject_Submodule extends Object {
 
     /** The hash value currently in the submodule repo. */
     var $updated_hash_value;
+
+    /** Will be updated to this hash value eventually. */
+    var $pending_hash_value;
 
     function __construct($name, $values) {
         $this->boost_name = $name;
