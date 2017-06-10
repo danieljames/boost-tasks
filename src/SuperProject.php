@@ -67,7 +67,7 @@ class SuperProject extends Repo {
 
     private function attemptUpdateFromEventQueue($queue) {
         $self = $this; // Has to work on php 5.3
-        $result = $this->attemptAndPush(function() use($self, $queue) {
+        return $this->attemptAndPush(function() use($self, $queue) {
             $submodules = $self->getSubmodules();
             $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
             return $self->updateHashes($submodules);
