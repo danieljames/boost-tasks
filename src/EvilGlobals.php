@@ -97,7 +97,7 @@ class EvilGlobals extends Object {
             // Set up logging again.
 
             $stdout_level = array_get($options, 'verbose') ? Logger::DEBUG :
-                (array_get($options, 'cron') ? Logger::ERROR : Logger::INFO);
+                (array_get($options, 'cron') ? Logger::WARNING : Logger::INFO);
 
             $log_file = "{$this->data_root}/log.txt";
             $log_handler = new StreamHandler($log_file, Logger::INFO);
