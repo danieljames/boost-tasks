@@ -58,8 +58,6 @@ function webhook_push_handler($event) {
     }
     else {
         echo "Ignoring repository {$payload->repository->name}, ref: {$payload->ref}\n";
-        mail('dnljms@gmail.com', "{$email_title} not updating ".date('j M Y'),
-            print_r($payload, true));
         return false;
     }
 
