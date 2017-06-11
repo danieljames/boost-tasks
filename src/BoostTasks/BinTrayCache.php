@@ -102,7 +102,8 @@ class BinTrayCache {
         }
 
         if (hash_file('sha256', $download_path) != $file->sha256) {
-            throw new RuntimeException("File signature doesn't match.");
+            unlink($download_path);
+            throw new RuntimeException("File signature doesn't match: {$url}");
         }
 
         return $download_path;
@@ -116,20 +117,20 @@ class BinTrayCache {
 
         $save_fh = fopen($dst_path, "wb");
         if (!$save_fh) {
-            throw new RuntimeException("Problem opening local file to write to.");
+            throw new RuntimeException("Problem opening local file at {$dst_path}");
         }
 
         if (feof($download_fh)) {
-            throw new RuntimeException("Empty download: {$url}.");
+            throw new RuntimeException("Empty download: {$url}");
         }
 
         do {
             $chunk = fread($download_fh, 8192);
             if ($chunk === false) {
-                throw new RuntimeException("Problem reading chunk.");
+                throw new RuntimeException("Problem reading chunk: {$url}");
             }
             if (fwrite($save_fh, $chunk) === false) {
-                throw new RuntimeException("Problem writing chunk.");
+                throw new RuntimeException("Problem writing chunk: {$url}");
             }
         } while (!feof($download_fh));
 

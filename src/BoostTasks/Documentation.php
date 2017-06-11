@@ -30,7 +30,7 @@ class Documentation {
         $cache = new BinTrayCache;
         foreach($cache->fetchDetails($bintray_version) as $file) {
             if ($version == $file->version) {
-                Log::info("{$bintray_version} documentation: Already installed: {$file->name}, version {$file->version}.");
+                Log::info("{$bintray_version} documentation: Already installed, version {$file->version}.");
                 return $destination_path;
             }
 
