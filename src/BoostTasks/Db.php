@@ -59,69 +59,6 @@ class Db {
     static function trash($object) { return $object->trash(); }
 }
 
-// A database entity.
-// Fields are dynamically added.
-class Db_Entity {
-    var $__meta;
-
-    function store() {
-        return $this->__meta->connection->store($this);
-    }
-
-    function trash() {
-        return $this->__meta->connection->trash($this);
-    }
-
-    function __set($name, $value) {
-        if ($this->__meta) {
-            throw new RuntimeException("Unknown column: {$name}");
-        } else {
-            $this->$name = $value;
-        }
-    }
-
-    function __get($name) {
-        throw new RuntimeException("Unknown column: {$name}");
-    }
-}
-
-// A little bit of extra data about the entity.
-class Db_EntityMetaData extends Object {
-    var $connection;
-    var $table;
-    var $is_new;
-    var $primary_key_value;
-
-    function __construct($connection, $table, $is_new, $primary_key_value) {
-        $this->connection = $connection;
-        $this->table = $table;
-        $this->is_new = $is_new;
-        $this->primary_key_value = $primary_key_value;
-    }
-}
-
-class Db_TableSchema extends Object {
-    var $name;
-    var $columns;
-    var $primary_key;
-    var $row_id;
-
-    function __construct($name, $columns, $primary_key, $row_id) {
-        $this->name = $name;
-        $this->columns = $columns;
-        $this->primary_key = $primary_key;
-        $this->row_id = $row_id;
-    }
-}
-
-// Used for automatically filled in fields.
-// TODO: Could do a lot better by tracking when a field is set, or perhaps
-//       even by not setting such fields in a new entity.
-class Db_Default extends Object {
-    static $instance;
-}
-Db_Default::$instance = new Db_Default();
-
 // All the work is done here.
 class Db_Impl extends Object {
     static $entity_object = 'BoostTasks\\Db_Entity';
@@ -859,3 +796,66 @@ class Db_SelectIterator implements Iterator {
         }
     }
 }
+
+// A database entity.
+// Fields are dynamically added.
+class Db_Entity {
+    var $__meta;
+
+    function store() {
+        return $this->__meta->connection->store($this);
+    }
+
+    function trash() {
+        return $this->__meta->connection->trash($this);
+    }
+
+    function __set($name, $value) {
+        if ($this->__meta) {
+            throw new RuntimeException("Unknown column: {$name}");
+        } else {
+            $this->$name = $value;
+        }
+    }
+
+    function __get($name) {
+        throw new RuntimeException("Unknown column: {$name}");
+    }
+}
+
+// A little bit of extra data about the entity.
+class Db_EntityMetaData extends Object {
+    var $connection;
+    var $table;
+    var $is_new;
+    var $primary_key_value;
+
+    function __construct($connection, $table, $is_new, $primary_key_value) {
+        $this->connection = $connection;
+        $this->table = $table;
+        $this->is_new = $is_new;
+        $this->primary_key_value = $primary_key_value;
+    }
+}
+
+class Db_TableSchema extends Object {
+    var $name;
+    var $columns;
+    var $primary_key;
+    var $row_id;
+
+    function __construct($name, $columns, $primary_key, $row_id) {
+        $this->name = $name;
+        $this->columns = $columns;
+        $this->primary_key = $primary_key;
+        $this->row_id = $row_id;
+    }
+}
+
+// Used for automatically filled in fields.
+// TODO: Could do a lot better by tracking when a field is set, or perhaps
+//       even by not setting such fields in a new entity.
+class Db_Default extends Object {
+    static $instance;
+}
+Db_Default::$instance = new Db_Default();
