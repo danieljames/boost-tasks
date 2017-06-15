@@ -11,6 +11,5 @@ class TestBase extends \Tester\TestCase {
     function tearDown() {
         EvilGlobals::$instance = null;
         Log::$log = null;
-        BoostTasks\Db::$instance = null;
     }
 }

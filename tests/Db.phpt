@@ -39,22 +39,6 @@ class DbTest extends TestBase
         Assert::false($db->exec("INSERT INTO test(values) SELECT 1"));
     }
 
-    function testInitSqlite() {
-        Assert::null(Db::$instance);
-        Db::initSqlite(':memory:');
-
-        Db::exec("
-            CREATE TABLE test(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                value TEXT DEFAULT 'something'
-            );");
-
-        $x1 = Db::dispense('test');
-
-        Assert::truthy(Db::$instance);
-        Db::$instance = null;
-    }
-
     function testCreateSqlite() {
         $temp = new TempDirectory;
         $path = "{$temp->path}/simple.db";
@@ -82,61 +66,62 @@ class DbTest extends TestBase
     }
 
     function testTransaction() {
-        Assert::true(Db::setup("sqlite::memory:"));
+        $db = Db::create("sqlite::memory:");
+        Assert::truthy($db);
 
-        Db::exec("
+        $db->exec("
             CREATE TABLE test(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 value TEXT DEFAULT 'something'
             );");
 
-        Assert::same("hello", db::transaction(function() {
-            Db::exec("INSERT INTO test(value) VALUES('value1')");
+        Assert::same("hello", $db->transaction(function() use($db) {
+            $db->exec("INSERT INTO test(value) VALUES('value1')");
             return "hello";
         }));
 
-        Assert::same('1', Db::getCell("SELECT COUNT(*) FROM test"));
-        Assert::exception(function() {
-            db::transaction(function() {
-                Db::exec("INSERT INTO test(value) VALUES('value2')");
-                Assert::same('2', Db::getCell("SELECT COUNT(*) FROM test"));
+        Assert::same('1', $db->getCell("SELECT COUNT(*) FROM test"));
+        Assert::exception(function() use($db) {
+            $db->transaction(function() use($db) {
+                $db->exec("INSERT INTO test(value) VALUES('value2')");
+                Assert::same('2', $db->getCell("SELECT COUNT(*) FROM test"));
                 throw new RuntimeException();
             });
         }, 'RuntimeException');
 
-        Assert::same('1', Db::getCell("SELECT COUNT(*) FROM test"));
+        Assert::same('1', $db->getCell("SELECT COUNT(*) FROM test"));
 
-        Db::begin();
-        Db::exec("INSERT INTO test(value) VALUES('value3')");
-        Assert::same('2', Db::getCell("SELECT COUNT(*) FROM test"));
-        Db::commit();
-        Assert::same('2', Db::getCell("SELECT COUNT(*) FROM test"));
+        $db->begin();
+        $db->exec("INSERT INTO test(value) VALUES('value3')");
+        Assert::same('2', $db->getCell("SELECT COUNT(*) FROM test"));
+        $db->commit();
+        Assert::same('2', $db->getCell("SELECT COUNT(*) FROM test"));
 
-        Db::begin();
-        Db::exec("INSERT INTO test(value) VALUES('value4')");
-        Assert::same('3', Db::getCell("SELECT COUNT(*) FROM test"));
-        Db::rollback();
-        Assert::same('2', Db::getCell("SELECT COUNT(*) FROM test"));
+        $db->begin();
+        $db->exec("INSERT INTO test(value) VALUES('value4')");
+        Assert::same('3', $db->getCell("SELECT COUNT(*) FROM test"));
+        $db->rollback();
+        Assert::same('2', $db->getCell("SELECT COUNT(*) FROM test"));
 
         Assert::same(
             array(
                 array('id' => '1', 'value' => 'value1'),
                 array('id' => '2', 'value' => 'value3'),
             ),
-            Db::getAll('SELECT * FROM test')
+            $db->getAll('SELECT * FROM test')
         );
     }
 
     function testSqlite() {
-        Db::setup("sqlite::memory:");
+        $db = Db::create("sqlite::memory:");
 
-        Db::exec("
+        $db->exec("
             CREATE TABLE test(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 value TEXT DEFAULT 'something'
             );");
 
-        $x1 = Db::dispense('test');
+        $x1 = $db->dispense('test');
 
         // TODO: Maybe filter out names with a certain convention?
         //       Or make __meta private.
@@ -149,10 +134,10 @@ class DbTest extends TestBase
         Assert::same('1', $x1->id);
 
         $x1->value = 'else';
-        Assert::true(Db::store($x1));
+        Assert::true($db->store($x1));
         Assert::same('1', $x1->id);
 
-        $x1_ = Db::load('test', 1);
+        $x1_ = $db->load('test', 1);
         Assert::same('1', $x1_->id);
         Assert::same('else', $x1_->value);
         $x1_->store();
@@ -162,18 +147,18 @@ class DbTest extends TestBase
         sort($properties);
         Assert::same(array('__meta', 'id', 'value'), $properties);
 
-        $x2 = Db::dispense('test');
+        $x2 = $db->dispense('test');
         Assert::same('something', $x2->value);
         $x2->value = 'again';
         $x2->store();
         Assert::same('2', $x2->id);
 
-        $x2_ = Db::findOne('test', 'value = ?', array('again'));
+        $x2_ = $db->findOne('test', 'value = ?', array('again'));
         Assert::same('2', $x2_->id);
         $x2_->value = '0';
         $x2_->store();
 
-        $rows = Db::find('test');
+        $rows = $db->find('test');
         Assert::same('1', $rows[0]->id);
         Assert::same('else', $rows[0]->value);
         Assert::same('2', $rows[1]->id);
@@ -183,36 +168,36 @@ class DbTest extends TestBase
         $rows[0]->store();
         $rows[1]->store();
 
-        $rows2 = Db::getAll('select * from test');
+        $rows2 = $db->getAll('select * from test');
         Assert::same('1', $rows2[0]['id']);
         Assert::same('1', $rows2[0]['value']);
         Assert::same('2', $rows2[1]['id']);
         Assert::same('2', $rows2[1]['value']);
 
-        $rows3 = Db::convertToBeans('test', $rows2);
+        $rows3 = $db->convertToBeans('test', $rows2);
         $rows3[0]->value = 'one';
         $rows3[1]->value = 'two';
         $rows3[0]->store();
         $rows3[1]->store();
 
-        $row1 = Db::getRow('select * from test');
+        $row1 = $db->getRow('select * from test');
         Assert::same('1', $row1['id']);
         Assert::same('one', $row1['value']);
 
-        $value2 = Db::getCell('select value from test where id = ?', array(2));
+        $value2 = $db->getCell('select value from test where id = ?', array(2));
         Assert::same('two', $value2);
 
-        Assert::true(Db::trash($rows3[0]));
-        $row2 = Db::getRow('select * from test');
+        Assert::true($db->trash($rows3[0]));
+        $row2 = $db->getRow('select * from test');
         Assert::same('2', $row2['id']);
         Assert::same('two', $row2['value']);
-        Assert::same(1, count(Db::find('test')));
+        Assert::same(1, count($db->find('test')));
     }
 
     function testSqliteDefaults() {
-        Db::setup("sqlite::memory:");
+        $db = Db::create("sqlite::memory:");
 
-        Db::exec("
+        $db->exec("
             CREATE TABLE test(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 value1 TEXT DEFAULT 'something',
@@ -225,7 +210,7 @@ class DbTest extends TestBase
                 value8 TEXT DEFAULT null
             );");
 
-        $x1 = Db::dispense('test');
+        $x1 = $db->dispense('test');
         Assert::same('something', $x1->value1);
         Assert::same('something', $x1->value2);
         Assert::same('something', $x1->value3);
@@ -238,7 +223,7 @@ class DbTest extends TestBase
         $x1->store();
         Assert::same('100', (string) $x1->id);
 
-        $x2 = Db::load('test', 100);
+        $x2 = $db->load('test', 100);
         Assert::same('100', $x2->id);
         Assert::same('something', $x2->value1);
         Assert::same('something', $x2->value2);
@@ -251,117 +236,117 @@ class DbTest extends TestBase
     }
 
     function testGeneratedValue() {
-        Db::setup("sqlite::memory:");
+        $db = Db::create("sqlite::memory:");
 
-        Db::exec("
+        $db->exec("
             CREATE TABLE test(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 t TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );");
-        $x = Db::dispense('test');
+        $x = $db->dispense('test');
         $x->store();
 
-        $y = Db::load('test', 1);
+        $y = $db->load('test', 1);
         Assert::same($y->t, $x->t);
 
         $date1 = new DateTime('10 Jun 2005');
-        $x = Db::dispense('test');
+        $x = $db->dispense('test');
         $x->t = $date1;
         $x->store();
 
-        $y = Db::load('test', 2);
+        $y = $db->load('test', 2);
         Assert::equal($date1->getTimestamp(), strtotime($y->t));
 
         $date2 = new DateTime('30 May 2001 15:36 +0300');
-        $x = Db::dispense('test');
+        $x = $db->dispense('test');
         $x->t = $date2;
         $x->store();
 
-        $y = Db::load('test', 3);
+        $y = $db->load('test', 3);
         Assert::equal($date2->getTimestamp(), strtotime($y->t));
     }
 
     function testGet() {
-        Db::setup("sqlite::memory:");
-        Assert::true(Db::exec("
+        $db = Db::create("sqlite::memory:");
+        Assert::true($db->exec("
             CREATE TABLE test(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 value INTEGER
             );"));
-        Assert::truthy($x = Db::dispense('test'));
+        Assert::truthy($x = $db->dispense('test'));
         $x->value = 10;
         Assert::true($x->store());
 
-        Assert::equal('10', Db::getCell('SELECT value FROM test'));
-        Assert::equal('10', Db::getCell('SELECT value FROM test WHERE id=?', array('1')));
-        Assert::null(Db::getCell('SELECT value FROM test WHERE id=?', array('2')));
+        Assert::equal('10', $db->getCell('SELECT value FROM test'));
+        Assert::equal('10', $db->getCell('SELECT value FROM test WHERE id=?', array('1')));
+        Assert::null($db->getCell('SELECT value FROM test WHERE id=?', array('2')));
 
-        Assert::equal(array('value' => '10'), Db::getRow('SELECT value FROM test WHERE id=?', array('1')));
-        Assert::null(Db::getRow('SELECT value FROM test WHERE id=?', array('2')));
+        Assert::equal(array('value' => '10'), $db->getRow('SELECT value FROM test WHERE id=?', array('1')));
+        Assert::null($db->getRow('SELECT value FROM test WHERE id=?', array('2')));
 
-        Assert::equal(array(array('value' => '10')), Db::getAll('SELECT value FROM test WHERE id=?', array('1')));
-        Assert::equal(array(), Db::getAll('SELECT value FROM test WHERE id=?', array('2')));
+        Assert::equal(array(array('value' => '10')), $db->getAll('SELECT value FROM test WHERE id=?', array('1')));
+        Assert::equal(array(), $db->getAll('SELECT value FROM test WHERE id=?', array('2')));
 
         // Error checking
 
-        Assert::exception(function() {
-            Db::getCell('SELECT value FROM non_existant');
+        Assert::exception(function() use($db) {
+            $db->getCell('SELECT value FROM non_existant');
         }, 'RuntimeException');
-        Assert::exception(function() {
-            Db::getRow('SELECT * FROM non_existant');
+        Assert::exception(function() use($db) {
+            $db->getRow('SELECT * FROM non_existant');
         }, 'RuntimeException');
-        Assert::exception(function() {
-            Db::getAll('SELECT * FROM non_existant');
+        Assert::exception(function() use($db) {
+            $db->getAll('SELECT * FROM non_existant');
         }, 'RuntimeException');
 
-        Db::$instance->pdo_connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
-        Assert::false(Db::getCell('SELECT value FROM non_existant'));
-        Assert::false(Db::getRow('SELECT * FROM non_existant'));
-        Assert::false(Db::getAll('SELECT * FROM non_existant'));
+        $db->pdo_connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+        Assert::false($db->getCell('SELECT value FROM non_existant'));
+        Assert::false($db->getRow('SELECT * FROM non_existant'));
+        Assert::false($db->getAll('SELECT * FROM non_existant'));
     }
 
     function testFind() {
-        Db::setup("sqlite::memory:");
-        Assert::true(Db::exec("
+        $db = Db::create("sqlite::memory:");
+        Assert::true($db->exec("
             CREATE TABLE test(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 value INTEGER
             );"));
-        Assert::truthy($x = Db::dispense('test'));
+        Assert::truthy($x = $db->dispense('test'));
         $x->value = 10;
         Assert::true($x->store());
 
-        $entities = Db::find('test');
+        $entities = $db->find('test');
         Assert::equal(array(0), array_keys($entities));
         Assert::equal('10', $entities[0]->value);
 
-        $entities = Db::find('test', 'id=?', array('1'));
+        $entities = $db->find('test', 'id=?', array('1'));
         Assert::equal(array(0), array_keys($entities));
         Assert::equal('10', $entities[0]->value);
 
-        $entities = Db::find('test', 'id=?', array('2'));
+        $entities = $db->find('test', 'id=?', array('2'));
         Assert::equal(array(), $entities);
 
-        Assert::truthy($entity = Db::findOne('test'));
+        Assert::truthy($entity = $db->findOne('test'));
         Assert::equal('10', $entity->value);
 
-        Assert::truthy($entity = Db::findOne('test', 'id=?', array('1')));
+        Assert::truthy($entity = $db->findOne('test', 'id=?', array('1')));
         Assert::equal('10', $entity->value);
 
-        Assert::null(Db::findOne('test', 'id=?', array('2')));
+        Assert::null($db->findOne('test', 'id=?', array('2')));
 
         // Error checking
 
-        Assert::exception(function() {
-            Db::find('non_existant');
+        Assert::exception(function() use($db) {
+            $db->find('non_existant');
         }, 'RuntimeException');
-        Assert::exception(function() {
-            Db::findOne('non_existant');
+        Assert::exception(function() use($db) {
+            $db->findOne('non_existant');
         }, 'RuntimeException');
 
-        Db::$instance->pdo_connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
-        Assert::false(Db::find('non_existant'));
-        Assert::false(Db::findOne('non_existant'));
+        $db->pdo_connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+        Assert::false($db->find('non_existant'));
+        Assert::false($db->findOne('non_existant'));
     }
 }
 

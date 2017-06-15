@@ -14,13 +14,6 @@ use Nette\Object;
 
 // Convenience front end, for when you're only using one database.
 class Db {
-    static $instance = null;
-
-    static function setup($dsn, $username = null, $password = null) {
-        self::$instance = self::create($dsn, $username, $password);
-        return true;
-    }
-
     static function create($dsn, $username = null, $password = null) {
         return new Db_Impl(new PDO($dsn, $username, $password));
     }
@@ -29,34 +22,9 @@ class Db {
         return new Db_Impl($pdo);
     }
 
-    static function initSqlite($path) {
-        self::$instance = self::createSqlite($path);
-        return true;
-    }
-
     static function createSqlite($path) {
         return new Db_Impl(new PDO("sqlite:{$path}"));
     }
-
-    static function transaction($callback) { return self::$instance->transaction($callback); }
-    static function begin() { return self::$instance->begin(); }
-    static function commit() { return self::$instance->commit(); }
-    static function rollback() { return self::$instance->rollback(); }
-    static function exec($sql, $query_args=array()) { return self::$instance->exec($sql, $query_args); }
-    static function getAll($sql, $query_args=array()) { return self::$instance->getAll($sql, $query_args); }
-    static function getCol($sql, $query_args=array()) { return self::$instance->getCol($sql, $query_args); }
-    static function getCell($sql, $query_args=array()) { return self::$instance->getCell($sql, $query_args); }
-    static function getRow($sql, $query_args=array()) { return self::$instance->getRow($sql, $query_args); }
-    static function getIterator($sql, $query_args=array()) { return self::$instance->getIterator($sql, $query_args); }
-    static function dispense($table_name) { return self::$instance->dispense($table_name); }
-    static function load($table_name, $id) { $args = func_get_args(); return call_user_func_array(array(self::$instance, 'load'), $args); }
-    static function find($table_name, $query = '', $query_args = array()) { return self::$instance->find($table_name, $query, $query_args); }
-    static function findAll($table_name, $order_limit = '') { return self::$instance->findAll($table_name, $order_limit); }
-    static function findOne($table_name, $query = '', $query_args = array()) { return self::$instance->findOne($table_name, $query, $query_args); }
-    static function findIterator($table_name, $query = '', $query_args = array()) { return self::$instance->findIterator($table_name, $query, $query_args); }
-    static function convertToBeans($table_name, $objects) { return self::$instance->convertToBeans($table_name, $objects); }
-    static function store($object) { return $object->store(); }
-    static function trash($object) { return $object->trash(); }
 }
 
 // All the work is done here.
