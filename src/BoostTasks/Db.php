@@ -14,6 +14,13 @@ use Nette\Object;
 
 // Convenience front end, for when you're only using one database.
 class Db extends Object {
+    static $entity_object = 'BoostTasks\\Db_Entity';
+    var $pdo_connection;
+    private $saved_pdo_connection;
+    var $schema = Array();
+    var $is_explicit_transaction = false;
+    var $transaction_level = 0;
+
     static function create($dsn, $username = null, $password = null) {
         return new Db(new PDO($dsn, $username, $password));
     }
@@ -25,13 +32,6 @@ class Db extends Object {
     static function createSqlite($path) {
         return new Db(new PDO("sqlite:{$path}"));
     }
-
-    static $entity_object = 'BoostTasks\\Db_Entity';
-    var $pdo_connection;
-    private $saved_pdo_connection;
-    var $schema = Array();
-    var $is_explicit_transaction = false;
-    var $transaction_level = 0;
 
     public function __construct($pdo) {
         $this->pdo_connection = $pdo;
