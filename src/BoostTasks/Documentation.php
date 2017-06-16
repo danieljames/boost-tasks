@@ -37,6 +37,30 @@ class Documentation {
 
         $cache = new BinTrayCache;
 
+        $file_list = self::getPrioritizedDownloads($cache->fetchDetails($bintray_version));
+        foreach($file_list as $file) {
+            if ($version['hash'] == $file->version) {
+                Log::info("{$bintray_version} documentation: Already installed, version {$file->version}.");
+                return $destination_path;
+            }
+
+            if ($version['created'] && $version['created'] > $file->created) {
+                Log::info("{$bintray_version} documentation: Newer version already installed, version {$file->version}.");
+                return $destination_path;
+            }
+
+            Log::info("{$bintray_version} documentation: Attempt to install {$file->name}, version {$file->version}.");
+            if (self::downloadAndInstall($cache, $bintray_version, $file, $destination_path)) {
+                $cache->cleanup($file);
+                Log::info("{$bintray_version} documentation: Successfully installed documentation.");
+                return $destination_path;
+            }
+        }
+
+        throw new RuntimeException("Unable to download any of the files.");
+    }
+
+    static function getPrioritizedDownloads($files) {
         // Not using 7zip files because 7z isn't installed on the server.
         $extension_priorities = array_flip(array('tar.bz2', 'tar.gz', 'zip'));
 
@@ -48,7 +72,7 @@ class Documentation {
         $version_sort = array();
         $file_list = array();
         $priority_sort = array();
-        foreach($cache->fetchDetails($bintray_version) as $x) {
+        foreach($files as $x) {
             list($x_base_name, $x_extension) = explode('.', $x->name, 2);
             if (array_key_exists($x_extension, $extension_priorities)) {
                 $file_list[] = $x;
@@ -71,19 +95,10 @@ class Documentation {
             $priority_sort,
             $file_list);
 
-        foreach($file_list as $file) {
-            if ($version['hash'] == $file->version) {
-                Log::info("{$bintray_version} documentation: Already installed, version {$file->version}.");
-                return $destination_path;
-            }
+        return $file_list;
+    }
 
-            if ($version['created'] && $version['created'] > $file->created) {
-                Log::info("{$bintray_version} documentation: Newer version already installed, version {$file->version}.");
-                return $destination_path;
-            }
-
-            Log::info("{$bintray_version} documentation: Attempt to install {$file->name}, version {$file->version}.");
-
+    static function downloadAndInstall($cache, $bintray_version, $file, $destination_path) {
             // Download tarball.
             try {
                 $file_path = $cache->cachedDownload($file);
@@ -92,12 +107,12 @@ class Documentation {
                 //       things which should cause us to give up entirely, and
                 //       things which should cause us to try the next possible download.
                 Log::error("Download error: {$e->getMessage()}");
-                $file_path = null;
+                return false;
             }
 
             if (!$file_path) {
                 Log::error("Download failed.");
-                continue;
+                return false;
             }
 
             Log::debug("{$bintray_version} documentation: Extracting to {$destination_path}.");
@@ -133,11 +148,6 @@ class Documentation {
             if (realpath($destination_path)) { rename($destination_path, "{$temp_directory->path}/old"); }
             rename($extract_path, $destination_path);
 
-            $cache->cleanup($file);
-            Log::info("{$bintray_version} documentation: Successfully installed documentation.");
-            return $destination_path;
+            return true;
         }
-
-        throw new RuntimeException("Unable to download any of the files.");
-    }
 }
