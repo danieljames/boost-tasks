@@ -99,55 +99,55 @@ class Documentation {
     }
 
     static function downloadAndInstall($cache, $bintray_version, $file, $destination_path) {
-            // Download tarball.
-            try {
-                $file_path = $cache->cachedDownload($file);
-            } catch (RuntimeException $e) {
-                // TODO: Better error handling. This doesn't distinguish between
-                //       things which should cause us to give up entirely, and
-                //       things which should cause us to try the next possible download.
-                Log::error("Download error: {$e->getMessage()}");
-                return false;
-            }
-
-            if (!$file_path) {
-                Log::error("Download failed.");
-                return false;
-            }
-
-            Log::debug("{$bintray_version} documentation: Extracting to {$destination_path}.");
-
-            // Extract into a temporary directory.
-            $temp_directory = new TempDirectory("{$archives_path}/tmp");
-            $extract_path = $cache->extractSingleRootArchive($file_path, $temp_directory->path);
-
-            // Add the version details.
-            file_put_contents("{$extract_path}/.bintray-version", json_encode(array(
-                'hash' => $file->version,
-                'created' => $file->created,
-            )));
-
-            // Find and remove redirects to master.
-            foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(
-                "{$extract_path}/doc/html")) as $x)
-            {
-                $path = $x->getPathname();
-                $extension = pathinfo($path, PATHINFO_EXTENSION);
-                if (filesize($path) <= 2000 && ($extension == 'htm' || $extension == 'html') &&
-                    preg_match(
-                        '@<meta\s+http-equiv\s*=\s*["\']?refresh["\']?\s+content\s*=\s*["\']0;\s*URL=http://www.boost.org/doc/libs/master/@i',
-                        file_get_contents($path)))
-                {
-                    echo "Removing redirect to master from {$bintray_version} at {$path}.\n";
-                    unlink($path);
-                }
-            }
-
-            // Replace the old documentation.
-            // Would be nice to overwrite old archive in a cleaner manner...
-            if (realpath($destination_path)) { rename($destination_path, "{$temp_directory->path}/old"); }
-            rename($extract_path, $destination_path);
-
-            return true;
+        // Download tarball.
+        try {
+            $file_path = $cache->cachedDownload($file);
+        } catch (RuntimeException $e) {
+            // TODO: Better error handling. This doesn't distinguish between
+            //       things which should cause us to give up entirely, and
+            //       things which should cause us to try the next possible download.
+            Log::error("Download error: {$e->getMessage()}");
+            return false;
         }
+
+        if (!$file_path) {
+            Log::error("Download failed.");
+            return false;
+        }
+
+        Log::debug("{$bintray_version} documentation: Extracting to {$destination_path}.");
+
+        // Extract into a temporary directory.
+        $temp_directory = new TempDirectory("{$archives_path}/tmp");
+        $extract_path = $cache->extractSingleRootArchive($file_path, $temp_directory->path);
+
+        // Add the version details.
+        file_put_contents("{$extract_path}/.bintray-version", json_encode(array(
+            'hash' => $file->version,
+            'created' => $file->created,
+        )));
+
+        // Find and remove redirects to master.
+        foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(
+            "{$extract_path}/doc/html")) as $x)
+        {
+            $path = $x->getPathname();
+            $extension = pathinfo($path, PATHINFO_EXTENSION);
+            if (filesize($path) <= 2000 && ($extension == 'htm' || $extension == 'html') &&
+                preg_match(
+                    '@<meta\s+http-equiv\s*=\s*["\']?refresh["\']?\s+content\s*=\s*["\']0;\s*URL=http://www.boost.org/doc/libs/master/@i',
+                    file_get_contents($path)))
+            {
+                echo "Removing redirect to master from {$bintray_version} at {$path}.\n";
+                unlink($path);
+            }
+        }
+
+        // Replace the old documentation.
+        // Would be nice to overwrite old archive in a cleaner manner...
+        if (realpath($destination_path)) { rename($destination_path, "{$temp_directory->path}/old"); }
+        rename($extract_path, $destination_path);
+
+        return true;
+    }
 }
