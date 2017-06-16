@@ -24,8 +24,16 @@ class Documentation {
         // TODO: Store date instead of version?
         $destination_path = "{$archives_path}/{$dir}";
         $version = is_file("{$destination_path}/.bintray-version") ?
-            file_get_contents("{$destination_path}/.bintray-version") :
-            '';
+            trim(file_get_contents("{$destination_path}/.bintray-version")) :
+            null;
+        if (is_string($version) && $version[0] === '{') {
+            $version = json_decode($version, true);
+        } else {
+            $version = array(
+                'hash' => $version,
+                'created' => null
+            );
+        }
 
         $cache = new BinTrayCache;
 
@@ -64,8 +72,13 @@ class Documentation {
             $file_list);
 
         foreach($file_list as $file) {
-            if ($version == $file->version) {
+            if ($version['hash'] == $file->version) {
                 Log::info("{$bintray_version} documentation: Already installed, version {$file->version}.");
+                return $destination_path;
+            }
+
+            if ($version['created'] && $version['created'] > $file->created) {
+                Log::info("{$bintray_version} documentation: Newer version already installed, version {$file->version}.");
                 return $destination_path;
             }
 
@@ -94,7 +107,10 @@ class Documentation {
             $extract_path = $cache->extractSingleRootArchive($file_path, $temp_directory->path);
 
             // Add the version details.
-            file_put_contents("{$extract_path}/.bintray-version", $file->version);
+            file_put_contents("{$extract_path}/.bintray-version", json_encode(array(
+                'hash' => $file->version,
+                'created' => $file->created,
+            )));
 
             // Find and remove redirects to master.
             foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(
