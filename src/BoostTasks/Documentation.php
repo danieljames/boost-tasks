@@ -45,7 +45,9 @@ class Documentation {
             if (array_key_exists($x_extension, $extension_priorities)) {
                 $file_list[] = $x;
                 $priority_sort[] = $extension_priorities[$x_extension];
-                $version_dates[$x->version] = $x->created;
+                if (!array_key_exists($x->version, $version_dates) || $x->created < $version_dates[$x->version]) {
+                    $version_dates[$x->version] = $x->created;
+                }
             }
         }
         if (!$file_list) {
