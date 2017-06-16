@@ -28,7 +28,32 @@ class Documentation {
             '';
 
         $cache = new BinTrayCache;
-        foreach($cache->fetchDetails($bintray_version) as $file) {
+
+        // Not using 7zip files because 7z isn't installed on the server.
+        $extension_priorities = array_flip(array('tar.bz2', 'tar.gz', 'zip'));
+
+        $file_list = array();
+        foreach($cache->fetchDetails($bintray_version) as $x) {
+            list($x_base_name, $x_extension) = explode('.', $x->name, 2);
+            if (array_key_exists($x_extension, $extension_priorities)) {
+                $x->priority = $extension_priorities[$x_extension];
+                $file_list[] = $x;
+            }
+        }
+        if (!$file_list) {
+            throw new RuntimeException("Unable to find file to download.");
+        }
+
+        // If two files have different versions, use most recent.
+        // Otherwise sort by priority.
+        usort($file_list, function($x, $y) {
+            return
+                -($x->version != $y->version
+                    ? strtotime($x->created) - strtotime($y->created) : 0) ?:
+                ($x->priority - $y->priority);
+        });
+
+        foreach($file_list as $file) {
             if ($version == $file->version) {
                 Log::info("{$bintray_version} documentation: Already installed, version {$file->version}.");
                 return $destination_path;
