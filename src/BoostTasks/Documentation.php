@@ -32,26 +32,34 @@ class Documentation {
         // Not using 7zip files because 7z isn't installed on the server.
         $extension_priorities = array_flip(array('tar.bz2', 'tar.gz', 'zip'));
 
+        // Store a date for each version that can be used in the sort.
+        // These dates aren't very accurate, but will usually give the correct order
+        // on the versions. Could get a more accurate order from the git history.
+        $version_dates = array();
+
+        $version_sort = array();
         $file_list = array();
+        $priority_sort = array();
         foreach($cache->fetchDetails($bintray_version) as $x) {
             list($x_base_name, $x_extension) = explode('.', $x->name, 2);
             if (array_key_exists($x_extension, $extension_priorities)) {
-                $x->priority = $extension_priorities[$x_extension];
                 $file_list[] = $x;
+                $priority_sort[] = $extension_priorities[$x_extension];
+                $version_dates[$x->version] = $x->created;
             }
         }
         if (!$file_list) {
             throw new RuntimeException("Unable to find file to download.");
         }
+        foreach($file_list as $x) {
+            $version_sort[] = $version_dates[$x->version];
+        }
 
-        // If two files have different versions, use most recent.
-        // Otherwise sort by priority.
-        usort($file_list, function($x, $y) {
-            return
-                -($x->version != $y->version
-                    ? strtotime($x->created) - strtotime($y->created) : 0) ?:
-                ($x->priority - $y->priority);
-        });
+        // Sort by version date first, priority second.
+        array_multisort(
+            $version_sort, SORT_DESC,
+            $priority_sort,
+            $file_list);
 
         foreach($file_list as $file) {
             if ($version == $file->version) {
