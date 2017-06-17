@@ -118,6 +118,7 @@ class Documentation {
         Log::debug("{$bintray_version} documentation: Extracting to {$destination_path}.");
 
         // Extract into a temporary directory.
+        $archives_path = EvilGlobals::settings('website-archives');
         $temp_directory = new TempDirectory("{$archives_path}/tmp");
         $extract_path = $cache->extractSingleRootArchive($file_path, $temp_directory->path);
 
