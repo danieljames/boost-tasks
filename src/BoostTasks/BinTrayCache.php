@@ -17,27 +17,19 @@ class BinTrayCache {
     function fetchDetails($bintray_version) {
         if ($bintray_version == 'master' || $bintray_version == 'develop') {
             $url = "https://api.bintray.com/packages/boostorg/{$bintray_version}/snapshot/files";
-            $path = '';
+            $path_prefix = '';
         } else if (preg_match('@.*(beta|rc)\.?\d*$@', $bintray_version)) {
             $url = "https://api.bintray.com/packages/boostorg/beta/boost/files";
-            $path = "{$bintray_version}/source/";
+            $path_prefix = "{$bintray_version}/source/";
         } else {
             $url = "https://api.bintray.com/packages/boostorg/release/boost/files";
-            $path = "{$bintray_version}/source/";
+            $path_prefix = "{$bintray_version}/source/";
         }
 
         $files = file_get_contents($url);
         if (!$files) {
             throw new RuntimeException("Error downloading file details from bintray.");
         }
-
-        return self::getFileDetails($files, $path);
-    }
-
-    static function getFileDetails($files, $path_prefix = '') {
-        // Not using 7zip files because 7z doesn't seem to be installed on the server.
-        $extension_priorities = array_flip(array('tar.bz2', 'tar.gz', 'zip'));
-        $low_priority = 100;
 
         $files = json_decode($files);
         if (!is_array($files)) {
@@ -47,25 +39,9 @@ class BinTrayCache {
         $file_list = array();
         foreach($files as $x) {
             if (substr($x->path, 0, strlen($path_prefix)) == $path_prefix) {
-                list($x_base_name, $x_extension) = explode('.', $x->name, 2);
-                if (array_key_exists($x_extension, $extension_priorities)) {
-                    $x->priority = $extension_priorities[$x_extension];
-                    $file_list[] = $x;
-                }
+                $file_list[] = $x;
             }
         }
-        if (!$file_list) {
-            throw new RuntimeException("Unable to find file to download.");
-        }
-
-        // If two files have different versions, use most recent.
-        // Otherwise sort by priority.
-        usort($file_list, function($x, $y) {
-            return
-                -($x->version != $y->version
-                    ? strtotime($x->created) - strtotime($y->created) : 0) ?:
-                ($x->priority - $y->priority);
-        });
 
         return $file_list;
     }
@@ -102,7 +78,8 @@ class BinTrayCache {
         }
 
         if (hash_file('sha256', $download_path) != $file->sha256) {
-            throw new RuntimeException("File signature doesn't match.");
+            unlink($download_path);
+            throw new RuntimeException("File signature doesn't match: {$url}");
         }
 
         return $download_path;
@@ -113,23 +90,22 @@ class BinTrayCache {
     function downloadFile($url, $dst_path) {
         $download_fh = fopen($url, 'rb');
         if (!$download_fh) { return false; }
+        if (feof($download_fh)) {
+            throw new RuntimeException("Empty download: {$url}");
+        }
 
         $save_fh = fopen($dst_path, "wb");
         if (!$save_fh) {
-            throw new RuntimeException("Problem opening local file to write to.");
-        }
-
-        if (feof($download_fh)) {
-            throw new RuntimeException("Empty download: {$url}.");
+            throw new RuntimeException("Problem opening local file at {$dst_path}");
         }
 
         do {
             $chunk = fread($download_fh, 8192);
             if ($chunk === false) {
-                throw new RuntimeException("Problem reading chunk.");
+                throw new RuntimeException("Problem reading chunk: {$url}");
             }
             if (fwrite($save_fh, $chunk) === false) {
-                throw new RuntimeException("Problem writing chunk.");
+                throw new RuntimeException("Problem writing chunk: {$url}");
             }
         } while (!feof($download_fh));
 
