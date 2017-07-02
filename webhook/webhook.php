@@ -30,7 +30,7 @@ function webhook_push_handler($event) {
         ),
         'website' => array(
             'refs/heads/master' => '/home/www/live.boost.org',
-            'refs/heads/beta' => '/home/www/beta.boost.org',
+            'refs/heads/beta' => array('path' => '/home/www/beta.boost.org', 'method' => 'reset'),
         ),
         'build' => array(
            'refs/heads/website' => '/home/www/shared/build-site',
@@ -54,6 +54,7 @@ function webhook_push_handler($event) {
     }
 
     if (array_key_exists($payload->ref, $branches)) {
+        $repo_details = $branches[$payload->ref];
         $repo_path = $branches[$payload->ref];
     }
     else {
@@ -61,9 +62,17 @@ function webhook_push_handler($event) {
         return false;
     }
 
-    echo "Pulling {$repo_path}\n";
+    if (is_array($repo_details)) {
+        $repo_path = $repo_details['path'];
+        $update_method = array_get($repo_details, 'method', 'pull');
+    } else {
+        $repo_path = $repo_details;
+        $update_method = 'pull';
+    }
 
-    $git_output = update_git_checkout($repo_path);
+    echo "Updating {$repo_path}\n";
+
+    $git_output = update_git_checkout($repo_path, $update_method);
 
     echo "Done, emailing results.\n";
 
@@ -83,14 +92,23 @@ function webhook_push_handler($event) {
     mail('dnljms@gmail.com', "{$email_title} update ".date('j M Y'), $result);
 }
 
-function update_git_checkout($repo_path) {
+function update_git_checkout($repo_path, $update_method) {
     $result = '';
 
     $repo = new RepoBase($repo_path);
 
     $result .= $repo->commandWithOutput('stash');
     try {
-        $result .= $repo->commandWithOutput('pull -q');
+        switch($update_method) {
+        case 'pull':
+            $result .= $repo->commandWithOutput('pull -q --ff-only');
+            break;
+        case 'reset':
+            $result .= $repo->commandWithOutput('reset --hard');
+            break;
+        default:
+            $result .= "Error: invalid update method: {$update_method}";
+        }
     }
     catch (\RuntimeException $e) {
         $result .= "git pull failed\n";
