@@ -101,7 +101,7 @@ function update_git_checkout($repo_path, $update_method) {
     try {
         switch($update_method) {
         case 'pull':
-            $result .= $repo->commandWithOutput('pull -q');
+            $result .= $repo->commandWithOutput('pull -q --ff-only');
             break;
         case 'reset':
             $result .= $repo->commandWithOutput('reset --hard');
