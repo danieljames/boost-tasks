@@ -40,9 +40,8 @@ function webhook_push_handler($event) {
         ),
     );
 
-    $branch = preg_replace('@^refs/heads/@', '', $payload->ref);
-
     $payload = $event->payload;
+    $branch = preg_replace('@^refs/heads/@', '', $payload->ref);
     $email_title = "[boost website] {$payload->repository->name} {$branch}";
 
     $repo_path = null;
@@ -105,6 +104,7 @@ function update_git_checkout($repo_path, $update_method, $branch) {
             $result .= $repo->commandWithOutput('pull -q --ff-only');
             break;
         case 'reset':
+            $result .= $repo->commandWithOutput("fetch -q");
             $result .= $repo->commandWithOutput("reset --hard origin/{$branch}");
             break;
         default:
