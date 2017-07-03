@@ -25,24 +25,25 @@ function webhook_push_handler($event) {
     // TODO: Move to configuration?
     $repos = array(
         'boost' => array(
-            'refs/heads/master' => '/home/www/shared/repos/boost-master',
-            'refs/heads/develop' => '/home/www/shared/repos/boost-develop',
+            'master' => '/home/www/shared/repos/boost-master',
+            'develop' => '/home/www/shared/repos/boost-develop',
         ),
         'website' => array(
-            'refs/heads/master' => '/home/www/live.boost.org',
-            'refs/heads/beta' => array('path' => '/home/www/beta.boost.org', 'method' => 'reset'),
+            'master' => '/home/www/live.boost.org',
+            'beta' => array('path' => '/home/www/beta.boost.org', 'method' => 'reset'),
         ),
         'build' => array(
-           'refs/heads/website' => '/home/www/shared/build-site',
+           'website' => '/home/www/shared/build-site',
         ),
         'documentation-fixes' => array(
-           'refs/heads/master' => '/home/www/shared/repos/documentation-fixes',
+           'master' => '/home/www/shared/repos/documentation-fixes',
         ),
     );
 
+    $branch = preg_replace('@^refs/heads/@', '', $payload->ref);
+
     $payload = $event->payload;
-    $email_title = "[boost website] {$payload->repository->name} ".
-        preg_replace('@^refs/heads/@', '', $payload->ref);
+    $email_title = "[boost website] {$payload->repository->name} {$branch}";
 
     $repo_path = null;
     if (array_key_exists($payload->repository->name, $repos)) {
@@ -53,9 +54,9 @@ function webhook_push_handler($event) {
         return false;
     }
 
-    if (array_key_exists($payload->ref, $branches)) {
-        $repo_details = $branches[$payload->ref];
-        $repo_path = $branches[$payload->ref];
+    if (array_key_exists($branch, $branches)) {
+        $repo_details = $branches[$branch];
+        $repo_path = $branches[$branch];
     }
     else {
         echo "Ignoring repository {$payload->repository->name}, ref: {$payload->ref}\n";
@@ -72,7 +73,7 @@ function webhook_push_handler($event) {
 
     echo "Updating {$repo_path}\n";
 
-    $git_output = update_git_checkout($repo_path, $update_method);
+    $git_output = update_git_checkout($repo_path, $update_method, $branch);
 
     echo "Done, emailing results.\n";
 
@@ -92,7 +93,7 @@ function webhook_push_handler($event) {
     mail('dnljms@gmail.com', "{$email_title} update ".date('j M Y'), $result);
 }
 
-function update_git_checkout($repo_path, $update_method) {
+function update_git_checkout($repo_path, $update_method, $branch) {
     $result = '';
 
     $repo = new RepoBase($repo_path);
@@ -104,7 +105,7 @@ function update_git_checkout($repo_path, $update_method) {
             $result .= $repo->commandWithOutput('pull -q --ff-only');
             break;
         case 'reset':
-            $result .= $repo->commandWithOutput('reset --hard');
+            $result .= $repo->commandWithOutput("reset --hard origin/{$branch}");
             break;
         default:
             $result .= "Error: invalid update method: {$update_method}";
