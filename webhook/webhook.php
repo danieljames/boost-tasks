@@ -12,6 +12,7 @@ function webhook() {
     switch($event->event_type) {
     case 'push':
         webhook_push_handler($event);
+        webhook_update_mirror($event);
         break;
     case 'pull_request':
         webhook_pull_request_handler($event);
@@ -140,6 +141,32 @@ function commit_details($payload) {
     }
 
     return $result;
+}
+
+function webhook_update_mirror($event) {
+    $payload = $event->payload;
+    $mirror_root = "/home/www/shared/mirror";
+    $mirror_path = "{$mirror_root}/{$payload->repository->name}";
+
+    try {
+        if (!is_dir($mirror_root)) {
+            mkdir($mirror_root, 0777, true);
+        }
+
+        if (!is_dir($mirror_path)) {
+            Process::run("git clone --mirror --quiet {$payload->repository->url} {$mirror_path}",
+                $mirror_root, null, null, 240);
+        } else {
+            // TODO: Tag branches that will be lost due to deletion/force push.
+            //       And prune deleted branches.
+            Process::run("git fetch --quiet origin",
+                $mirror_path, null, null, 240);
+        }
+    } catch (RuntimeException $e) {
+        $message = "Error updating mirror {$payload->repository->name}:\n";
+        $message .= $e->getMessage();
+        mail('dnljms@gmail.com', "Error updating mirror", $message);
+    }
 }
 
 function webhook_pull_request_handler($event) {
