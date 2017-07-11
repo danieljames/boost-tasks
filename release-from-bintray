@@ -164,7 +164,7 @@ function get_download_details($file_details, $bintray_version) {
         if (array_key_exists($extension, $extensions)) {
             $downloads[$extension] = array(
                 'line_endings' => $extensions[$extension],
-                'url' => "http://dl.bintray.com/boostorg/{$x->repo}/{$x->path}",
+                'url' => "https://dl.bintray.com/boostorg/{$x->repo}/{$x->path}",
                 'sha256' => $x->sha256
             );
         }
