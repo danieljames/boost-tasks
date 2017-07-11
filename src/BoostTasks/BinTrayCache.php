@@ -14,8 +14,44 @@ class BinTrayCache {
         $this->path = EvilGlobals::dataPath('bintray');
     }
 
-    function fetchDetails($bintray_version) {
-        if ($bintray_version == 'master' || $bintray_version == 'develop') {
+    static function parseVersion($version) {
+        if (preg_match('@^(master|develop)$@i', $version, $match)) {
+            return strtolower($match);
+        } else if (preg_match(
+            '@^
+            (?:boost_)?
+                        (\d+)
+            [._ ]+      (\d+)
+            (?:[._ ]+   (\d+))?
+            (?:[._ ]*   be?t?a? [._ ]*  (\d+|))?
+            (?:[._ ]*   rc      [._ ]*  (\d+))?
+            (?:[.][.a-z0-9]+)?
+            ()
+            $@xi', $version, $match, PREG_OFFSET_CAPTURE)) {
+            return array(
+                $match[1][0],
+                $match[2][0],
+                $match[3][0] ?: 0,
+                $match[4][1] != -1 ? "beta". ($match[4][0] ?: 1) : '',
+                $match[5][1] != -1 ? "rc". ($match[5][0] ?: 1) :'',
+            );
+        } else {
+            throw new RuntimeException("Unable to get version from {$version}");
+        }
+    }
+
+    function fetchDetails($bintray_version, $bintray_url = null) {
+        $filter_by_version = false;
+
+        if ($bintray_url) {
+            if (preg_match('@/boostorg/([^/]+/[^/]+)/@', $bintray_url, $match)) {
+                $url = "https://api.bintray.com/packages/boostorg/{$match[1]}/files";
+                $path_prefix = '';
+                $filter_by_version = true;
+            } else {
+                throw new RuntimeException("Unable to interpret URL: {$bintray_url}");
+            }
+        } else if ($bintray_version == 'master' || $bintray_version == 'develop') {
             $url = "https://api.bintray.com/packages/boostorg/{$bintray_version}/snapshot/files";
             $path_prefix = '';
         } else if (preg_match('@.*(beta|rc)\.?\d*$@', $bintray_version)) {
@@ -41,6 +77,17 @@ class BinTrayCache {
             if (substr($x->path, 0, strlen($path_prefix)) == $path_prefix) {
                 $file_list[] = $x;
             }
+        }
+
+        if ($filter_by_version) {
+            $parsed_version = self::parseVersion($bintray_version);
+            $file_list2 = array();
+            foreach ($file_list as $x) {
+                if (self::parseVersion(basename($x->path)) == $parsed_version) {
+                    $file_list2[] = $x;
+                }
+            }
+            $file_list = $file_list2;
         }
 
         return $file_list;
