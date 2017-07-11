@@ -16,13 +16,15 @@ Downloads the release details from bintray. Example versions:
 1.64.0
 
 Optional argument 'url' for a download page when the download URLs don't follow
-the normal pattern.
+the normal pattern e.g.
+
+{} 1.65.0.beta.1.rc.2 https://bintray.com/boostorg/beta/1.65.0.beta.1
 
 ");
 
 function main($args) {
     $command_line_options = CommandLineOptions::create($_SERVER['argv'],
-        "Download the release details from bintray.");
+        trim(str_replace('{}', basename(__FILE__), GET_RELEASE_DOWNLOAD_USAGE)));
     $options = $command_line_options->processArgs();
     if (is_numeric($options)) { exit($options); }
 
@@ -31,7 +33,7 @@ function main($args) {
 
     switch (count($options->arguments)) {
     case 0:
-        echo $command_line_options->usage("Error: version required.\n\nUsage: ".basename(__FILE__)." version");
+        echo $command_line_options->usage("Error: version required.\n\n{$command_line_options->description}");
         exit(1);
     case 2:
         $bintray_url = $options->arguments[1]->arg;
