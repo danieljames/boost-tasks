@@ -7,13 +7,16 @@ use BoostTasks\BinTrayCache;
 use BoostTasks\Documentation;
 
 define('GET_RELEASE_DOWNLOAD_USAGE', "
-Usage: {} bintray_version
+Usage: {} bintray_version [url]
 
 Downloads the release details from bintray. Example versions:
 
 1.64.0.rc.1
 1.64.0.beta.1
 1.64.0
+
+Optional argument 'url' for a download page when the download URLs don't follow
+the normal pattern.
 
 ");
 
@@ -24,11 +27,14 @@ function main($args) {
     if (is_numeric($options)) { exit($options); }
 
     $bintray_version = null;
+    $bintray_url = null;
 
     switch (count($options->arguments)) {
     case 0:
         echo $command_line_options->usage("Error: version required.\n\nUsage: ".basename(__FILE__)." version");
         exit(1);
+    case 2:
+        $bintray_url = $options->arguments[1]->arg;
     case 1:
         $bintray_version = $options->arguments[0]->arg;
         break;
@@ -69,14 +75,17 @@ function main($args) {
     }
 
     // Download the documentation
+    // TODO: Should I really be installing the documentation here?
+    //       Maybe only on the server?
 
-    $install_path = Documentation::install($bintray_version, $version_object->dir());
+    $install_path = Documentation::install($bintray_version, $version_object->dir(), $bintray_url);
 
     // Update documentation list
 
     Log::info("Update documentation list");
+    echo "php {$website_repo->path}/site-tools/update-doc-list.php --quiet {$install_path} '{$version_object}'\n";
     passthru("php {$website_repo->path}/site-tools/update-doc-list.php ".
-        "--quiet {$install_path} {$version_object}", $status);
+        "--quiet {$install_path} '{$version_object}'", $status);
     if ($status != 0) {
         echo "Error running update-doc-list.php\n";
         exit(1);
@@ -85,7 +94,7 @@ function main($args) {
     // Get the download details from bintray
 
     // TODO: This was already downloaded for the documentation.
-    $downloads = get_download_details($category, $bintray_version);
+    $downloads = get_download_details($category, $bintray_version, $bintray_url);
 
     if (!$downloads) {
         echo "Didn't find any downloads on Bintray.\n";
@@ -123,20 +132,11 @@ function main($args) {
     //       sure.
 }
 
-function get_download_details($category, $bintray_version) {
-    $bintray_api_url = "https://api.bintray.com/packages/boostorg/{$category}/boost/files";
+function get_download_details($category, $bintray_version, $bintray_url = null) {
+    $bintray_url = $bintray_url ?: "https://api.bintray.com/packages/boostorg/{$category}/boost/files";
 
-    $details = file_get_contents($bintray_api_url);
-    if ($details === false) {
-        echo "Error downloading details from bintray API\n";
-        exit(1);
-    }
-
-    $details = json_decode($details);
-    if (is_null($details)) {
-        echo "Error decoding json from bintray\n";
-        exit(1);
-    }
+    $cache = new BinTrayCache;
+    $details = $cache->fetchDetails($bintray_version, $bintray_url);
 
     $extensions = array(
         'bz2' => 'unix',
@@ -148,26 +148,13 @@ function get_download_details($category, $bintray_version) {
     $path_matcher = '@^'.preg_quote($bintray_version, '@').'/(binaries|source)/([^/]*)$@';
     $downloads = array();
     foreach($details as $x) {
-        if (preg_match($path_matcher, $x->path, $match)) {
-            $section = $match[1];
-            $filename = $match[2];
-            switch ($section) {
-            case 'source':
-                $extension = pathinfo($filename, PATHINFO_EXTENSION);
-                if (array_key_exists($extension, $extensions)) {
-                    $downloads[$extension] = array(
-                        'line_endings' => $extensions[$extension],
-                        'url' => "https://dl.bintray.com/boostorg/{$category}/{$x->path}",
-                        'sha256' => $x->sha256
-                    );
-                }
-                break;
-            case 'binaries':
-                // TODO
-                break;
-            default:
-                assert(false);
-            }
+        $extension = pathinfo($x->path, PATHINFO_EXTENSION);
+        if (array_key_exists($extension, $extensions)) {
+            $downloads[$extension] = array(
+                'line_endings' => $extensions[$extension],
+                'url' => "http://dl.bintray.com/boostorg/{$x->repo}/{$x->path}",
+                'sha256' => $x->sha256
+            );
         }
     }
 
