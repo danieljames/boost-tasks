@@ -74,11 +74,18 @@ function main($args) {
         $category = 'release';
     }
 
+    // Download release details from bintray
+
+    $cache = new BinTrayCache;
+    $bintray_url = $bintray_url ?: "https://api.bintray.com/packages/boostorg/{$category}/boost/files";
+    $file_details = $cache->fetchDetails($bintray_version, $bintray_url);
+
+
     // Download the documentation
     // TODO: Should I really be installing the documentation here?
     //       Maybe only on the server?
 
-    $install_path = Documentation::install($bintray_version, $version_object->dir(), $bintray_url);
+    $install_path = Documentation::install2($cache, $file_details, $bintray_version, $version_object->dir());
 
     // Update documentation list
 
@@ -94,7 +101,7 @@ function main($args) {
     // Get the download details from bintray
 
     // TODO: This was already downloaded for the documentation.
-    $downloads = get_download_details($category, $bintray_version, $bintray_url);
+    $downloads = get_download_details($file_details, $bintray_version);
 
     if (!$downloads) {
         echo "Didn't find any downloads on Bintray.\n";
@@ -132,12 +139,7 @@ function main($args) {
     //       sure.
 }
 
-function get_download_details($category, $bintray_version, $bintray_url = null) {
-    $bintray_url = $bintray_url ?: "https://api.bintray.com/packages/boostorg/{$category}/boost/files";
-
-    $cache = new BinTrayCache;
-    $details = $cache->fetchDetails($bintray_version, $bintray_url);
-
+function get_download_details($file_details, $bintray_version) {
     $extensions = array(
         'bz2' => 'unix',
         'gz' => 'unix',
@@ -145,9 +147,8 @@ function get_download_details($category, $bintray_version, $bintray_url = null) 
         '7z' => 'windows',
     );
 
-    $path_matcher = '@^'.preg_quote($bintray_version, '@').'/(binaries|source)/([^/]*)$@';
     $downloads = array();
-    foreach($details as $x) {
+    foreach($file_details as $x) {
         $extension = pathinfo($x->path, PATHINFO_EXTENSION);
         if (array_key_exists($extension, $extensions)) {
             $downloads[$extension] = array(
