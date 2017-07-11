@@ -45,17 +45,15 @@ class BinTrayCache {
 
         if ($bintray_path) {
             $url = "https://api.bintray.com/packages/boostorg/{$bintray_path}/files";
-            $path_prefix = '';
             $filter_by_version = true;
         } else if ($bintray_version == 'master' || $bintray_version == 'develop') {
             $url = "https://api.bintray.com/packages/boostorg/{$bintray_version}/snapshot/files";
-            $path_prefix = '';
         } else if (preg_match('@.*(beta|rc)\.?\d*$@', $bintray_version)) {
             $url = "https://api.bintray.com/packages/boostorg/beta/boost/files";
-            $path_prefix = "{$bintray_version}/source/";
+            $filter_by_version = true;
         } else {
             $url = "https://api.bintray.com/packages/boostorg/release/boost/files";
-            $path_prefix = "{$bintray_version}/source/";
+            $filter_by_version = true;
         }
 
         $files = file_get_contents($url);
@@ -68,25 +66,18 @@ class BinTrayCache {
             throw new RuntimeException("Error parsing latest details.");
         }
 
-        $file_list = array();
-        foreach($files as $x) {
-            if (substr($x->path, 0, strlen($path_prefix)) == $path_prefix) {
-                $file_list[] = $x;
-            }
-        }
-
         if ($filter_by_version) {
             $parsed_version = self::parseVersion($bintray_version);
-            $file_list2 = array();
-            foreach ($file_list as $x) {
+            $files2 = array();
+            foreach ($files as $x) {
                 if (self::parseVersion(basename($x->path)) == $parsed_version) {
-                    $file_list2[] = $x;
+                    $files2[] = $x;
                 }
             }
-            $file_list = $file_list2;
+            $files = $files2;
         }
 
-        return $file_list;
+        return $files;
     }
 
     // Return path the file was downloaded to, null if the file isn't available.
