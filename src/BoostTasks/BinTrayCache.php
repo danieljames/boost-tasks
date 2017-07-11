@@ -40,17 +40,13 @@ class BinTrayCache {
         }
     }
 
-    function fetchDetails($bintray_version, $bintray_url = null) {
+    function fetchDetails($bintray_version, $bintray_path = null) {
         $filter_by_version = false;
 
-        if ($bintray_url) {
-            if (preg_match('@/boostorg/([^/]+/[^/]+)/@', $bintray_url, $match)) {
-                $url = "https://api.bintray.com/packages/boostorg/{$match[1]}/files";
-                $path_prefix = '';
-                $filter_by_version = true;
-            } else {
-                throw new RuntimeException("Unable to interpret URL: {$bintray_url}");
-            }
+        if ($bintray_path) {
+            $url = "https://api.bintray.com/packages/boostorg/{$bintray_path}/files";
+            $path_prefix = '';
+            $filter_by_version = true;
         } else if ($bintray_version == 'master' || $bintray_version == 'develop') {
             $url = "https://api.bintray.com/packages/boostorg/{$bintray_version}/snapshot/files";
             $path_prefix = '';

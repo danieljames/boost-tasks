@@ -68,19 +68,28 @@ function main($args) {
         exit(1);
     }
 
-    // Work out the bintray version
+    if ($bintray_url) {
+        // Get the bintray details from the URL
 
-    if ($is_release_candidate || $version_object->is_beta()) {
-        $category = 'beta';
+        if (!preg_match('@/boostorg/([^/]+/[^/]+)/@', $bintray_url, $match)) {
+            throw new RuntimeException("Unable to interpret URL: {$bintray_url}");
+        }
+        $bintray_path = $match[1];
     } else {
-        $category = 'release';
+        // Work out the bintray version
+        // Note: This isn't working for 1.65.0 betas.
+
+        if ($is_release_candidate || $version_object->is_beta()) {
+            $bintray_path = "beta/boost";
+        } else {
+            $bintray_path = "release/boost";
+        }
     }
 
     // Download release details from bintray
 
     $cache = new BinTrayCache;
-    $bintray_url = $bintray_url ?: "https://api.bintray.com/packages/boostorg/{$category}/boost/files";
-    $file_details = $cache->fetchDetails($bintray_version, $bintray_url);
+    $file_details = $cache->fetchDetails($bintray_version, $bintray_path);
 
 
     // Download the documentation
@@ -114,7 +123,7 @@ function main($args) {
 
     Log::info("Update release data");
     $releases = new BoostReleases($website_repo->path.'/generated/state/release.txt');
-    $download_page = "https://dl.bintray.com/boostorg/{$category}/{$bintray_version}/source/";
+    $download_page = "https://dl.bintray.com/boostorg/{$bintray_path}/source/";
     $releases->set_release_data('boost', $version_object, array(
         'download_page' => $download_page,
         'downloads' => $downloads,
