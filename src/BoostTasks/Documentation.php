@@ -48,7 +48,7 @@ class Documentation {
             }
 
             Log::info("{$file_details->bintray_version} documentation: Attempt to install {$file->name}, version {$file->version}.");
-            if (self::downloadAndInstall($cache, $file_details, $file, $destination_path)) {
+            if (self::downloadAndInstall($file_details, $file, $destination_path)) {
                 $cache->cleanup($file);
                 Log::info("{$file_details->bintray_version} documentation: Successfully installed documentation.");
                 return $destination_path;
@@ -96,7 +96,7 @@ class Documentation {
         return $file_list;
     }
 
-    static function downloadAndInstall($cache, $file_details, $file, $destination_path) {
+    static function downloadAndInstall($file_details, $file, $destination_path) {
         // Download tarball.
         try {
             $file_path = $file_details->cachedDownload($file);
