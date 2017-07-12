@@ -77,71 +77,7 @@ class BinTrayCache {
             $files = $files2;
         }
 
-        return new BinTrayCache_FileDetails($bintray_version, $bintray_path, $files);
-    }
-
-    // Return path the file was downloaded to, null if the file isn't available.
-    // Throws an exception if something goes wrong while downloading, or the
-    // hash of the downloaded file doesn't match.
-    function cachedDownload($file_details, $file) {
-        $date = date('Y-m-d\TH:i', strtotime($file->created));
-        // 'repo' is actually the branch, that's just the way bintray is organised.
-        $download_dir = "{$this->path}/{$file->repo}/{$date}/{$file->sha1}";
-        $download_path = "{$download_dir}/{$file->name}";
-        $meta_path = "{$download_path}.meta";
-
-        if (!is_file($meta_path)) {
-            if (!is_dir($download_dir)) {
-                mkdir($download_dir, 0777, true);
-            }
-
-            if (is_file($download_path) && hash_file('sha256', $download_path) != $file->sha256) {
-                unlink($download_path);
-            }
-
-            if (!is_file($download_path)) {
-                if (!$this->downloadFile($file_details->getFileUrl($file), $download_path))
-                {
-                    return null;
-                }
-            }
-
-            file_put_contents($meta_path, json_encode($file));
-        }
-
-        if (hash_file('sha256', $download_path) != $file->sha256) {
-            unlink($download_path);
-            throw new RuntimeException("File signature doesn't match: {$url}");
-        }
-
-        return $download_path;
-    }
-
-    // TODO: Download to temporary file and move into position.
-    // TODO: Better error handling, what to do if there's a failure during download?
-    function downloadFile($url, $dst_path) {
-        $download_fh = fopen($url, 'rb');
-        if (!$download_fh) { return false; }
-        if (feof($download_fh)) {
-            throw new RuntimeException("Empty download: {$url}");
-        }
-
-        $save_fh = fopen($dst_path, "wb");
-        if (!$save_fh) {
-            throw new RuntimeException("Problem opening local file at {$dst_path}");
-        }
-
-        do {
-            $chunk = fread($download_fh, 8192);
-            if ($chunk === false) {
-                throw new RuntimeException("Problem reading chunk: {$url}");
-            }
-            if (fwrite($save_fh, $chunk) === false) {
-                throw new RuntimeException("Problem writing chunk: {$url}");
-            }
-        } while (!feof($download_fh));
-
-        return true;
+        return new BinTrayCache_FileDetails($this, $bintray_version, $bintray_path, $files);
     }
 
     // TODO: Would be nice if the returned data was in the same format as
@@ -257,11 +193,13 @@ class BinTrayCache {
 }
 
 class BinTrayCache_FileDetails {
+    var $cache;
     var $bintray_version;
     var $bintray_path;
     var $files;
 
-    function __construct($bintray_version, $bintray_path, $files) {
+    function __construct($cache, $bintray_version, $bintray_path, $files) {
+        $this->cache = $cache;
         $this->bintray_version = $bintray_version;
         $this->bintray_path = $bintray_path;
         $this->files = $files;
@@ -273,5 +211,69 @@ class BinTrayCache_FileDetails {
 
     function getFileUrl($file) {
         return "https://dl.bintray.com/boostorg/{$file->repo}/{$file->path}";
+    }
+
+    // Return path the file was downloaded to, null if the file isn't available.
+    // Throws an exception if something goes wrong while downloading, or the
+    // hash of the downloaded file doesn't match.
+    function cachedDownload($file) {
+        $date = date('Y-m-d\TH:i', strtotime($file->created));
+        // 'repo' is actually the branch, that's just the way bintray is organised.
+        $download_dir = "{$this->cache->path}/{$file->repo}/{$date}/{$file->sha1}";
+        $download_path = "{$download_dir}/{$file->name}";
+        $meta_path = "{$download_path}.meta";
+
+        if (!is_file($meta_path)) {
+            if (!is_dir($download_dir)) {
+                mkdir($download_dir, 0777, true);
+            }
+
+            if (is_file($download_path) && hash_file('sha256', $download_path) != $file->sha256) {
+                unlink($download_path);
+            }
+
+            if (!is_file($download_path)) {
+                if (!$this->downloadFile($this->getFileUrl($file), $download_path))
+                {
+                    return null;
+                }
+            }
+
+            file_put_contents($meta_path, json_encode($file));
+        }
+
+        if (hash_file('sha256', $download_path) != $file->sha256) {
+            unlink($download_path);
+            throw new RuntimeException("File signature doesn't match: {$url}");
+        }
+
+        return $download_path;
+    }
+
+    // TODO: Download to temporary file and move into position.
+    // TODO: Better error handling, what to do if there's a failure during download?
+    function downloadFile($url, $dst_path) {
+        $download_fh = fopen($url, 'rb');
+        if (!$download_fh) { return false; }
+        if (feof($download_fh)) {
+            throw new RuntimeException("Empty download: {$url}");
+        }
+
+        $save_fh = fopen($dst_path, "wb");
+        if (!$save_fh) {
+            throw new RuntimeException("Problem opening local file at {$dst_path}");
+        }
+
+        do {
+            $chunk = fread($download_fh, 8192);
+            if ($chunk === false) {
+                throw new RuntimeException("Problem reading chunk: {$url}");
+            }
+            if (fwrite($save_fh, $chunk) === false) {
+                throw new RuntimeException("Problem writing chunk: {$url}");
+            }
+        } while (!feof($download_fh));
+
+        return true;
     }
 }

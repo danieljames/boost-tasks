@@ -99,7 +99,7 @@ class Documentation {
     static function downloadAndInstall($cache, $file_details, $file, $destination_path) {
         // Download tarball.
         try {
-            $file_path = $cache->cachedDownload($file_details, $file);
+            $file_path = $file_details->cachedDownload($file);
         } catch (RuntimeException $e) {
             // TODO: Better error handling. This doesn't distinguish between
             //       things which should cause us to give up entirely, and
