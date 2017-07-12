@@ -68,28 +68,20 @@ function main($args) {
         exit(1);
     }
 
+    $cache = new BinTrayCache;
+
     if ($bintray_url) {
         // Get the bintray details from the URL
 
         if (!preg_match('@/boostorg/([^/]+/[^/]+)/@', $bintray_url, $match)) {
             throw new RuntimeException("Unable to interpret URL: {$bintray_url}");
         }
-        $bintray_path = $match[1];
+        $file_details = $cache->fetchDetails($bintray_version, $match[1]);
     } else {
-        // Work out the bintray version
+        // Use default location for version
         // Note: This isn't working for 1.65.0 betas.
-
-        if ($is_release_candidate || $version_object->is_beta()) {
-            $bintray_path = "beta/boost";
-        } else {
-            $bintray_path = "release/boost";
-        }
+        $file_details = $cache->fetchDetails($bintray_version);
     }
-
-    // Download release details from bintray
-
-    $cache = new BinTrayCache;
-    $file_details = $cache->fetchDetails($bintray_version, $bintray_path);
 
     // Download the documentation
     // TODO: Should I really be installing the documentation here?
