@@ -77,7 +77,7 @@ class BinTrayCache {
             $files = $files2;
         }
 
-        return $files;
+        return new BinTrayCache_FileDetails($bintray_version, $files);
     }
 
     // Return path the file was downloaded to, null if the file isn't available.
@@ -255,5 +255,15 @@ class BinTrayCache {
             throw new RuntimeException("Multiple roots in archive");
         }
         return "{$subdir}/".reset($new_directories);
+    }
+}
+
+class BinTrayCache_FileDetails {
+    var $bintray_version;
+    var $files;
+
+    function __construct($bintray_version, $files) {
+        $this->bintray_version = $bintray_version;
+        $this->files = $files;
     }
 }

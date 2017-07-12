@@ -96,7 +96,7 @@ function main($args) {
     // TODO: Should I really be installing the documentation here?
     //       Maybe only on the server?
 
-    $install_path = Documentation::install2($cache, $file_details, $bintray_version, $version_object->dir());
+    $install_path = Documentation::install2($cache, $file_details, $version_object->dir());
 
     // Update documentation list
 
@@ -112,7 +112,7 @@ function main($args) {
     // Get the download details from bintray
 
     // TODO: This was already downloaded for the documentation.
-    $downloads = get_download_details($file_details, $bintray_version);
+    $downloads = get_download_details($file_details);
 
     if (!$downloads) {
         echo "Didn't find any downloads on Bintray.\n";
@@ -150,7 +150,7 @@ function main($args) {
     //       sure.
 }
 
-function get_download_details($file_details, $bintray_version) {
+function get_download_details($file_details) {
     $extensions = array(
         'bz2' => 'unix',
         'gz' => 'unix',
@@ -159,7 +159,7 @@ function get_download_details($file_details, $bintray_version) {
     );
 
     $downloads = array();
-    foreach($file_details as $x) {
+    foreach($file_details->files as $x) {
         $extension = pathinfo($x->path, PATHINFO_EXTENSION);
         if (array_key_exists($extension, $extensions)) {
             $downloads[$extension] = array(

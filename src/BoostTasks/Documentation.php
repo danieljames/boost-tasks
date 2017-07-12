@@ -11,11 +11,11 @@ use RuntimeException;
 class Documentation {
     static function install($bintray_version, $dir) {
         $cache = new BinTrayCache;
-        $file_detail = $cache->fetchDetails($bintray_version);
-        return self::install2($cache, $file_details, $bintray_version, $dir);
+        $file_details = $cache->fetchDetails($bintray_version);
+        return self::install2($cache, $file_details, $dir);
     }
 
-    static function install2($cache, $file_details, $bintray_version, $dir) {
+    static function install2($cache, $file_details, $dir) {
         // Get archive path setting.
         $archives_path = EvilGlobals::settings('website-archives');
         if (!$archives_path) {
@@ -41,22 +41,22 @@ class Documentation {
             );
         }
 
-        $file_list = self::getPrioritizedDownloads($file_details);
+        $file_list = self::getPrioritizedDownloads($file_details->files);
         foreach($file_list as $file) {
             if ($version['hash'] == $file->version) {
-                Log::info("{$bintray_version} documentation: Already installed, version {$file->version}.");
+                Log::info("{$file_details->bintray_version} documentation: Already installed, version {$file->version}.");
                 return $destination_path;
             }
 
             if ($version['created'] && $version['created'] > $file->created) {
-                Log::info("{$bintray_version} documentation: Newer version already installed, version {$file->version}.");
+                Log::info("{$file_details->bintray_version} documentation: Newer version already installed, version {$file->version}.");
                 return $destination_path;
             }
 
-            Log::info("{$bintray_version} documentation: Attempt to install {$file->name}, version {$file->version}.");
-            if (self::downloadAndInstall($cache, $bintray_version, $file, $destination_path)) {
+            Log::info("{$file_details->bintray_version} documentation: Attempt to install {$file->name}, version {$file->version}.");
+            if (self::downloadAndInstall($cache, $file_details->bintray_version, $file, $destination_path)) {
                 $cache->cleanup($file);
-                Log::info("{$bintray_version} documentation: Successfully installed documentation.");
+                Log::info("{$file_details->bintray_version} documentation: Successfully installed documentation.");
                 return $destination_path;
             }
         }
