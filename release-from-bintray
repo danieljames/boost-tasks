@@ -91,12 +91,11 @@ function main($args) {
     $cache = new BinTrayCache;
     $file_details = $cache->fetchDetails($bintray_version, $bintray_path);
 
-
     // Download the documentation
     // TODO: Should I really be installing the documentation here?
     //       Maybe only on the server?
 
-    $install_path = Documentation::install2($cache, $file_details, $version_object->dir());
+    $install_path = Documentation::install($cache, $file_details, $version_object->dir());
 
     // Update documentation list
 

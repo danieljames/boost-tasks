@@ -9,13 +9,7 @@ use RecursiveDirectoryIterator;
 use RuntimeException;
 
 class Documentation {
-    static function install($bintray_version, $dir) {
-        $cache = new BinTrayCache;
-        $file_details = $cache->fetchDetails($bintray_version);
-        return self::install2($cache, $file_details, $dir);
-    }
-
-    static function install2($cache, $file_details, $dir) {
+    static function install($cache, $file_details, $dir) {
         // Get archive path setting.
         $archives_path = EvilGlobals::settings('website-archives');
         if (!$archives_path) {

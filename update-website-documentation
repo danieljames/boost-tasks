@@ -15,7 +15,9 @@ function main() {
 
     foreach(array('master', 'develop') as $branch) {
         try {
-            Documentation::install($branch, $branch);
+            $cache = new BinTrayCache;
+            $file_details = $cache->fetchDetails($branch);
+            Documentation::install($cache, $file_details, $branch);
         }
         catch(RuntimeException $e) {
             Log::error($e);
