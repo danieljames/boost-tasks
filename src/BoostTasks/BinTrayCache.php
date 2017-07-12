@@ -213,7 +213,7 @@ class BinTrayCache_FileDetails {
         return "https://dl.bintray.com/boostorg/{$file->repo}/{$file->path}";
     }
 
-    // Return path the file was downloaded to, null if the file isn't available.
+    // Return path the file was downloaded to.
     // Throws an exception if something goes wrong while downloading, or the
     // hash of the downloaded file doesn't match.
     function cachedDownload($file) {
@@ -233,10 +233,7 @@ class BinTrayCache_FileDetails {
             }
 
             if (!is_file($download_path)) {
-                if (!$this->downloadFile($this->getFileUrl($file), $download_path))
-                {
-                    return null;
-                }
+                $this->downloadFile($this->getFileUrl($file), $download_path);
             }
 
             file_put_contents($meta_path, json_encode($file));
@@ -250,11 +247,16 @@ class BinTrayCache_FileDetails {
         return $download_path;
     }
 
+    // Downloads file from $url to local path $dst_path
+    // Throws RuntimeException on failure.
     // TODO: Download to temporary file and move into position.
-    // TODO: Better error handling, what to do if there's a failure during download?
     function downloadFile($url, $dst_path) {
         $download_fh = fopen($url, 'rb');
-        if (!$download_fh) { return false; }
+
+        if (!$download_fh) {
+            throw new RuntimeException("Error connecting to {$url}");
+        }
+
         if (feof($download_fh)) {
             throw new RuntimeException("Empty download: {$url}");
         }
@@ -273,7 +275,5 @@ class BinTrayCache_FileDetails {
                 throw new RuntimeException("Problem writing chunk: {$url}");
             }
         } while (!feof($download_fh));
-
-        return true;
     }
 }

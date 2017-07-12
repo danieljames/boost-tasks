@@ -108,11 +108,6 @@ class Documentation {
             return false;
         }
 
-        if (!$file_path) {
-            Log::error("Download failed.");
-            return false;
-        }
-
         Log::debug("{$file_details->bintray_version} documentation: Extracting to {$destination_path}.");
 
         // Extract into a temporary directory.
