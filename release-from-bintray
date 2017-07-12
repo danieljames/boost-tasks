@@ -122,9 +122,8 @@ function main($args) {
 
     Log::info("Update release data");
     $releases = new BoostReleases($website_repo->path.'/generated/state/release.txt');
-    $download_page = "https://dl.bintray.com/boostorg/{$bintray_path}/source/";
     $releases->set_release_data('boost', $version_object, array(
-        'download_page' => $download_page,
+        'download_page' => $file_details->getDownloadPage(),
         'downloads' => $downloads,
     ));
     $short_doc_dir = str_replace('boost_', '', $version_object->dir());
@@ -163,7 +162,7 @@ function get_download_details($file_details) {
         if (array_key_exists($extension, $extensions)) {
             $downloads[$extension] = array(
                 'line_endings' => $extensions[$extension],
-                'url' => "https://dl.bintray.com/boostorg/{$x->repo}/{$x->path}",
+                'url' => $file_details->getFileUrl($x),
                 'sha256' => $x->sha256
             );
         }

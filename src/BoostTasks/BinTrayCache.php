@@ -44,17 +44,17 @@ class BinTrayCache {
         $filter_by_version = false;
 
         if ($bintray_path) {
-            $url = "https://api.bintray.com/packages/boostorg/{$bintray_path}/files";
             $filter_by_version = true;
         } else if ($bintray_version == 'master' || $bintray_version == 'develop') {
-            $url = "https://api.bintray.com/packages/boostorg/{$bintray_version}/snapshot/files";
+            $bintray_path = "{$bintray_version}/snapshot";
         } else if (preg_match('@.*(beta|rc)\.?\d*$@', $bintray_version)) {
-            $url = "https://api.bintray.com/packages/boostorg/beta/boost/files";
+            $bintray_path = "beta/boost";
             $filter_by_version = true;
         } else {
-            $url = "https://api.bintray.com/packages/boostorg/release/boost/files";
+            $bintray_path = "release/boost";
             $filter_by_version = true;
         }
+        $url = "https://api.bintray.com/packages/boostorg/{$bintray_path}/files";
 
         $files = file_get_contents($url);
         if (!$files) {
@@ -77,7 +77,7 @@ class BinTrayCache {
             $files = $files2;
         }
 
-        return new BinTrayCache_FileDetails($bintray_version, $files);
+        return new BinTrayCache_FileDetails($bintray_version, $bintray_path, $files);
     }
 
     // Return path the file was downloaded to, null if the file isn't available.
@@ -260,10 +260,20 @@ class BinTrayCache {
 
 class BinTrayCache_FileDetails {
     var $bintray_version;
+    var $bintray_path;
     var $files;
 
-    function __construct($bintray_version, $files) {
+    function __construct($bintray_version, $bintray_path, $files) {
         $this->bintray_version = $bintray_version;
+        $this->bintray_path = $bintray_path;
         $this->files = $files;
+    }
+
+    function getDownloadPage() {
+        return "https://dl.bintray.com/boostorg/{$this->bintray_path}/source/";
+    }
+
+    function getFileUrl($file) {
+        return "https://dl.bintray.com/boostorg/{$file->repo}/{$file->path}";
     }
 }
