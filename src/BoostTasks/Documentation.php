@@ -48,7 +48,7 @@ class Documentation {
             }
 
             Log::info("{$file_details->bintray_version} documentation: Attempt to install {$file->name}, version {$file->version}.");
-            if (self::downloadAndInstall($cache, $file_details->bintray_version, $file, $destination_path)) {
+            if (self::downloadAndInstall($cache, $file_details, $file, $destination_path)) {
                 $cache->cleanup($file);
                 Log::info("{$file_details->bintray_version} documentation: Successfully installed documentation.");
                 return $destination_path;
@@ -96,10 +96,10 @@ class Documentation {
         return $file_list;
     }
 
-    static function downloadAndInstall($cache, $bintray_version, $file, $destination_path) {
+    static function downloadAndInstall($cache, $file_details, $file, $destination_path) {
         // Download tarball.
         try {
-            $file_path = $cache->cachedDownload($file);
+            $file_path = $cache->cachedDownload($file_details, $file);
         } catch (RuntimeException $e) {
             // TODO: Better error handling. This doesn't distinguish between
             //       things which should cause us to give up entirely, and
@@ -113,7 +113,7 @@ class Documentation {
             return false;
         }
 
-        Log::debug("{$bintray_version} documentation: Extracting to {$destination_path}.");
+        Log::debug("{$file_details->bintray_version} documentation: Extracting to {$destination_path}.");
 
         // Extract into a temporary directory.
         $archives_path = EvilGlobals::settings('website-archives');
@@ -137,7 +137,7 @@ class Documentation {
                     '@<meta\s+http-equiv\s*=\s*["\']?refresh["\']?\s+content\s*=\s*["\']0;\s*URL=http://www.boost.org/doc/libs/master/@i',
                     file_get_contents($path)))
             {
-                echo "Removing redirect to master from {$bintray_version} at {$path}.\n";
+                echo "Removing redirect to master from {$file_details->bintray_version} at {$path}.\n";
                 unlink($path);
             }
         }

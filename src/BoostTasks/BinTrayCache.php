@@ -83,7 +83,7 @@ class BinTrayCache {
     // Return path the file was downloaded to, null if the file isn't available.
     // Throws an exception if something goes wrong while downloading, or the
     // hash of the downloaded file doesn't match.
-    function cachedDownload($file) {
+    function cachedDownload($file_details, $file) {
         $date = date('Y-m-d\TH:i', strtotime($file->created));
         // 'repo' is actually the branch, that's just the way bintray is organised.
         $download_dir = "{$this->path}/{$file->repo}/{$date}/{$file->sha1}";
@@ -100,9 +100,7 @@ class BinTrayCache {
             }
 
             if (!is_file($download_path)) {
-                if (!$this->downloadFile(
-                    "http://dl.bintray.com/boostorg/{$file->repo}/{$file->path}",
-                    $download_path))
+                if (!$this->downloadFile($file_details->getFileUrl($file), $download_path))
                 {
                     return null;
                 }
