@@ -118,7 +118,7 @@ class Documentation {
         // Extract into a temporary directory.
         $archives_path = EvilGlobals::settings('website-archives');
         $temp_directory = new TempDirectory("{$archives_path}/tmp");
-        $extract_path = $cache->extractSingleRootArchive($file_path, $temp_directory->path);
+        $extract_path = BinTrayCache::extractSingleRootArchive($file_path, $temp_directory->path);
 
         // Add the version details.
         file_put_contents("{$extract_path}/.bintray-version", json_encode(array(

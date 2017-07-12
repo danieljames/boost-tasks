@@ -156,7 +156,7 @@ class BinTrayCache {
         return $children;
     }
 
-    function extractSingleRootArchive($file_path, $tmpdir) {
+    static function extractSingleRootArchive($file_path, $tmpdir) {
         $subdir = "{$tmpdir}/new";
         mkdir($subdir);
 

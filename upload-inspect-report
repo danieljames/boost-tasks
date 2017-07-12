@@ -62,7 +62,7 @@ function main() {
 
     $build_path = "{$temp_directory->path}/build-inspect";
     mkdir($build_path);
-    $build_path = $cache->extractSingleRootArchive(
+    $build_path = BinTrayCache::extractSingleRootArchive(
         $branches[$build_branch]['archive_path'], $build_path);
 
     Process::run("{$build_path}/tools/build/bootstrap.sh", "{$build_path}/tools/build", null, null, 60*5);
@@ -75,7 +75,7 @@ function main() {
         $details = $branches[$branch];
         $extract_path = "{$temp_directory->path}/boost-{$branch}";
         mkdir($extract_path);
-        $extract_path = $cache->extractSingleRootArchive($details['archive_path'], $extract_path);
+        $extract_path = BinTrayCache::extractSingleRootArchive($details['archive_path'], $extract_path);
 
         // Note: if you change the name, will also need to change upload_files.
         $inspect_final_name = "docs-inspect-{$branch}.html";
