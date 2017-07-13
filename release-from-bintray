@@ -120,10 +120,17 @@ function main($args) {
     ));
     $short_doc_dir = str_replace('boost_', '', $version_object->dir());
     $releases->addDocumentation('boost', $version_object, "/doc/libs/{$short_doc_dir}/");
-    if (!$is_release_candidate) {
-        $releases->setReleaseStatus('boost', $version_object, 'released');
-    }
     $releases->save();
+
+    if (!$is_release_candidate) {
+        Log::info("Set released in website");
+        passthru("php {$website_repo->path}/site-tools/set-release-status.php ".
+            "--quiet '{$version_object}'", $status);
+        if ($status != 0) {
+            echo "Error running set-release-status.php\n";
+            exit(1);
+        }
+    }
 
     // Rebuild pages
 
