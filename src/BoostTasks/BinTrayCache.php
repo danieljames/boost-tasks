@@ -40,27 +40,21 @@ class BinTrayCache {
         }
     }
 
-    function fetchDetails($bintray_version, $bintray_url = null) {
+    function fetchDetails($bintray_version, $bintray_path = null) {
         $filter_by_version = false;
 
-        if ($bintray_url) {
-            if (preg_match('@/boostorg/([^/]+/[^/]+)/@', $bintray_url, $match)) {
-                $url = "https://api.bintray.com/packages/boostorg/{$match[1]}/files";
-                $path_prefix = '';
-                $filter_by_version = true;
-            } else {
-                throw new RuntimeException("Unable to interpret URL: {$bintray_url}");
-            }
+        if ($bintray_path) {
+            $filter_by_version = true;
         } else if ($bintray_version == 'master' || $bintray_version == 'develop') {
-            $url = "https://api.bintray.com/packages/boostorg/{$bintray_version}/snapshot/files";
-            $path_prefix = '';
+            $bintray_path = "{$bintray_version}/snapshot";
         } else if (preg_match('@.*(beta|rc)\.?\d*$@', $bintray_version)) {
-            $url = "https://api.bintray.com/packages/boostorg/beta/boost/files";
-            $path_prefix = "{$bintray_version}/source/";
+            $bintray_path = "beta/boost";
+            $filter_by_version = true;
         } else {
-            $url = "https://api.bintray.com/packages/boostorg/release/boost/files";
-            $path_prefix = "{$bintray_version}/source/";
+            $bintray_path = "release/boost";
+            $filter_by_version = true;
         }
+        $url = "https://api.bintray.com/packages/boostorg/{$bintray_path}/files";
 
         $files = file_get_contents($url);
         if (!$files) {
@@ -72,91 +66,18 @@ class BinTrayCache {
             throw new RuntimeException("Error parsing latest details.");
         }
 
-        $file_list = array();
-        foreach($files as $x) {
-            if (substr($x->path, 0, strlen($path_prefix)) == $path_prefix) {
-                $file_list[] = $x;
-            }
-        }
-
         if ($filter_by_version) {
             $parsed_version = self::parseVersion($bintray_version);
-            $file_list2 = array();
-            foreach ($file_list as $x) {
+            $files2 = array();
+            foreach ($files as $x) {
                 if (self::parseVersion(basename($x->path)) == $parsed_version) {
-                    $file_list2[] = $x;
+                    $files2[] = $x;
                 }
             }
-            $file_list = $file_list2;
+            $files = $files2;
         }
 
-        return $file_list;
-    }
-
-    // Return path the file was downloaded to, null if the file isn't available.
-    // Throws an exception if something goes wrong while downloading, or the
-    // hash of the downloaded file doesn't match.
-    function cachedDownload($file) {
-        $date = date('Y-m-d\TH:i', strtotime($file->created));
-        // 'repo' is actually the branch, that's just the way bintray is organised.
-        $download_dir = "{$this->path}/{$file->repo}/{$date}/{$file->sha1}";
-        $download_path = "{$download_dir}/{$file->name}";
-        $meta_path = "{$download_path}.meta";
-
-        if (!is_file($meta_path)) {
-            if (!is_dir($download_dir)) {
-                mkdir($download_dir, 0777, true);
-            }
-
-            if (is_file($download_path) && hash_file('sha256', $download_path) != $file->sha256) {
-                unlink($download_path);
-            }
-
-            if (!is_file($download_path)) {
-                if (!$this->downloadFile(
-                    "http://dl.bintray.com/boostorg/{$file->repo}/{$file->path}",
-                    $download_path))
-                {
-                    return null;
-                }
-            }
-
-            file_put_contents($meta_path, json_encode($file));
-        }
-
-        if (hash_file('sha256', $download_path) != $file->sha256) {
-            unlink($download_path);
-            throw new RuntimeException("File signature doesn't match: {$url}");
-        }
-
-        return $download_path;
-    }
-
-    // TODO: Download to temporary file and move into position.
-    // TODO: Better error handling, what to do if there's a failure during download?
-    function downloadFile($url, $dst_path) {
-        $download_fh = fopen($url, 'rb');
-        if (!$download_fh) { return false; }
-        if (feof($download_fh)) {
-            throw new RuntimeException("Empty download: {$url}");
-        }
-
-        $save_fh = fopen($dst_path, "wb");
-        if (!$save_fh) {
-            throw new RuntimeException("Problem opening local file at {$dst_path}");
-        }
-
-        do {
-            $chunk = fread($download_fh, 8192);
-            if ($chunk === false) {
-                throw new RuntimeException("Problem reading chunk: {$url}");
-            }
-            if (fwrite($save_fh, $chunk) === false) {
-                throw new RuntimeException("Problem writing chunk: {$url}");
-            }
-        } while (!feof($download_fh));
-
-        return true;
+        return new BinTrayCache_FileDetails($this, $bintray_version, $bintray_path, $files);
     }
 
     // TODO: Would be nice if the returned data was in the same format as
@@ -235,7 +156,7 @@ class BinTrayCache {
         return $children;
     }
 
-    function extractSingleRootArchive($file_path, $tmpdir) {
+    static function extractSingleRootArchive($file_path, $tmpdir) {
         $subdir = "{$tmpdir}/new";
         mkdir($subdir);
 
@@ -268,5 +189,105 @@ class BinTrayCache {
             throw new RuntimeException("Multiple roots in archive");
         }
         return "{$subdir}/".reset($new_directories);
+    }
+}
+
+class BinTrayCache_FileDetails {
+    var $cache;
+    var $bintray_version;
+    var $bintray_path;
+    var $files;
+
+    function __construct($cache, $bintray_version, $bintray_path, $files) {
+        $this->cache = $cache;
+        $this->bintray_version = $bintray_version;
+        $this->bintray_path = $bintray_path;
+        $this->files = $files;
+    }
+
+    function getDownloadPage() {
+        return "https://dl.bintray.com/boostorg/{$this->bintray_path}/source/";
+    }
+
+    function getFileUrl($file) {
+        return "https://dl.bintray.com/boostorg/{$file->repo}/{$file->path}";
+    }
+
+    // Return path the file was downloaded to.
+    // Throws an exception if something goes wrong while downloading, or the
+    // hash of the downloaded file doesn't match.
+    function cachedDownload($file) {
+        $date = date('Y-m-d\TH:i', strtotime($file->created));
+        // 'repo' is actually the branch, that's just the way bintray is organised.
+        $download_dir = "{$this->cache->path}/{$file->repo}/{$date}/{$file->sha1}";
+        $download_path = "{$download_dir}/{$file->name}";
+        $meta_path = "{$download_path}.meta";
+
+        if (!is_file($meta_path)) {
+            if (!is_dir($download_dir)) {
+                mkdir($download_dir, 0777, true);
+            }
+
+            if (is_file($download_path) && hash_file('sha256', $download_path) != $file->sha256) {
+                unlink($download_path);
+            }
+
+            if (!is_file($download_path)) {
+                $this->downloadFile($this->getFileUrl($file), $download_path);
+            }
+
+            file_put_contents($meta_path, json_encode($file));
+        }
+
+        if (hash_file('sha256', $download_path) != $file->sha256) {
+            unlink($download_path);
+            throw new RuntimeException("File signature doesn't match: {$url}");
+        }
+
+        return $download_path;
+    }
+
+    // Downloads file from $url to local path $dst_path
+    // Throws RuntimeException on failure.
+    // TODO: Download to temporary file and move into position.
+    function downloadFile($url, $dst_path) {
+        $download_fh = fopen($url, 'rb');
+
+        if (!$download_fh) {
+            throw new RuntimeException("Error connecting to {$url}");
+        }
+
+        if (feof($download_fh)) {
+            throw new RuntimeException("Empty download: {$url}");
+        }
+
+        $tmp_dir = "{$this->cache->path}/tmp";
+        if (!is_dir($tmp_dir)) { mkdir($tmp_dir, 0777, true); }
+        $temp_path = tempnam($tmp_dir, "download-");
+        try {
+            $save_fh = fopen($temp_path, "wb");
+            if (!$save_fh) {
+                throw new RuntimeException("Problem opening temporary file at {$dst_path}");
+            }
+
+            do {
+                $chunk = fread($download_fh, 8192);
+                if ($chunk === false) {
+                    throw new RuntimeException("Problem reading chunk: {$url}");
+                }
+                if (fwrite($save_fh, $chunk) === false) {
+                    throw new RuntimeException("Problem writing chunk: {$url}");
+                }
+            } while (!feof($download_fh));
+
+            fclose($download_fh);
+            fclose($save_fh);
+            rename($temp_path, $dst_path);
+        } catch(Exception $e) {
+            if ($download_fh) { fclose($download_fh); }
+            if ($save_fh) { fclose($save_fh); }
+            unlink($temp_path);
+            throw $e;
+        }
     }
 }

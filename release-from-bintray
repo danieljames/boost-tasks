@@ -16,13 +16,15 @@ Downloads the release details from bintray. Example versions:
 1.64.0
 
 Optional argument 'url' for a download page when the download URLs don't follow
-the normal pattern.
+the normal pattern e.g.
+
+{} 1.65.0.beta.1.rc.2 https://bintray.com/boostorg/beta/1.65.0.beta.1
 
 ");
 
 function main($args) {
     $command_line_options = CommandLineOptions::create($_SERVER['argv'],
-        "Download the release details from bintray.");
+        trim(str_replace('{}', basename(__FILE__), GET_RELEASE_DOWNLOAD_USAGE)));
     $options = $command_line_options->processArgs();
     if (is_numeric($options)) { exit($options); }
 
@@ -31,7 +33,7 @@ function main($args) {
 
     switch (count($options->arguments)) {
     case 0:
-        echo $command_line_options->usage("Error: version required.\n\nUsage: ".basename(__FILE__)." version");
+        echo $command_line_options->usage("Error: version required.\n\n{$command_line_options->description}");
         exit(1);
     case 2:
         $bintray_url = $options->arguments[1]->arg;
@@ -66,19 +68,26 @@ function main($args) {
         exit(1);
     }
 
-    // Work out the bintray version
+    $cache = new BinTrayCache;
 
-    if ($is_release_candidate || $version_object->is_beta()) {
-        $category = 'beta';
+    if ($bintray_url) {
+        // Get the bintray details from the URL
+
+        if (!preg_match('@/boostorg/([^/]+/[^/]+)/@', $bintray_url, $match)) {
+            throw new RuntimeException("Unable to interpret URL: {$bintray_url}");
+        }
+        $file_details = $cache->fetchDetails($bintray_version, $match[1]);
     } else {
-        $category = 'release';
+        // Use default location for version
+        // Note: This isn't working for 1.65.0 betas.
+        $file_details = $cache->fetchDetails($bintray_version);
     }
 
     // Download the documentation
     // TODO: Should I really be installing the documentation here?
     //       Maybe only on the server?
 
-    $install_path = Documentation::install($bintray_version, $version_object->dir(), $bintray_url);
+    $install_path = Documentation::install($cache, $file_details, $version_object->dir());
 
     // Update documentation list
 
@@ -94,7 +103,7 @@ function main($args) {
     // Get the download details from bintray
 
     // TODO: This was already downloaded for the documentation.
-    $downloads = get_download_details($category, $bintray_version, $bintray_url);
+    $downloads = get_download_details($file_details);
 
     if (!$downloads) {
         echo "Didn't find any downloads on Bintray.\n";
@@ -105,17 +114,23 @@ function main($args) {
 
     Log::info("Update release data");
     $releases = new BoostReleases($website_repo->path.'/generated/state/release.txt');
-    $download_page = "https://dl.bintray.com/boostorg/{$category}/{$bintray_version}/source/";
     $releases->set_release_data('boost', $version_object, array(
-        'download_page' => $download_page,
+        'download_page' => $file_details->getDownloadPage(),
         'downloads' => $downloads,
     ));
     $short_doc_dir = str_replace('boost_', '', $version_object->dir());
     $releases->addDocumentation('boost', $version_object, "/doc/libs/{$short_doc_dir}/");
-    if (!$is_release_candidate) {
-        $releases->setReleaseStatus('boost', $version_object, 'released');
-    }
     $releases->save();
+
+    if (!$is_release_candidate) {
+        Log::info("Set released in website");
+        passthru("php {$website_repo->path}/site-tools/set-release-status.php ".
+            "--quiet '{$version_object}'", $status);
+        if ($status != 0) {
+            echo "Error running set-release-status.php\n";
+            exit(1);
+        }
+    }
 
     // Rebuild pages
 
@@ -132,12 +147,7 @@ function main($args) {
     //       sure.
 }
 
-function get_download_details($category, $bintray_version, $bintray_url = null) {
-    $bintray_url = $bintray_url ?: "https://api.bintray.com/packages/boostorg/{$category}/boost/files";
-
-    $cache = new BinTrayCache;
-    $details = $cache->fetchDetails($bintray_version, $bintray_url);
-
+function get_download_details($file_details) {
     $extensions = array(
         'bz2' => 'unix',
         'gz' => 'unix',
@@ -145,14 +155,13 @@ function get_download_details($category, $bintray_version, $bintray_url = null) 
         '7z' => 'windows',
     );
 
-    $path_matcher = '@^'.preg_quote($bintray_version, '@').'/(binaries|source)/([^/]*)$@';
     $downloads = array();
-    foreach($details as $x) {
+    foreach($file_details->files as $x) {
         $extension = pathinfo($x->path, PATHINFO_EXTENSION);
         if (array_key_exists($extension, $extensions)) {
             $downloads[$extension] = array(
                 'line_endings' => $extensions[$extension],
-                'url' => "http://dl.bintray.com/boostorg/{$x->repo}/{$x->path}",
+                'url' => $file_details->getFileUrl($x),
                 'sha256' => $x->sha256
             );
         }

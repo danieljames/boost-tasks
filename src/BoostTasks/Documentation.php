@@ -9,7 +9,7 @@ use RecursiveDirectoryIterator;
 use RuntimeException;
 
 class Documentation {
-    static function install($bintray_version, $dir, $bintray_url = null) {
+    static function install($cache, $file_details, $dir) {
         // Get archive path setting.
         $archives_path = EvilGlobals::settings('website-archives');
         if (!$archives_path) {
@@ -35,24 +35,22 @@ class Documentation {
             );
         }
 
-        $cache = new BinTrayCache;
-
-        $file_list = self::getPrioritizedDownloads($cache->fetchDetails($bintray_version, $bintray_url));
+        $file_list = self::getPrioritizedDownloads($file_details->files);
         foreach($file_list as $file) {
             if ($version['hash'] == $file->version) {
-                Log::info("{$bintray_version} documentation: Already installed, version {$file->version}.");
+                Log::info("{$file_details->bintray_version} documentation: Already installed, version {$file->version}.");
                 return $destination_path;
             }
 
             if ($version['created'] && $version['created'] > $file->created) {
-                Log::info("{$bintray_version} documentation: Newer version already installed, version {$file->version}.");
+                Log::info("{$file_details->bintray_version} documentation: Newer version already installed, version {$file->version}.");
                 return $destination_path;
             }
 
-            Log::info("{$bintray_version} documentation: Attempt to install {$file->name}, version {$file->version}.");
-            if (self::downloadAndInstall($cache, $bintray_version, $file, $destination_path)) {
+            Log::info("{$file_details->bintray_version} documentation: Attempt to install {$file->name}, version {$file->version}.");
+            if (self::downloadAndInstall($file_details, $file, $destination_path)) {
                 $cache->cleanup($file);
-                Log::info("{$bintray_version} documentation: Successfully installed documentation.");
+                Log::info("{$file_details->bintray_version} documentation: Successfully installed documentation.");
                 return $destination_path;
             }
         }
@@ -98,10 +96,10 @@ class Documentation {
         return $file_list;
     }
 
-    static function downloadAndInstall($cache, $bintray_version, $file, $destination_path) {
+    static function downloadAndInstall($file_details, $file, $destination_path) {
         // Download tarball.
         try {
-            $file_path = $cache->cachedDownload($file);
+            $file_path = $file_details->cachedDownload($file);
         } catch (RuntimeException $e) {
             // TODO: Better error handling. This doesn't distinguish between
             //       things which should cause us to give up entirely, and
@@ -110,17 +108,12 @@ class Documentation {
             return false;
         }
 
-        if (!$file_path) {
-            Log::error("Download failed.");
-            return false;
-        }
-
-        Log::debug("{$bintray_version} documentation: Extracting to {$destination_path}.");
+        Log::debug("{$file_details->bintray_version} documentation: Extracting to {$destination_path}.");
 
         // Extract into a temporary directory.
         $archives_path = EvilGlobals::settings('website-archives');
         $temp_directory = new TempDirectory("{$archives_path}/tmp");
-        $extract_path = $cache->extractSingleRootArchive($file_path, $temp_directory->path);
+        $extract_path = BinTrayCache::extractSingleRootArchive($file_path, $temp_directory->path);
 
         // Add the version details.
         file_put_contents("{$extract_path}/.bintray-version", json_encode(array(
@@ -139,7 +132,7 @@ class Documentation {
                     '@<meta\s+http-equiv\s*=\s*["\']?refresh["\']?\s+content\s*=\s*["\']0;\s*URL=http://www.boost.org/doc/libs/master/@i',
                     file_get_contents($path)))
             {
-                echo "Removing redirect to master from {$bintray_version} at {$path}.\n";
+                echo "Removing redirect to master from {$file_details->bintray_version} at {$path}.\n";
                 unlink($path);
             }
         }
