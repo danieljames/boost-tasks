@@ -25,8 +25,8 @@ function webhook_push_handler($event) {
     // TODO: Move to configuration?
     $repos = array(
         'boost' => array(
-            'master' => array('/home/www/shared/repos/boost-master', 'method' => 'reset'),
-            'develop' => array('/home/www/shared/repos/boost-develop', 'method' => 'reset'),
+            'master' => array('path' => '/home/www/shared/repos/boost-master', 'method' => 'reset'),
+            'develop' => array('path' => '/home/www/shared/repos/boost-develop', 'method' => 'reset'),
         ),
         'website' => array(
             'master' => '/home/www/live.boost.org',
