@@ -17,7 +17,7 @@ class LocalMirror extends Object {
 
     function __construct() {
         $this->mirror_root = EvilGlobals::dataPath('mirror');
-        $this->queue = new GitHubEventQueue('mirror', 'PushEvent');
+        $this->queue = new GitHubEventQueue('mirror');
     }
 
     function refresh() {
@@ -34,7 +34,9 @@ class LocalMirror extends Object {
         // Get set of updated repos.
         $repos = Array();
         foreach ($this->queue->getEvents() as $event) {
-            $repos[$event->repo] = true;
+            if ($event->type == 'PushEvent' || $event->type == "CreateEvent") {
+                $repos[$event->repo] = true;
+            }
         }
 
         // Mark them all as dirty.
