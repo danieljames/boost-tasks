@@ -115,6 +115,7 @@ function update_git_checkout($repo_path, $update_method, $branch) {
         $result .= $repo->commandWithOutput('stash');
     }
     catch (\RuntimeException $e) {
+        echo "Git stash failed\n";
         $result .= "git stash failed\n";
         $failed = true;
         return $result;
@@ -135,6 +136,7 @@ function update_git_checkout($repo_path, $update_method, $branch) {
         }
     }
     catch (\RuntimeException $e) {
+        echo "Git pull failed\n";
         $result .= "git pull failed\n";
         $failed = true;
     }
@@ -142,6 +144,7 @@ function update_git_checkout($repo_path, $update_method, $branch) {
         $result .= $repo->commandWithOutput('stash pop');
     }
     catch (\RuntimeException $e) {
+        echo "Git stash pop failed\n";
         $result .= "git stash pop failed\n";
         $failed = true;
     }
