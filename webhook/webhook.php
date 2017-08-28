@@ -42,7 +42,6 @@ function webhook_push_handler($event) {
 
     $payload = $event->payload;
     $branch = preg_replace('@^refs/heads/@', '', $payload->ref);
-    $email_title = "[boost website] {$payload->repository->name} {$branch}";
 
     $repo_path = null;
     if (array_key_exists($payload->repository->name, $repos)) {
@@ -62,6 +61,7 @@ function webhook_push_handler($event) {
         return false;
     }
 
+    // Get the update method that we're going to use.
     if (is_array($repo_details)) {
         $repo_path = $repo_details['path'];
         $update_method = array_get($repo_details, 'method', 'pull');
@@ -70,34 +70,56 @@ function webhook_push_handler($event) {
         $update_method = 'pull';
     }
 
+    // These aren't needed until later, but getting them out of the way
+    // before doing anything with side effects.
+    $email_title = "[boost website] Error updating {$payload->repository->name} {$branch}";
+    $git_commits = commit_details($payload);
+
+    // Update the repo
     echo "Updating {$repo_path}\n";
 
     $git_output = update_git_checkout($repo_path, $update_method, $branch);
 
-    echo "Done, emailing results.\n";
+    // Email if something went wrong when updating.
+    if (!$git_output) {
+        echo "Done.\n";
+    } else {
+        echo "Done with git error, emailing results.\n";
 
-    $git_commits = commit_details($payload);
+        $result = '';
 
-    $result = '';
-    $result .= "Commits\n";
-    $result .= "=======\n";
-    $result .= $git_commits;
-    $result .= "\n";
-    $result .= "Pull\n";
-    $result .= "====\n";
-    $result .= $git_output;
-    $result .= "\n";
+        $result .= "Pull\n";
+        $result .= "====\n";
+        $result .= $git_output;
+        $result .= "\n";
 
-    // Email the result
-    mail('dnljms@gmail.com', "{$email_title} update ".date('j M Y'), $result);
+        $result .= "Commits\n";
+        $result .= "=======\n";
+        $result .= $git_commits;
+        $result .= "\n";
+
+        // Email the result
+        mail('dnljms@gmail.com', "{$email_title} update ".date('j M Y'), $result);
+    }
 }
 
+/* Returns output if anything failed */
 function update_git_checkout($repo_path, $update_method, $branch) {
+    $failed = false;
+
     $result = '';
 
     $repo = new RepoBase($repo_path);
 
-    $result .= $repo->commandWithOutput('stash');
+    try {
+        $result .= $repo->commandWithOutput('stash');
+    }
+    catch (\RuntimeException $e) {
+        $result .= "git stash failed\n";
+        $failed = true;
+        return $result;
+    }
+
     try {
         switch($update_method) {
         case 'pull':
@@ -109,19 +131,22 @@ function update_git_checkout($repo_path, $update_method, $branch) {
             break;
         default:
             $result .= "Error: invalid update method: {$update_method}";
+            $failed = true;
         }
     }
     catch (\RuntimeException $e) {
         $result .= "git pull failed\n";
+        $failed = true;
     }
     try {
         $result .= $repo->commandWithOutput('stash pop');
     }
     catch (\RuntimeException $e) {
         $result .= "git stash pop failed\n";
+        $failed = true;
     }
 
-    return $result;
+    return $failed ? $result : '';
 }
 
 function commit_details($payload) {
