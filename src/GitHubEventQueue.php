@@ -23,7 +23,7 @@ class GitHubEventQueue extends Object {
     var $type;
     var $status;
 
-    function __construct($name, $type = 'PushEvent') {
+    function __construct($name, $type = null) {
         $db = EvilGlobals::database();
         $this->queue = $db->findOne(self::$queue_table, 'name = ?', array($name));
         $this->type = $type;
@@ -42,12 +42,20 @@ class GitHubEventQueue extends Object {
     }
 
     function getEvents() {
-        return EvilGlobals::database()->find(self::$event_table,
-                'github_id > ? AND github_id <= ? AND type = ? ORDER BY github_id',
-                array(
-                    $this->queue->last_github_id,
-                    $this->status->last_id,
-                    $this->type));
+        if (!$this->type) {
+            return EvilGlobals::database()->find(self::$event_table,
+                    'github_id > ? AND github_id <= ? ORDER BY github_id',
+                    array(
+                        $this->queue->last_github_id,
+                        $this->status->last_id));
+        } else {
+            return EvilGlobals::database()->find(self::$event_table,
+                    'github_id > ? AND github_id <= ? AND type = ? ORDER BY github_id',
+                    array(
+                        $this->queue->last_github_id,
+                        $this->status->last_id,
+                        $this->type));
+        }
     }
 
     // Downloads any events since this was created, and updates getEvents

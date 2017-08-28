@@ -57,13 +57,22 @@ class Migrations extends Object {
 
         // TODO: Implement other migrations, possibly as php scripts?
         //       Maybe have a special case for renaming columns?
+        // TODO: Find old schema when there's a migration after the last
+        //       schema.
         $latest_schema = self::loadLatestSchema();
-        if ($version != $latest_schema->version) {
+        if ($version < $latest_schema->version) {
             $current_schema = self::loadOldSchema($version);
             Log::info("Migrate schema {$current_schema->version} to {$latest_schema->version}");
             self::migrateSchema($db, $current_schema, $latest_schema);
             Log::info("Migration success, schema {$latest_schema->version}");
             $db->exec("PRAGMA user_version = {$latest_schema->version}");
+            return true;
+        }
+
+        $migration_version = 2017080201;
+        if ($version < $migration_version) {
+            $db->exec("UPDATE queue SET type = null WHERE name = 'mirror'");
+            $db->exec("PRAGMA user_version = {$migration_version}");
             return true;
         }
 

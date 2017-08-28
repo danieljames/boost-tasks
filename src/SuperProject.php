@@ -37,7 +37,7 @@ class SuperProject extends Repo {
     }
 
     function checkedUpdateFromEvents($all = false) {
-        $queue = new GitHubEventQueue($this->submodule_branch);
+        $queue = new GitHubEventQueue($this->submodule_branch, 'PushEvent');
         if ($all) {
             Log::info('Refresh all submodules.');
             $result = $this->attemptUpdateFromAll($queue);
