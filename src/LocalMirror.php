@@ -17,7 +17,7 @@ class LocalMirror extends Object {
 
     function __construct() {
         $this->mirror_root = EvilGlobals::dataPath('mirror');
-        $this->queue = new GitHubEventQueue('mirror');
+        $this->queue = new GitHubEventQueue('mirror', 'PushEvent');
     }
 
     function refresh() {
