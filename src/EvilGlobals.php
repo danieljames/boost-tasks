@@ -19,6 +19,7 @@ class EvilGlobals extends Object {
         'website-data' => array('type' => 'path'),
         'website-archives' => array('type' => 'path'),
         'push-to-repo' => array('type' => 'boolean', 'default' => false),
+        'superproject-repo' => array('type' => 'string', 'default' => 'boostorg/boost'),
         'superproject-branches' => array('type' => 'map', 'default' => array(),
             'sub' => array('type' => 'string'),
         ),

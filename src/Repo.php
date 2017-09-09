@@ -10,6 +10,7 @@ use Nette\Object;
  */
 
 class Repo extends RepoBase {
+    var $github_user; // Or org....
     var $module;
     var $branch;
     var $enable_push;
@@ -17,11 +18,18 @@ class Repo extends RepoBase {
 
     function __construct($module, $branch, $path, $url = null) {
         parent::__construct($path);
-        $this->module = $module;
+        $module_parts = explode('/', $module, 2);
+        if (count($module_parts) == 2) {
+            $this->github_user = $module_parts[0];
+            $this->module = $module_parts[1];
+        } else {
+            $this->github_user = 'boostorg';
+            $this->module = $module;
+        }
         $this->branch = $branch;
         $this->enable_push = EvilGlobals::settings('push-to-repo');
         $this->url = is_null($url) ?
-            "git@github.com:boostorg/{$this->module}.git" :
+            "git@github.com:{$this->github_user}/{$this->module}.git" :
             $url;
     }
 
