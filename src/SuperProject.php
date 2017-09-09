@@ -22,7 +22,7 @@ class SuperProject extends Repo {
 
     function __construct($settings) {
         parent::__construct(
-            array_get($settings, 'module', 'boost'),
+            array_get($settings, 'module', EvilGlobals::settings('superproject-repo')),
             $this->get($settings, 'superproject-branch'),
             $this->get($settings, 'path'),
             array_get($settings, 'remote_url'));
@@ -265,7 +265,11 @@ class SuperProject_Submodule extends Object {
         $this->path = $values['path'];
 
         $matches = null;
-        // TODO: Set github name based on super project name?
+        // Q: Set github name based on super project name?
+        //    Should make that an option. For testing purposes, I'm running
+        //    this in my own repo, so actually want it to use the boostorg
+        //    repo - even though that's not how git would interpret the
+        //    relative paths.
         if (preg_match('@^(?:\.\.|https?://github\.com/boostorg)/(\w+)(\.git)?$@', $values['url'], $matches)) {
             $this->github_name = "boostorg/{$matches[1]}";
         }
