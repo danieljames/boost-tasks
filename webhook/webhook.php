@@ -111,7 +111,10 @@ function update_git_checkout($repo_path, $update_method, $branch) {
 
     $repo = new RepoBase($repo_path);
 
-    try {
+    $stash_needed = $repo->commandWithStatus('git diff-index --quiet HEAD --');
+
+    if ($stash_needed) try {
+        $result .= "Stashing changes\n";
         $result .= $repo->commandWithOutput('stash');
     }
     catch (\RuntimeException $e) {
@@ -140,7 +143,8 @@ function update_git_checkout($repo_path, $update_method, $branch) {
         $result .= "git pull failed\n";
         $failed = true;
     }
-    try {
+
+    if ($stash_needed) try {
         $result .= $repo->commandWithOutput('stash pop');
     }
     catch (\RuntimeException $e) {
