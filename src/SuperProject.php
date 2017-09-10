@@ -39,17 +39,17 @@ class SuperProject extends Repo {
     function checkedUpdateFromEvents($all = false) {
         $queue = new GitHubEventQueue($this->submodule_branch, 'PushEvent');
         if ($all) {
-            Log::info('Refresh all submodules.');
-            $result = $this->attemptUpdateFromAll($queue);
+            Log::info('Refresh submodule from event queue, and sync all.');
+            $this->attemptUpdateFromEventQueue($queue, true);
         } else if (!$queue->continuedFromLastRun()) {
             Log::info('Full refresh of submodules because of gap in event queue.');
             $result = $this->attemptUpdateFromAll($queue);
+            if ($result) { $queue->catchUp(); }
         } else {
             Log::info('Refresh submodules from event queue.');
-            $result = $this->attemptUpdateFromEventQueue($queue);
+            $this->attemptUpdateFromEventQueue($queue);
         };
 
-        if ($result) { $queue->catchUp(); }
         return true;
     }
 
@@ -60,22 +60,49 @@ class SuperProject extends Repo {
             $self->updateAllSubmoduleHashes($submodules);
             // Include any events that have arrived since starting this update.
             $queue->downloadMoreEvents();
-            $updated = $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
-            foreach ($submodules as $submodule) {
-                assert(!$submodule->updated_hash_value);
-                $submodule->updated_hash_value = $submodule->pending_hash_value;
+
+            foreach ($queue->getEvents() as $event) {
+                if ($event->branch == $this->submodule_branch) {
+                    if (array_key_exists($event->repo, $submodules)) {
+                        $payload = json_decode($event->payload);
+                        assert($payload);
+
+                        $submodule = $submodules[$event->repo];
+
+                        if ($payload->before == $submodule->pending_hash_value || $payload->after == $submodule->pending_hash_value) {
+                            $submodule->pending_hash_value = null;
+                        }
+
+                        $submodule->updated_hash_value = $payload->head;
+                    }
+                }
             }
-            $updated |= $self->updateHashes($submodules, true);
-            return $updated;
+
+            return $self->updatePendingHashes($submodules, true);
         });
     }
 
-    private function attemptUpdateFromEventQueue($queue) {
-        $self = $this; // Has to work on php 5.3
-        return $this->attemptAndPush(function() use($self, $queue) {
-            $submodules = $self->getSubmodules();
-            return $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
-        });
+    private function attemptUpdateFromEventQueue($queue, $check_all = false) {
+        // TODO: Only running this once, maybe should try again if it fails?
+        try {
+            $this->setupCleanCheckout();
+            $submodules = $this->getSubmodules();
+            if ($check_all) {
+                $this->updateAllSubmoduleHashes($submodules);
+                $queue->downloadMoreEvents();
+            }
+            $this->commitSubmoduleHashesFromEventQueue($queue, $submodules);
+            $updated = false;
+            if ($check_all) {
+                // TODO: Message should indicate that this is a 'catch up'
+                //       commit, because the repo is out of sync.
+                $updated = $this->updatePendingHashes($submodules, true);
+            }
+            return $updated;
+        } catch (\RuntimeException $e) {
+            Log::error("{$this->getModuleBranchName()}: $e");
+            return false;
+        }
     }
 
     public function getSubmodules() {
@@ -111,9 +138,7 @@ class SuperProject extends Repo {
     }
 
     // Note: Public so that it can be called in a closure in PHP 5.3
-    public function updateSubmoduleHashesFromEventQueue($queue, $submodules = null) {
-        $updated = false;
-
+    public function commitSubmoduleHashesFromEventQueue($queue, $submodules = null) {
         foreach ($queue->getEvents() as $event) {
             if ($event->branch == $this->submodule_branch) {
                 if (array_key_exists($event->repo, $submodules)) {
@@ -142,7 +167,11 @@ class SuperProject extends Repo {
                             throw new RuntimeException("Error updating submodules in git repo");
                         }
                         assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $updated_hash_value);
-                        $updated = true;
+                        if (!$this->pushRepo()) {
+                            Log::error("{$this->getModuleBranchName()}: $e");
+                            break;
+                        }
+                        $queue->catchUp();
                     }
                 }
             }
@@ -155,14 +184,32 @@ class SuperProject extends Repo {
                 Log::warning("Ignored {$events} for {$submodule->boost_name} as the hash does not the super project's current value");
             }
         }
+    }
 
-        return $updated;
+    /**
+     * Update the repo from any pending hash values.
+     *
+     * @param Array $submodules
+     * @param boolean $mark_mirror_dirty
+     * @return boolean True if a change was committed.
+     */
+    function updatePendingHashes($submodules, $mark_mirror_dirty = false) {
+        foreach ($submodules as $submodule) {
+            if ($submodule->pending_hash_value) {
+                if ($submodule->updated_hash_value) {
+                    throw new \RuntimeException("Update for {$submodule->boost_name} doesn't match event queue");
+                }
+                $submodule->updated_hash_value = $submodule->pending_hash_value;
+                $submodule->pending_hash_value = null;
+            }
+        }
+        return $this->updateHashes($submodules, $mark_mirror_dirty);
     }
 
     /**
      * Update the repo to use the given submodule hashes.
      *
-     * @param Array $hashes
+     * @param Array $submodules
      * @param boolean $mark_mirror_dirty
      * @return boolean True if a change was committed.
      */
