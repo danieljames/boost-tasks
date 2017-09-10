@@ -111,7 +111,7 @@ function update_git_checkout($repo_path, $update_method, $branch) {
 
     $repo = new RepoBase($repo_path);
 
-    $stash_needed = $repo->commandWithStatus('git diff-index --quiet HEAD --');
+    $stash_needed = $repo->commandWithStatus('diff-index --quiet HEAD --');
 
     if ($stash_needed) try {
         $result .= "Stashing changes\n";
