@@ -176,7 +176,7 @@ class SuperProject extends Repo {
                             Log::error("{$this->getModuleBranchName()}: $e");
                             break;
                         }
-                        $queue->catchUp();
+                        $queue->markReadUpTo($event->github_id);
                     }
                 }
             }

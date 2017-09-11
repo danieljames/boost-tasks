@@ -76,6 +76,13 @@ class GitHubEventQueue extends Object {
         $this->queue->store();
     }
 
+    function markReadUpTo($github_id) {
+        $this->queue->last_github_id = max(array(
+            $this->queue->last_github_id,
+            $github_id));
+        $this->queue->store();
+    }
+
     function continuedFromLastRun() {
         return $this->status->start_id
             && $this->queue->last_github_id >= $this->status->start_id;
