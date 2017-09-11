@@ -92,13 +92,18 @@ class SuperProject extends Repo {
                 $queue->downloadMoreEvents();
             }
             $this->commitSubmoduleHashesFromEventQueue($queue, $submodules);
-            $updated = false;
             if ($check_all) {
                 // TODO: Message should indicate that this is a 'catch up'
                 //       commit, because the repo is out of sync.
                 $updated = $this->updatePendingHashes($submodules, true);
+                if ($updated) {
+                    if (!$this->pushRepo()) {
+                        Log::error("{$this->getModuleBranchName()}: $e");
+                        return false;
+                    }
+                    $queue->catchUp();
+                }
             }
-            return $updated;
         } catch (\RuntimeException $e) {
             Log::error("{$this->getModuleBranchName()}: $e");
             return false;
