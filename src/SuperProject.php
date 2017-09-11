@@ -176,8 +176,7 @@ class SuperProject extends Repo {
                             Log::error("{$this->getModuleBranchName()}: $e");
                             break;
                         }
-                        // TODO: This need to be just to the current event id.
-                        $queue->catchUp();
+                        $queue->markReadUpTo($event->github_id);
                     }
                 }
             }
