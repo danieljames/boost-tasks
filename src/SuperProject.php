@@ -38,13 +38,13 @@ class SuperProject extends Repo {
 
     function checkedUpdateFromEvents($all = false) {
         $queue = new GitHubEventQueue($this->submodule_branch, 'PushEvent');
-        if ($all) {
-            Log::info('Refresh submodule from event queue, and sync all.');
-            $this->attemptUpdateFromEventQueue($queue, true);
-        } else if (!$queue->continuedFromLastRun()) {
+        if (!$queue->continuedFromLastRun()) {
             Log::info('Full refresh of submodules because of gap in event queue.');
             $result = $this->attemptUpdateFromAll($queue);
             if ($result) { $queue->catchUp(); }
+        } else if ($all) {
+            Log::info('Refresh submodule from event queue, and sync all.');
+            $this->attemptUpdateFromEventQueue($queue, true);
         } else {
             Log::info('Refresh submodules from event queue.');
             $this->attemptUpdateFromEventQueue($queue);
