@@ -11,6 +11,7 @@ use Nette\Object;
 
 class SuperProject extends Repo {
     var $submodule_branch;
+    var $push_warning = false;
 
     static function updateBranches($branches = null, $all = false) {
         if (!$branches) { $branches = EvilGlobals::branchRepos(); }
@@ -49,6 +50,11 @@ class SuperProject extends Repo {
             Log::info('Refresh submodules from event queue.');
             $this->attemptUpdateFromEventQueue($queue);
         };
+
+        if ($this->push_warning) {
+            Log::warning("Changes not pushed, as configured not to.");
+            $this->push_warning = false;
+        }
 
         return true;
     }
@@ -96,12 +102,16 @@ class SuperProject extends Repo {
                 // TODO: Message should indicate that this is a 'catch up'
                 //       commit, because the repo is out of sync.
                 $updated = $this->updatePendingHashes($submodules, true);
-                if ($updated && $this->enable_push) {
-                    if (!$this->pushRepo()) {
-                        Log::error("{$this->getModuleBranchName()}: $e");
-                        return false;
+                if ($updated) {
+                    if ($this->enable_push) {
+                        if (!$this->pushRepo()) {
+                            Log::error("{$this->getModuleBranchName()}: $e");
+                            return false;
+                        }
+                        $queue->catchUp();
+                    } else {
+                        $this->push_warning = true;
                     }
-                    $queue->catchUp();
                 }
             }
         } catch (\RuntimeException $e) {
@@ -178,6 +188,8 @@ class SuperProject extends Repo {
                                 break;
                             }
                             $queue->markReadUpTo($event->github_id);
+                        } else {
+                            $this->push_warning = true;
                         }
                     }
                 }
