@@ -96,7 +96,7 @@ class SuperProject extends Repo {
                 // TODO: Message should indicate that this is a 'catch up'
                 //       commit, because the repo is out of sync.
                 $updated = $this->updatePendingHashes($submodules, true);
-                if ($updated) {
+                if ($updated && $this->enable_push) {
                     if (!$this->pushRepo()) {
                         Log::error("{$this->getModuleBranchName()}: $e");
                         return false;
@@ -172,11 +172,13 @@ class SuperProject extends Repo {
                             throw new RuntimeException("Error updating submodules in git repo");
                         }
                         assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $updated_hash_value);
-                        if (!$this->pushRepo()) {
-                            Log::error("{$this->getModuleBranchName()}: $e");
-                            break;
+                        if ($this->enable_push) {
+                            if (!$this->pushRepo()) {
+                                Log::error("{$this->getModuleBranchName()}: $e");
+                                break;
+                            }
+                            $queue->markReadUpTo($event->github_id);
                         }
-                        $queue->markReadUpTo($event->github_id);
                     }
                 }
             }
