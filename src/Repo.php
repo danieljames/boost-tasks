@@ -95,7 +95,12 @@ class Repo extends RepoBase {
                 $result = call_user_func($callback);
                 // Nothing to push, so a trivial success
                 if (!$result) { return true; }
-                if ($this->pushRepo()) { return true; }
+                if ($this->enable_push) {
+                    if ($this->pushRepo()) { return true; }
+                } else {
+                    Log::warning("{$this->path} processed, not configured to push to repo.\n");
+                    return false;
+                }
             }
 
             Log::error("Failed to push to {$this->getModuleBranchName()}.");
@@ -108,20 +113,17 @@ class Repo extends RepoBase {
     }
 
     function pushRepo() {
-        if ($this->enable_push) {
-            // TODO: Maybe I should parse the output from git push to check exactly
-            // what succeeded/failed.
+        assert(!!$this->enable_push);
 
-            $status = $this->commandWithStatus('push -q --porcelain');
+        // TODO: Maybe I should parse the output from git push to check exactly
+        // what succeeded/failed.
 
-            if ($status > 1) {
-                throw new \RuntimeException("Push failed: {$process->getErrorOutput()}");
-            }
+        $status = $this->commandWithStatus('push -q --porcelain');
 
-            return $status == 0;
-        } else {
-            echo "{$this->path} processed, not configured to push to repo.\n";
-            return true;
+        if ($status > 1) {
+            throw new \RuntimeException("Push failed: {$process->getErrorOutput()}");
         }
+
+        return $status == 0;
     }
 }
