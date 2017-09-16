@@ -133,26 +133,30 @@ class SuperProject extends Repo {
 
             $submodule = $submodules[$event->repo];
 
+            // This change and any previous 'ignored' changes have already been made.
             if ($submodule->current_hash_value == $payload->head) {
                 $submodule->ignored_events = array();
                 continue;
             }
 
+            // This change doesn't cleanly apply to the current repo, so ignore it.
             if ($submodule->current_hash_value != $payload->before) {
                 $submodule->ignored_events[] = $event;
                 continue;
             }
 
-            $updated_hash_value = $payload->head;
-            if ($updated_hash_value == $submodule->pending_hash_value) {
+            // We've caught up with the 'pending' change, so mark it as null.
+            if ($payload->head == $submodule->pending_hash_value) {
                 $submodule->pending_hash_value = null;
             }
-            if ($updated_hash_value != $submodule->current_hash_value) {
-                $submodule->updated_hash_value = $updated_hash_value;
+
+            // Apply the change.
+            if ($payload->head != $submodule->current_hash_value) {
+                $submodule->updated_hash_value = $payload->head;
                 if (!$this->commitHashes($submodules)) {
                     throw new RuntimeException("Error updating submodules in git repo");
                 }
-                assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $updated_hash_value);
+                assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $payload->head);
                 if ($this->enable_push) {
                     if (!$this->pushRepo()) {
                         Log::error("{$this->getModuleBranchName()}: $e");
