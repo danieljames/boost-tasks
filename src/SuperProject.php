@@ -141,20 +141,6 @@ class SuperProject extends Repo {
     }
 
     // Note: Public so that it can be called in a closure in PHP 5.3
-    public function getPendingHashesFromGithub($submodules) {
-        foreach($submodules as $submodule) {
-            // Note: Alternative would be to use branch API to get more
-            //       information.
-            //       https://developer.github.com/v3/repos/branches/#get-branch
-            $ref = EvilGlobals::githubCache()->getJson(
-                "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
-            if ($ref->object->sha != $submodule->current_hash_value) {
-                $submodule->pending_hash_value = $ref->object->sha;
-            }
-        }
-    }
-
-    // Note: Public so that it can be called in a closure in PHP 5.3
     public function pushSubmoduleHashesFromEventQueue($queue, $submodules = null) {
         foreach ($queue->getEvents() as $event) {
             if ($event->branch == $this->submodule_branch) {
@@ -203,6 +189,20 @@ class SuperProject extends Repo {
                 $events = count($submodule->ignored_events);
                 $events .= ($events == 1) ? " PushEvent" : " PushEvents";
                 Log::warning("Ignored {$events} for {$submodule->boost_name} as the hash does not the super project's current value");
+            }
+        }
+    }
+
+    // Note: Public so that it can be called in a closure in PHP 5.3
+    public function getPendingHashesFromGithub($submodules) {
+        foreach($submodules as $submodule) {
+            // Note: Alternative would be to use branch API to get more
+            //       information.
+            //       https://developer.github.com/v3/repos/branches/#get-branch
+            $ref = EvilGlobals::githubCache()->getJson(
+                "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
+            if ($ref->object->sha != $submodule->current_hash_value) {
+                $submodule->pending_hash_value = $ref->object->sha;
             }
         }
     }
