@@ -125,43 +125,42 @@ class SuperProject extends Repo {
     // Note: Public so that it can be called in a closure in PHP 5.3
     public function pushSubmoduleHashesFromEventQueue($queue, $submodules = null) {
         foreach ($queue->getEvents() as $event) {
-            if ($event->branch == $this->submodule_branch) {
-                if (array_key_exists($event->repo, $submodules)) {
-                    $payload = json_decode($event->payload);
-                    assert($payload);
+            if ($event->branch != $this->submodule_branch) { continue; }
+            if (!array_key_exists($event->repo, $submodules)) { continue; }
 
-                    $submodule = $submodules[$event->repo];
+            $payload = json_decode($event->payload);
+            assert($payload);
 
-                    if ($submodule->current_hash_value == $payload->head) {
-                        $submodule->ignored_events = array();
-                        continue;
-                    }
+            $submodule = $submodules[$event->repo];
 
-                    if ($submodule->current_hash_value != $payload->before) {
-                        $submodule->ignored_events[] = $event;
-                        continue;
-                    }
+            if ($submodule->current_hash_value == $payload->head) {
+                $submodule->ignored_events = array();
+                continue;
+            }
 
-                    $updated_hash_value = $payload->head;
-                    if ($updated_hash_value == $submodule->pending_hash_value) {
-                        $submodule->pending_hash_value = null;
+            if ($submodule->current_hash_value != $payload->before) {
+                $submodule->ignored_events[] = $event;
+                continue;
+            }
+
+            $updated_hash_value = $payload->head;
+            if ($updated_hash_value == $submodule->pending_hash_value) {
+                $submodule->pending_hash_value = null;
+            }
+            if ($updated_hash_value != $submodule->current_hash_value) {
+                $submodule->updated_hash_value = $updated_hash_value;
+                if (!$this->commitHashes($submodules)) {
+                    throw new RuntimeException("Error updating submodules in git repo");
+                }
+                assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $updated_hash_value);
+                if ($this->enable_push) {
+                    if (!$this->pushRepo()) {
+                        Log::error("{$this->getModuleBranchName()}: $e");
+                        break;
                     }
-                    if ($updated_hash_value != $submodule->current_hash_value) {
-                        $submodule->updated_hash_value = $updated_hash_value;
-                        if (!$this->commitHashes($submodules)) {
-                            throw new RuntimeException("Error updating submodules in git repo");
-                        }
-                        assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $updated_hash_value);
-                        if ($this->enable_push) {
-                            if (!$this->pushRepo()) {
-                                Log::error("{$this->getModuleBranchName()}: $e");
-                                break;
-                            }
-                            $queue->markReadUpTo($event->github_id);
-                        } else {
-                            $this->push_warning = true;
-                        }
-                    }
+                    $queue->markReadUpTo($event->github_id);
+                } else {
+                    $this->push_warning = true;
                 }
             }
         }
