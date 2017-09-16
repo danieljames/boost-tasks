@@ -84,7 +84,8 @@ class SuperProject extends Repo {
                 }
             }
 
-            return $self->updatePendingHashes($submodules, true);
+            $self->updatePendingHashes($submodules);
+            return $self->commitHashes($submodules, true);
         });
     }
 
@@ -101,7 +102,8 @@ class SuperProject extends Repo {
             if ($check_all) {
                 // TODO: Message should indicate that this is a 'catch up'
                 //       commit, because the repo is out of sync.
-                $updated = $this->updatePendingHashes($submodules, true);
+                $this->updatePendingHashes($submodules);
+                $updated = $this->commitHashes($submodules, true);
                 if ($updated) {
                     if ($this->enable_push) {
                         if (!$this->pushRepo()) {
@@ -178,7 +180,7 @@ class SuperProject extends Repo {
                     }
                     if ($updated_hash_value != $submodule->current_hash_value) {
                         $submodule->updated_hash_value = $updated_hash_value;
-                        if (!$this->updateHashes($submodules)) {
+                        if (!$this->commitHashes($submodules)) {
                             throw new RuntimeException("Error updating submodules in git repo");
                         }
                         assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $updated_hash_value);
@@ -209,10 +211,8 @@ class SuperProject extends Repo {
      * Update the repo from any pending hash values.
      *
      * @param Array $submodules
-     * @param boolean $mark_mirror_dirty
-     * @return boolean True if a change was committed.
      */
-    function updatePendingHashes($submodules, $mark_mirror_dirty = false) {
+    function updatePendingHashes($submodules) {
         foreach ($submodules as $submodule) {
             if ($submodule->pending_hash_value) {
                 if ($submodule->updated_hash_value) {
@@ -222,7 +222,6 @@ class SuperProject extends Repo {
                 $submodule->pending_hash_value = null;
             }
         }
-        return $this->updateHashes($submodules, $mark_mirror_dirty);
     }
 
     /**
@@ -232,7 +231,7 @@ class SuperProject extends Repo {
      * @param boolean $mark_mirror_dirty
      * @return boolean True if a change was committed.
      */
-    function updateHashes($submodules, $mark_mirror_dirty = false) {
+    function commitHashes($submodules, $mark_mirror_dirty = false) {
         $updates = array();
         $names = array();
         foreach($submodules as $submodule) {
