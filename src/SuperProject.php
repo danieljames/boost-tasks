@@ -17,7 +17,7 @@ class SuperProject extends Repo {
         if (!$branches) { $branches = EvilGlobals::branchRepos(); }
         foreach ($branches as $x) {
             $super = new SuperProject($x);
-            $super->checkedUpdateFromEvents($all);
+            $super->updateFromEvents($all);
         }
     }
 
@@ -37,18 +37,18 @@ class SuperProject extends Repo {
         return $settings[$name];
     }
 
-    function checkedUpdateFromEvents($all = false) {
+    function updateFromEvents($all = false) {
         $queue = new GitHubEventQueue($this->submodule_branch, 'PushEvent');
         if (!$queue->continuedFromLastRun()) {
             Log::info('Full refresh of submodules because of gap in event queue.');
-            $result = $this->attemptUpdateFromAll($queue);
+            $result = $this->pushUpdatesFromAll($queue);
             if ($result) { $queue->catchUp(); }
         } else if ($all) {
             Log::info('Refresh submodule from event queue, and sync all.');
-            $this->attemptUpdateFromEventQueue($queue, true);
+            $this->pushUpdatesFromEventQueue($queue, true);
         } else {
             Log::info('Refresh submodules from event queue.');
-            $this->attemptUpdateFromEventQueue($queue);
+            $this->pushUpdatesFromEventQueue($queue);
         };
 
         if ($this->push_warning) {
@@ -59,11 +59,11 @@ class SuperProject extends Repo {
         return true;
     }
 
-    private function attemptUpdateFromAll($queue) {
+    private function pushUpdatesFromAll($queue) {
         $self = $this; // Has to work on php 5.3
         return $this->attemptAndPush(function() use($self, $queue) {
             $submodules = $self->getSubmodules();
-            $self->updateAllSubmoduleHashes($submodules);
+            $self->getPendingHashesFromGithub($submodules);
             // Include any events that have arrived since starting this update.
             $queue->downloadMoreEvents();
 
@@ -84,25 +84,25 @@ class SuperProject extends Repo {
                 }
             }
 
-            $self->updatePendingHashes($submodules);
+            $self->usePendingHashes($submodules);
             return $self->commitHashes($submodules, true);
         });
     }
 
-    private function attemptUpdateFromEventQueue($queue, $check_all = false) {
+    private function pushUpdatesFromEventQueue($queue, $check_all = false) {
         // TODO: Only running this once, maybe should try again if it fails?
         try {
             $this->setupCleanCheckout();
             $submodules = $this->getSubmodules();
             if ($check_all) {
-                $this->updateAllSubmoduleHashes($submodules);
+                $this->getPendingHashesFromGithub($submodules);
                 $queue->downloadMoreEvents();
             }
-            $this->commitSubmoduleHashesFromEventQueue($queue, $submodules);
+            $this->pushSubmoduleHashesFromEventQueue($queue, $submodules);
             if ($check_all) {
                 // TODO: Message should indicate that this is a 'catch up'
                 //       commit, because the repo is out of sync.
-                $this->updatePendingHashes($submodules);
+                $this->usePendingHashes($submodules);
                 $updated = $this->commitHashes($submodules, true);
                 if ($updated) {
                     if ($this->enable_push) {
@@ -141,7 +141,7 @@ class SuperProject extends Repo {
     }
 
     // Note: Public so that it can be called in a closure in PHP 5.3
-    public function updateAllSubmoduleHashes($submodules) {
+    public function getPendingHashesFromGithub($submodules) {
         foreach($submodules as $submodule) {
             // Note: Alternative would be to use branch API to get more
             //       information.
@@ -155,7 +155,7 @@ class SuperProject extends Repo {
     }
 
     // Note: Public so that it can be called in a closure in PHP 5.3
-    public function commitSubmoduleHashesFromEventQueue($queue, $submodules = null) {
+    public function pushSubmoduleHashesFromEventQueue($queue, $submodules = null) {
         foreach ($queue->getEvents() as $event) {
             if ($event->branch == $this->submodule_branch) {
                 if (array_key_exists($event->repo, $submodules)) {
@@ -208,11 +208,11 @@ class SuperProject extends Repo {
     }
 
     /**
-     * Update the repo from any pending hash values.
+     * Update the submodule hashes from any pending hash values.
      *
      * @param Array $submodules
      */
-    function updatePendingHashes($submodules) {
+    function usePendingHashes($submodules) {
         foreach ($submodules as $submodule) {
             if ($submodule->pending_hash_value) {
                 if ($submodule->updated_hash_value) {
@@ -225,7 +225,8 @@ class SuperProject extends Repo {
     }
 
     /**
-     * Update the repo to use the given submodule hashes.
+     * Commit the submodule hashes to the repo, and optionally
+     * mark submodules to be fetched in the mirror.
      *
      * @param Array $submodules
      * @param boolean $mark_mirror_dirty
@@ -262,7 +263,7 @@ class SuperProject extends Repo {
 
         // A bit of hack, tell the mirror to fetch any updated submodules.
         // The main concern is that sometimes the event queue misses a
-        // push event, and the update is caught by 'updateAllSubmoduleHashes'.
+        // push event, and the update is caught by 'getPendingHashesFromGithub'.
         if ($mark_mirror_dirty) {
             $mirror = new LocalMirror;
             foreach($submodules as $submodule) {
