@@ -98,7 +98,7 @@ class SuperProject extends Repo {
             $submodules = $this->getSubmodules();
             if ($check_all) {
                 $this->getPendingHashesFromGithub($submodules);
-                $queue->downloadMoreEvents();
+                $queue->downloadEvents();
             }
             $this->pushSubmoduleHashesFromEventQueue($queue, $submodules);
             if ($check_all) {
