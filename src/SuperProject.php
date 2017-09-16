@@ -133,6 +133,9 @@ class SuperProject extends Repo {
 
             $submodule = $submodules[$event->repo];
 
+            // If updated_hash_value isn't null, would need to add extra checks.
+            assert(!$submodule->updated_hash_value);
+
             // This change and any previous 'ignored' changes have already been made.
             if ($submodule->current_hash_value == $payload->head) {
                 $submodule->ignored_events = array();
