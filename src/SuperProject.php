@@ -139,6 +139,17 @@ class SuperProject extends Repo {
                 continue;
             }
 
+            // This change updates the pending hash value
+            if ($submodule->pending_hash_value == $payload->before) {
+                $submodule->ignored_events = array();
+                if ($submodule->current_hash_value == $payload->head) {
+                    $submodule->pending_hash_value = null;
+                } else {
+                    $submodule->pending_hash_value = $payload->head;
+                }
+                continue;
+            }
+
             // This change doesn't cleanly apply to the current repo, so ignore it.
             if ($submodule->current_hash_value != $payload->before) {
                 $submodule->ignored_events[] = $event;
@@ -146,7 +157,7 @@ class SuperProject extends Repo {
             }
 
             // We've caught up with the 'pending' change, so mark it as null.
-            if ($payload->head == $submodule->pending_hash_value) {
+            if ($submodule->pending_hash_value == $payload->head) {
                 $submodule->pending_hash_value = null;
             }
 
