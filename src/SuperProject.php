@@ -293,8 +293,8 @@ class SuperProject extends Repo {
                 (count($names) == 1 ? " submodule" : " submodules").
                 " from {$this->submodule_branch}";
             $message .= "\n\n";
-            $message .= wordwrap($update, 72);
-            $message .= ".\n";
+            $message .= wordwrap("{$update}.", 72);
+            $message .= "\n";
         }
 
         return $message;
