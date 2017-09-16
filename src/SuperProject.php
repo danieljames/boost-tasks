@@ -165,21 +165,19 @@ class SuperProject extends Repo {
             }
 
             // Apply the change.
-            if ($payload->head != $submodule->current_hash_value) {
-                $submodule->updated_hash_value = $payload->head;
-                if (!$this->commitHashes($submodules)) {
-                    throw new RuntimeException("Error updating submodules in git repo");
+            $submodule->updated_hash_value = $payload->head;
+            if (!$this->commitHashes($submodules)) {
+                throw new RuntimeException("Error updating submodules in git repo");
+            }
+            assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $payload->head);
+            if ($this->enable_push) {
+                if (!$this->pushRepo()) {
+                    Log::error("{$this->getModuleBranchName()}: $e");
+                    break;
                 }
-                assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $payload->head);
-                if ($this->enable_push) {
-                    if (!$this->pushRepo()) {
-                        Log::error("{$this->getModuleBranchName()}: $e");
-                        break;
-                    }
-                    $queue->markReadUpTo($event->github_id);
-                } else {
-                    $this->push_warning = true;
-                }
+                $queue->markReadUpTo($event->github_id);
+            } else {
+                $this->push_warning = true;
             }
         }
 
