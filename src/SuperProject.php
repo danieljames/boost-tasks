@@ -85,7 +85,9 @@ class SuperProject extends Repo {
             }
 
             $self->usePendingHashes($submodules);
-            return $self->commitHashes($submodules, true);
+            return $self->commitHashes($submodules, array(
+                'mark_mirror_dirty' => true,
+            ));
         });
     }
 
@@ -103,7 +105,9 @@ class SuperProject extends Repo {
                 // TODO: Message should indicate that this is a 'catch up'
                 //       commit, because the repo is out of sync.
                 $this->usePendingHashes($submodules);
-                $updated = $this->commitHashes($submodules, true);
+                $updated = $this->commitHashes($submodules, array(
+                    'mark_mirror_dirty' => true,
+                ));
                 if ($updated) {
                     if ($this->enable_push) {
                         if (!$this->pushRepo()) {
@@ -243,11 +247,17 @@ class SuperProject extends Repo {
      * Commit the submodule hashes to the repo, and optionally
      * mark submodules to be fetched in the mirror.
      *
+     * Options:
+     *     mark_mirror_dirty - Update the mirror of updated repos on the next run.
+     *
      * @param Array $submodules
-     * @param boolean $mark_mirror_dirty
+     * @param Array $options
      * @return boolean True if a change was committed.
      */
-    function commitHashes($submodules, $mark_mirror_dirty = false) {
+    function commitHashes($submodules, $options = Array()) {
+        $options = array_merge(array(
+            'mark_mirror_dirty' => false,
+        ), $options);
         $updates = array();
         $names = array();
         foreach($submodules as $submodule) {
@@ -279,7 +289,7 @@ class SuperProject extends Repo {
         // A bit of hack, tell the mirror to fetch any updated submodules.
         // The main concern is that sometimes the event queue misses a
         // push event, and the update is caught by 'getPendingHashesFromGithub'.
-        if ($mark_mirror_dirty) {
+        if ($options['mark_mirror_dirty']) {
             $mirror = new LocalMirror;
             foreach($submodules as $submodule) {
                 if (array_key_exists($submodule->path, $updates)) {
