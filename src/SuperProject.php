@@ -122,24 +122,6 @@ class SuperProject extends Repo {
         }
     }
 
-    public function getSubmodules() {
-        $submodules = array();
-        $submodule_by_path = array();
-        $paths = array();
-        foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
-            $submodule = new SuperProject_Submodule($name, $details);
-            if ($submodule->github_name) {
-                $submodules[$submodule->github_name] = $submodule;
-                $submodule_by_path[$submodule->path] = $submodule;
-                $paths[] = $submodule->path;
-            }
-        }
-        foreach ($this->currentHashes($paths) as $path => $hash) {
-            $submodule_by_path[$path]->current_hash_value = $hash;
-        }
-        return $submodules;
-    }
-
     // Note: Public so that it can be called in a closure in PHP 5.3
     public function pushSubmoduleHashesFromEventQueue($queue, $submodules = null) {
         foreach ($queue->getEvents() as $event) {
@@ -191,6 +173,24 @@ class SuperProject extends Repo {
                 Log::warning("Ignored {$events} for {$submodule->boost_name} as the hash does not the super project's current value");
             }
         }
+    }
+
+    public function getSubmodules() {
+        $submodules = array();
+        $submodule_by_path = array();
+        $paths = array();
+        foreach (RepoBase::readSubmoduleConfig($this->path) as $name => $details) {
+            $submodule = new SuperProject_Submodule($name, $details);
+            if ($submodule->github_name) {
+                $submodules[$submodule->github_name] = $submodule;
+                $submodule_by_path[$submodule->path] = $submodule;
+                $paths[] = $submodule->path;
+            }
+        }
+        foreach ($this->currentHashes($paths) as $path => $hash) {
+            $submodule_by_path[$path]->current_hash_value = $hash;
+        }
+        return $submodules;
     }
 
     // Note: Public so that it can be called in a closure in PHP 5.3
