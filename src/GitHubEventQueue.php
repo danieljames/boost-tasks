@@ -21,10 +21,11 @@ class GitHubEventQueue extends Object {
 
     var $queue;
     var $type;
-    var $status;
+    static $status;
 
     function __construct($name, $type = null) {
         $db = EvilGlobals::database();
+        self::loadStatusFromDb($db);
         $this->queue = $db->findOne(self::$queue_table, 'name = ?', array($name));
         $this->type = $type;
         if ($this->queue) {
@@ -37,8 +38,6 @@ class GitHubEventQueue extends Object {
             $this->queue->last_github_id = 0;
             $this->queue->store();
         }
-
-        $this->status = self::loadStatusFromDb($db);
     }
 
     function getEvents() {
@@ -47,13 +46,13 @@ class GitHubEventQueue extends Object {
                     'github_id > ? AND github_id <= ? ORDER BY github_id',
                     array(
                         $this->queue->last_github_id,
-                        $this->status->last_id));
+                        self::$status->last_id));
         } else {
             return EvilGlobals::database()->find(self::$event_table,
                     'github_id > ? AND github_id <= ? AND type = ? ORDER BY github_id',
                     array(
                         $this->queue->last_github_id,
-                        $this->status->last_id,
+                        self::$status->last_id,
                         $this->type));
         }
     }
@@ -63,16 +62,16 @@ class GitHubEventQueue extends Object {
     function downloadMoreEvents() {
         $this->queue->last_github_id = max(array(
             $this->queue->last_github_id,
-            $this->status->last_id,
-            $this->status->start_id));
-        $this->status = self::downloadEvents();
+            self::$status->last_id,
+            self::$status->start_id));
+        self::downloadEvents();
     }
 
     function catchUp() {
         $this->queue->last_github_id = max(array(
             $this->queue->last_github_id,
-            $this->status->last_id,
-            $this->status->start_id));
+            self::$status->last_id,
+            self::$status->start_id));
         $this->queue->store();
     }
 
@@ -84,8 +83,8 @@ class GitHubEventQueue extends Object {
     }
 
     function continuedFromLastRun() {
-        return $this->status->start_id
-            && $this->queue->last_github_id >= $this->status->start_id;
+        return self::$status->start_id
+            && $this->queue->last_github_id >= self::$status->start_id;
     }
 
     static function outputEvents() {
@@ -102,15 +101,15 @@ class GitHubEventQueue extends Object {
     }
 
     static function downloadEvents() {
-        return self::downloadEventsImpl(EvilGlobals::githubCache()->iterate('/orgs/boostorg/events'));
+        self::downloadEventsImpl(EvilGlobals::githubCache()->iterate('/orgs/boostorg/events'));
     }
 
     static function downloadEventsImpl($events) {
         $db = EvilGlobals::database();
         $db->begin();
 
-        $status = self::loadStatusFromDb($db);
-        $last_id = $status->last_id;
+        self::loadStatusFromDb($db);
+        $last_id = self::$status->last_id;
         $new_last_id = null;
         $event_row = null;
 
@@ -124,20 +123,18 @@ class GitHubEventQueue extends Object {
             // If we don't have a start_id, or there's a gap in the
             // event queue, set the start_id to the start of the events
             // that were just downloaded.
-            if (!$status->start_id || $event->id > $status->last_id) {
-                $status->start_id = $event->id;
+            if (!self::$status->start_id || $event->id > self::$status->last_id) {
+                self::$status->start_id = $event->id;
                 if ($event_row) {
                     $event_row->sequence_start = true;
                     $event_row->store();
                 }
             }
-            $status->last_id = $new_last_id;
-            $status->store();
+            self::$status->last_id = $new_last_id;
+            self::$status->store();
         }
 
         $db->commit();
-
-        return $status;
     }
 
     private static function addGitHubEvent($event) {
@@ -173,14 +170,16 @@ class GitHubEventQueue extends Object {
     }
 
     private static function loadStatusFromDb($db) {
-        $status = $db->findOne(self::$event_state_table, 'name = "github-state"');
-        if (!$status) {
-            $status = $db->dispense(self::$event_state_table);
-            $status->start_id = 0;
-            $status->last_id = 0;
-            $status->name = 'github-state';
-            $status->store();
+        if (!self::$status) {
+            $status = $db->findOne(self::$event_state_table, 'name = "github-state"');
+            if (!$status) {
+                $status = $db->dispense(self::$event_state_table);
+                $status->start_id = 0;
+                $status->last_id = 0;
+                $status->name = 'github-state';
+                $status->store();
+            }
+            self::$status = $status;
         }
-        return $status;
     }
 }
