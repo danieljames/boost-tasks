@@ -74,7 +74,7 @@ class GitHubEventQueue extends Object {
             $this->queue_pos,
             $this->queue_end,
             self::$status->start_id));
-        $this->queue->last_id = $this->queue_pos;
+        $this->queue->last_github_id = $this->queue_pos;
         $this->queue->store();
     }
 
@@ -82,7 +82,7 @@ class GitHubEventQueue extends Object {
         if ($github_id >= $this->queue_pos) {
             $this->queue_pos = $github_id;
         }
-        $this->queue->last_id = $this->queue_pos;
+        $this->queue->last_github_id = $this->queue_pos;
         $this->queue->store();
     }
 
