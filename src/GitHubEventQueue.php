@@ -124,7 +124,7 @@ class GitHubEventQueue extends Object {
         foreach($events as $event) {
             if ($event->id <= $last_id) { break; }
             if (!$new_last_id) { $new_last_id = $event->id; }
-            $event_row = self::addGitHubEvent($event);
+            $event_row = self::addGitHubEvent($db, $event);
         }
 
         if ($new_last_id) {
@@ -145,7 +145,7 @@ class GitHubEventQueue extends Object {
         $db->commit();
     }
 
-    private static function addGitHubEvent($event) {
+    private static function addGitHubEvent($db, $event) {
         switch ($event->type) {
         case 'PushEvent':
             if (!preg_match('@^refs/heads/(.*)$@',
@@ -159,8 +159,6 @@ class GitHubEventQueue extends Object {
         default:
             return;
         }
-
-        $db = EvilGlobals::database();
 
         if ($db->findOne(self::$event_table, 'github_id = ?', array($event->id))) {
             return;
