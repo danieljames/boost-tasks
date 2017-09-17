@@ -21,6 +21,8 @@ class GitHubEventQueue extends Object {
 
     var $queue;
     var $type;
+    var $queue_pos;
+    var $queue_end;
     static $status;
 
     function __construct($name, $type = null) {
@@ -28,8 +30,10 @@ class GitHubEventQueue extends Object {
         self::loadStatusFromDb($db);
         $this->queue = $db->findOne(self::$queue_table, 'name = ?', array($name));
         $this->type = $type;
+        $this->queue_end = self::$status->last_id;
         if ($this->queue) {
             assert($this->queue->type === $type);
+            $this->queue_pos = $this->queue->last_github_id;
         }
         else {
             $this->queue = $db->dispense(self::$queue_table);
@@ -37,6 +41,7 @@ class GitHubEventQueue extends Object {
             $this->queue->type = $type;
             $this->queue->last_github_id = 0;
             $this->queue->store();
+            $this->queue_pos = 0;
         }
     }
 
@@ -45,14 +50,14 @@ class GitHubEventQueue extends Object {
             return EvilGlobals::database()->find(self::$event_table,
                     'github_id > ? AND github_id <= ? ORDER BY github_id',
                     array(
-                        $this->queue->last_github_id,
-                        self::$status->last_id));
+                        $this->queue_pos,
+                        $this->queue_end));
         } else {
             return EvilGlobals::database()->find(self::$event_table,
                     'github_id > ? AND github_id <= ? AND type = ? ORDER BY github_id',
                     array(
-                        $this->queue->last_github_id,
-                        self::$status->last_id,
+                        $this->queue_pos,
+                        $this->queue_end,
                         $this->type));
         }
     }
@@ -60,31 +65,34 @@ class GitHubEventQueue extends Object {
     // Downloads any events since this was created, and updates getEvents
     // to return them.
     function downloadMoreEvents() {
-        $this->queue->last_github_id = max(array(
-            $this->queue->last_github_id,
-            self::$status->last_id,
+        $this->queue_pos = max(array(
+            $this->queue_pos,
+            $this->queue_end,
             self::$status->start_id));
         self::downloadEvents();
+        $this->queue_end = self::$status->last_id;
     }
 
     function catchUp() {
-        $this->queue->last_github_id = max(array(
-            $this->queue->last_github_id,
-            self::$status->last_id,
+        $this->queue_pos = max(array(
+            $this->queue_pos,
+            $this->queue_end,
             self::$status->start_id));
+        $this->queue->last_github_id = $this->queue_pos;
         $this->queue->store();
     }
 
     function markReadUpTo($github_id) {
-        $this->queue->last_github_id = max(array(
-            $this->queue->last_github_id,
-            $github_id));
+        if ($github_id >= $this->queue_pos) {
+            $this->queue_pos = $github_id;
+        }
+        $this->queue->last_github_id = $this->queue_pos;
         $this->queue->store();
     }
 
     function continuedFromLastRun() {
         return self::$status->start_id
-            && $this->queue->last_github_id >= self::$status->start_id;
+            && $this->queue_pos >= self::$status->start_id;
     }
 
     static function outputEvents() {
