@@ -73,7 +73,7 @@ class GitHubEventQueue extends Object {
         $this->queue_end = self::$status->last_id;
     }
 
-    function catchUp() {
+    function markAllRead() {
         $this->queue_pos = max(array(
             $this->queue_pos,
             $this->queue_end,
