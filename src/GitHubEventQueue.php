@@ -65,10 +65,6 @@ class GitHubEventQueue extends Object {
     // Downloads any events since this was created, and updates getEvents
     // to return them.
     function downloadMoreEvents() {
-        $this->queue_pos = max(array(
-            $this->queue_pos,
-            $this->queue_end,
-            self::$status->start_id));
         self::downloadEvents();
         $this->queue_end = self::$status->last_id;
     }
