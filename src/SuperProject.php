@@ -42,7 +42,7 @@ class SuperProject extends Repo {
         if (!$queue->continuedFromLastRun()) {
             Log::info('Full refresh of submodules because of gap in event queue.');
             $result = $this->pushUpdatesFromAll($queue);
-            if ($result) { $queue->catchUp(); }
+            if ($result) { $queue->markAllRead(); }
         } else if ($all) {
             Log::info('Refresh submodule from event queue, and sync all.');
             $this->pushUpdatesFromEventQueue($queue, true);
@@ -114,7 +114,6 @@ class SuperProject extends Repo {
                             Log::error("{$this->getModuleBranchName()}: $e");
                             return false;
                         }
-                        $queue->catchUp();
                     } else {
                         $this->push_warning = true;
                     }
