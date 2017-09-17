@@ -75,7 +75,7 @@ class SuperProject extends Repo {
 
                         $submodule = $submodules[$event->repo];
 
-                        if ($payload->before == $submodule->pending_hash_value || $payload->after == $submodule->pending_hash_value) {
+                        if ($payload->before == $submodule->pending_hash_value || $payload->head == $submodule->pending_hash_value) {
                             $submodule->pending_hash_value = null;
                         }
 
@@ -148,10 +148,10 @@ class SuperProject extends Repo {
             // This change updates the pending hash value
             if ($submodule->pending_hash_value == $payload->before) {
                 $submodule->ignored_events = array();
-                if ($submodule->current_hash_value == $payload->after) {
+                if ($submodule->current_hash_value == $payload->head) {
                     $submodule->pending_hash_value = null;
                 } else {
-                    $submodule->pending_hash_value = $payload->after;
+                    $submodule->pending_hash_value = $payload->head;
                 }
                 continue;
             }
