@@ -19,7 +19,7 @@ function main($args) {
     $version = array_key_exists('version', $options) ? $options['version'] : null;
 
     // Update the mirror
-    GitHubEventQueue::downloadEvents();
+    GitHubEvents::downloadEvents();
     $mirror = new LocalMirror();
     $mirror->refresh();
     $mirror->fetchDirty();

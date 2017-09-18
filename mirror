@@ -17,7 +17,7 @@ function main($args) {
     EvilGlobals::init($options);
 
     if (!$options['no-fetch']) {
-        GitHubEventQueue::downloadEvents();
+        GitHubEvents::downloadEvents();
     }
 
     $mirror = new LocalMirror();

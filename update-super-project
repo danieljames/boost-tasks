@@ -43,7 +43,7 @@ function main($args) {
     }
 
     if (!$options['no-fetch']) {
-        GitHubEventQueue::downloadEvents();
+        GitHubEvents::downloadEvents();
     }
 
     SuperProject::updateBranches(null, $options['all']);
