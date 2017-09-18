@@ -36,6 +36,7 @@ class LocalMirror extends Object {
         foreach ($this->queue->getEvents() as $event) {
             if ($event->type == 'PushEvent' || $event->type == "CreateEvent") {
                 $repos[$event->repo] = true;
+                $this->queue->markReadUpTo($event->github_id);
             }
         }
 
@@ -44,8 +45,6 @@ class LocalMirror extends Object {
             $this->update("https://github.com/{$repo}.git", true);
             Log::info("Updated repo: {$repo}");
         }
-
-        $this->queue->catchUp();
     }
 
     function refreshAll($dirty = true) {
@@ -54,7 +53,7 @@ class LocalMirror extends Object {
             $this->update($repo->clone_url, $dirty);
         }
 
-        $this->queue->catchUp();
+        $this->queue->markAllRead();
     }
 
     function update($url, $dirty) {

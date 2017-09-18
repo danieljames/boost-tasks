@@ -11,18 +11,19 @@ use Nette\Object;
 
 class SuperProject extends Repo {
     var $submodule_branch;
+    var $push_warning = false;
 
     static function updateBranches($branches = null, $all = false) {
         if (!$branches) { $branches = EvilGlobals::branchRepos(); }
         foreach ($branches as $x) {
             $super = new SuperProject($x);
-            $super->checkedUpdateFromEvents($all);
+            $super->updateFromEvents($all);
         }
     }
 
     function __construct($settings) {
         parent::__construct(
-            array_get($settings, 'module', 'boost'),
+            array_get($settings, 'module', EvilGlobals::settings('superproject-repo')),
             $this->get($settings, 'superproject-branch'),
             $this->get($settings, 'path'),
             array_get($settings, 'remote_url'));
@@ -36,42 +37,158 @@ class SuperProject extends Repo {
         return $settings[$name];
     }
 
-    function checkedUpdateFromEvents($all = false) {
+    function updateFromEvents($all = false) {
         $queue = new GitHubEventQueue($this->submodule_branch, 'PushEvent');
-        if ($all) {
-            Log::info('Refresh all submodules.');
-            $result = $this->attemptUpdateFromAll($queue);
-        } else if (!$queue->continuedFromLastRun()) {
+        if (!$queue->continuedFromLastRun()) {
             Log::info('Full refresh of submodules because of gap in event queue.');
-            $result = $this->attemptUpdateFromAll($queue);
+            $result = $this->pushUpdatesFromAll($queue);
+            if ($result) { $queue->markAllRead(); }
+        } else if ($all) {
+            Log::info('Refresh submodule from event queue, and sync all.');
+            $this->pushUpdatesFromEventQueue($queue, true);
         } else {
             Log::info('Refresh submodules from event queue.');
-            $result = $this->attemptUpdateFromEventQueue($queue);
+            $this->pushUpdatesFromEventQueue($queue);
         };
 
-        if ($result) { $queue->catchUp(); }
+        if ($this->push_warning) {
+            Log::warning("Changes not pushed, as configured not to.");
+            $this->push_warning = false;
+        }
+
         return true;
     }
 
-    private function attemptUpdateFromAll($queue) {
+    private function pushUpdatesFromAll($queue) {
         $self = $this; // Has to work on php 5.3
         return $this->attemptAndPush(function() use($self, $queue) {
             $submodules = $self->getSubmodules();
-            $self->updateAllSubmoduleHashes($submodules);
+            $self->getPendingHashesFromGithub($submodules);
             // Include any events that have arrived since starting this update.
             $queue->downloadMoreEvents();
-            $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
-            return $self->updateHashes($submodules, true);
+
+            foreach ($queue->getEvents() as $event) {
+                if ($event->branch == $this->submodule_branch) {
+                    if (array_key_exists($event->repo, $submodules)) {
+                        $payload = json_decode($event->payload);
+                        assert($payload);
+
+                        $submodule = $submodules[$event->repo];
+
+                        if ($payload->before == ($submodule->pending_hash_value ?: $submodule->current_hash_value)) {
+                            $submodule->pending_hash_value = $payload->head;
+                        }
+                    }
+                }
+            }
+
+            $self->usePendingHashes($submodules);
+            return $self->commitHashes($submodules, array(
+                'mark_mirror_dirty' => true,
+            ));
         });
     }
 
-    private function attemptUpdateFromEventQueue($queue) {
-        $self = $this; // Has to work on php 5.3
-        return $this->attemptAndPush(function() use($self, $queue) {
-            $submodules = $self->getSubmodules();
-            $self->updateSubmoduleHashesFromEventQueue($queue, $submodules);
-            return $self->updateHashes($submodules);
-        });
+    private function pushUpdatesFromEventQueue($queue, $check_all = false) {
+        // TODO: Only running this once, maybe should try again if it fails?
+        try {
+            $this->setupCleanCheckout();
+            $submodules = $this->getSubmodules();
+            if ($check_all) {
+                $this->getPendingHashesFromGithub($submodules);
+                $queue->downloadMoreEvents();
+            }
+            $this->pushSubmoduleHashesFromEventQueue($queue, $submodules);
+            if ($check_all) {
+                // TODO: Message should indicate that this is a 'catch up'
+                //       commit, because the repo is out of sync.
+                $this->usePendingHashes($submodules);
+                $updated = $this->commitHashes($submodules, array(
+                    'mark_mirror_dirty' => true,
+                ));
+                if ($updated) {
+                    if ($this->enable_push) {
+                        if (!$this->pushRepo()) {
+                            Log::error("{$this->getModuleBranchName()}: $e");
+                            return false;
+                        }
+                    } else {
+                        $this->push_warning = true;
+                    }
+                }
+            }
+        } catch (\RuntimeException $e) {
+            Log::error("{$this->getModuleBranchName()}: $e");
+            return false;
+        }
+    }
+
+    // Note: Public so that it can be called in a closure in PHP 5.3
+    public function pushSubmoduleHashesFromEventQueue($queue, $submodules = null) {
+        foreach ($queue->getEvents() as $event) {
+            if ($event->branch != $this->submodule_branch) { continue; }
+            if (!array_key_exists($event->repo, $submodules)) { continue; }
+
+            $payload = json_decode($event->payload);
+            assert($payload);
+
+            $submodule = $submodules[$event->repo];
+
+            // If updated_hash_value isn't null, would need to add extra checks.
+            assert(!$submodule->updated_hash_value);
+
+            // This change and any previous 'ignored' changes have already been made.
+            if ($submodule->current_hash_value == $payload->head) {
+                $submodule->ignored_events = array();
+                continue;
+            }
+
+            // This change updates the pending hash value
+            if ($submodule->pending_hash_value == $payload->before) {
+                $submodule->ignored_events = array();
+                if ($submodule->current_hash_value == $payload->head) {
+                    $submodule->pending_hash_value = null;
+                } else {
+                    $submodule->pending_hash_value = $payload->head;
+                }
+                continue;
+            }
+
+            // This change doesn't cleanly apply to the current repo, so ignore it.
+            if ($submodule->current_hash_value != $payload->before) {
+                $submodule->ignored_events[] = $event;
+                continue;
+            }
+
+            // We've caught up with the 'pending' change, so mark it as null.
+            if ($submodule->pending_hash_value == $payload->head) {
+                $submodule->pending_hash_value = null;
+            }
+
+            // Apply the change.
+            $submodule->updated_hash_value = $payload->head;
+            if (!$this->commitHashes($submodules)) {
+                throw new RuntimeException("Error updating submodules in git repo");
+            }
+            assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $payload->head);
+            if ($this->enable_push) {
+                if (!$this->pushRepo()) {
+                    Log::error("{$this->getModuleBranchName()}: $e");
+                    break;
+                }
+                $queue->markReadUpTo($event->github_id);
+            } else {
+                $this->push_warning = true;
+            }
+        }
+
+        foreach ($submodules as $submodule) {
+            if ($submodule->ignored_events) {
+                $events = count($submodule->ignored_events);
+                $events .= ($events == 1) ? " PushEvent" : " PushEvents";
+                Log::warning("Ignored {$events} for {$submodule->boost_name} as the hash does not the super project's current value");
+            }
+        }
     }
 
     public function getSubmodules() {
@@ -93,37 +210,51 @@ class SuperProject extends Repo {
     }
 
     // Note: Public so that it can be called in a closure in PHP 5.3
-    public function updateAllSubmoduleHashes($submodules) {
+    public function getPendingHashesFromGithub($submodules) {
         foreach($submodules as $submodule) {
             // Note: Alternative would be to use branch API to get more
             //       information.
             //       https://developer.github.com/v3/repos/branches/#get-branch
             $ref = EvilGlobals::githubCache()->getJson(
                 "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
-            $submodule->updated_hash_value = $ref->object->sha;
-        }
-    }
-
-    // Note: Public so that it can be called in a closure in PHP 5.3
-    public function updateSubmoduleHashesFromEventQueue($queue, $submodules = null) {
-        foreach ($queue->getEvents() as $event) {
-            if ($event->branch == $this->submodule_branch) {
-                if (array_key_exists($event->repo, $submodules)) {
-                    $submodules[$event->repo]->updated_hash_value
-                            = json_decode($event->payload)->head;
-                }
+            if ($ref->object->sha != $submodule->current_hash_value) {
+                $submodule->pending_hash_value = $ref->object->sha;
             }
         }
     }
 
     /**
-     * Update the repo to use the given submodule hashes.
+     * Update the submodule hashes from any pending hash values.
      *
-     * @param Array $hashes
-     * @param boolean $mark_mirror_dirty
+     * @param Array $submodules
+     */
+    function usePendingHashes($submodules) {
+        foreach ($submodules as $submodule) {
+            if ($submodule->pending_hash_value) {
+                if ($submodule->updated_hash_value) {
+                    throw new \RuntimeException("Update for {$submodule->boost_name} doesn't match event queue");
+                }
+                $submodule->updated_hash_value = $submodule->pending_hash_value;
+                $submodule->pending_hash_value = null;
+            }
+        }
+    }
+
+    /**
+     * Commit the submodule hashes to the repo, and optionally
+     * mark submodules to be fetched in the mirror.
+     *
+     * Options:
+     *     mark_mirror_dirty - Update the mirror of updated repos on the next run.
+     *
+     * @param Array $submodules
+     * @param Array $options
      * @return boolean True if a change was committed.
      */
-    function updateHashes($submodules, $mark_mirror_dirty = false) {
+    function commitHashes($submodules, $options = Array()) {
+        $options = array_merge(array(
+            'mark_mirror_dirty' => false,
+        ), $options);
         $updates = array();
         $names = array();
         foreach($submodules as $submodule) {
@@ -132,6 +263,9 @@ class SuperProject extends Repo {
             if ($submodule->current_hash_value != $submodule->updated_hash_value) {
                 $updates[$submodule->path] = $submodule->updated_hash_value;
                 $names[] = preg_replace('@^(libs|tools)/@', '', $submodule->boost_name);
+
+                $submodule->current_hash_value = $submodule->updated_hash_value;
+                $submodule->updated_hash_value = null;
             }
         }
 
@@ -151,8 +285,8 @@ class SuperProject extends Repo {
 
         // A bit of hack, tell the mirror to fetch any updated submodules.
         // The main concern is that sometimes the event queue misses a
-        // push event, and the update is caught by 'updateAllSubmoduleHashes'.
-        if ($mark_mirror_dirty) {
+        // push event, and the update is caught by 'getPendingHashesFromGithub'.
+        if ($options['mark_mirror_dirty']) {
             $mirror = new LocalMirror;
             foreach($submodules as $submodule) {
                 if (array_key_exists($submodule->path, $updates)) {
@@ -181,8 +315,8 @@ class SuperProject extends Repo {
                 (count($names) == 1 ? " submodule" : " submodules").
                 " from {$this->submodule_branch}";
             $message .= "\n\n";
-            $message .= wordwrap($update, 72);
-            $message .= ".\n";
+            $message .= wordwrap("{$update}.", 72);
+            $message .= "\n";
         }
 
         return $message;
@@ -208,12 +342,22 @@ class SuperProject_Submodule extends Object {
     /** The hash value currently in the submodule repo. */
     var $updated_hash_value;
 
+    /** Will be updated to this hash value eventually. */
+    var $pending_hash_value;
+
+    /** Push events that have been ignored */
+    var $ignored_events = array();
+
     function __construct($name, $values) {
         $this->boost_name = $name;
         $this->path = $values['path'];
 
         $matches = null;
-        // TODO: Set github name based on super project name?
+        // Q: Set github name based on super project name?
+        //    Should make that an option. For testing purposes, I'm running
+        //    this in my own repo, so actually want it to use the boostorg
+        //    repo - even though that's not how git would interpret the
+        //    relative paths.
         if (preg_match('@^(?:\.\.|https?://github\.com/boostorg)/(\w+)(\.git)?$@', $values['url'], $matches)) {
             $this->github_name = "boostorg/{$matches[1]}";
         }

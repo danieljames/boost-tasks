@@ -1,6 +1,7 @@
 <?php
 
 use Nette\Object;
+//use RuntimeException;
 
 /**
  * Download github api pages using etags and stuff.
@@ -83,7 +84,7 @@ class GitHubCache extends Object {
             default:
                 $message = $response->reason_phrase;
                 if ($response->body) { $message .= "\n {$response->body}"; }
-                throw new \RuntimeException($message);
+                throw new RuntimeException($message);
         }
 
         return $cached;
@@ -209,6 +210,9 @@ class GitHubCache_Connection {
         curl_setopt($this->ch, CURLOPT_HTTPHEADER,
             array_merge($this->default_headers, $headers));
         $response = curl_exec($this->ch);
+        if ($response === false) {
+            throw new RuntimeException("Curl error: ".curl_error($this->ch));
+        }
         $header_size = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
         return self::parseResponse(
             substr($response, 0, $header_size),

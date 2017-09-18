@@ -10,6 +10,7 @@ use Nette\Object;
  */
 
 class Repo extends RepoBase {
+    var $github_user; // Or org....
     var $module;
     var $branch;
     var $enable_push;
@@ -17,11 +18,18 @@ class Repo extends RepoBase {
 
     function __construct($module, $branch, $path, $url = null) {
         parent::__construct($path);
-        $this->module = $module;
+        $module_parts = explode('/', $module, 2);
+        if (count($module_parts) == 2) {
+            $this->github_user = $module_parts[0];
+            $this->module = $module_parts[1];
+        } else {
+            $this->github_user = 'boostorg';
+            $this->module = $module;
+        }
         $this->branch = $branch;
         $this->enable_push = EvilGlobals::settings('push-to-repo');
         $this->url = is_null($url) ?
-            "git@github.com:boostorg/{$this->module}.git" :
+            "git@github.com:{$this->github_user}/{$this->module}.git" :
             $url;
     }
 
@@ -59,8 +67,8 @@ class Repo extends RepoBase {
     }
 
     function configureRepo() {
-        $this->command("config user.email 'automated@calamity.org.uk'");
-        $this->command("config user.name 'Automated Commit'");
+        $this->command("config user.email \"automated@calamity.org.uk\"");
+        $this->command("config user.name \"Automated Commit\"");
     }
 
     function commitAll($message) {
@@ -87,7 +95,12 @@ class Repo extends RepoBase {
                 $result = call_user_func($callback);
                 // Nothing to push, so a trivial success
                 if (!$result) { return true; }
-                if ($this->pushRepo()) { return true; }
+                if ($this->enable_push) {
+                    if ($this->pushRepo()) { return true; }
+                } else {
+                    Log::warning("{$this->path} processed, not configured to push to repo.\n");
+                    return false;
+                }
             }
 
             Log::error("Failed to push to {$this->getModuleBranchName()}.");
@@ -100,20 +113,17 @@ class Repo extends RepoBase {
     }
 
     function pushRepo() {
-        if ($this->enable_push) {
-            // TODO: Maybe I should parse the output from git push to check exactly
-            // what succeeded/failed.
+        assert(!$this->enable_push);
 
-            $status = $this->commandWithStatus('push -q --porcelain');
+        // TODO: Maybe I should parse the output from git push to check exactly
+        // what succeeded/failed.
 
-            if ($status > 1) {
-                throw new \RuntimeException("Push failed: {$process->getErrorOutput()}");
-            }
+        $status = $this->commandWithStatus('push -q --porcelain');
 
-            return $status == 0;
-        } else {
-            echo "{$this->path} processed, not configured to push to repo.\n";
-            return true;
+        if ($status > 1) {
+            throw new \RuntimeException("Push failed: {$process->getErrorOutput()}");
         }
+
+        return $status == 0;
     }
 }
