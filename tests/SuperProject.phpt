@@ -82,7 +82,7 @@ class SuperProjectTest extends TestBase {
         Assert::null($x->github_name);
     }
 
-    function testUpdateHashes() {
+    function testcommitHashes() {
         $temp_directory = new TempDirectory();
         $repo_paths = Array(
             'super1' => "{$temp_directory->path}/super1",
@@ -132,7 +132,7 @@ class SuperProjectTest extends TestBase {
 
         $submodules = $super_project->getSubmodules();
         $submodules['boostorg/sub1']->updated_hash_value = $hashes['sub1'];
-        $super_project->updateHashes($submodules);
+        $super_project->commitHashes($submodules);
         Assert::same(
             $hashes['super'],
             $super_project->readLines('rev-parse master')->current()
@@ -140,7 +140,7 @@ class SuperProjectTest extends TestBase {
 
         $submodules = $super_project->getSubmodules();
         $submodules['boostorg/sub1']->updated_hash_value = $hashes['sub2'];
-        $super_project->updateHashes($submodules);
+        $super_project->commitHashes($submodules);
         $hash2 = $super_project->readLines('rev-parse master')->current();
         Assert::notSame(
             $hashes['super'],
@@ -150,7 +150,7 @@ class SuperProjectTest extends TestBase {
         $submodules = $super_project->getSubmodules();
         $submodules['boostorg/sub1']->updated_hash_value = $hashes['sub2'];
         $submodules['boostorg/sub2']->updated_hash_value = $hashes['sub2'];
-        $super_project->updateHashes($submodules);
+        $super_project->commitHashes($submodules);
         Assert::same(
             $hash2,
             $super_project->readLines('rev-parse master')->current()
@@ -159,7 +159,7 @@ class SuperProjectTest extends TestBase {
         $submodules = $super_project->getSubmodules();
         $submodules['boostorg/sub1']->updated_hash_value = $hashes['sub2'];
         $submodules['boostorg/sub2']->updated_hash_value = $hashes['sub1'];
-        $super_project->updateHashes($submodules);
+        $super_project->commitHashes($submodules);
         $hash3 = $super_project->readLines('rev-parse master')->current();
         Assert::notSame(
             $hash2,

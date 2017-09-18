@@ -10,11 +10,9 @@ class GitHubEventQueueTest extends TestBase
         $queue1 = new GitHubEventQueue('test');
         $queue2 = new GitHubEventQueue('test');
         Assert::equal($queue1->queue->id, $queue2->queue->id);
-        Assert::equal($queue1->status->id, $queue2->status->id);
 
         $queue3 = new GitHubEventQueue('test2');
         Assert::notEqual($queue1->queue->id, $queue3->queue->id);
-        Assert::equal($queue1->status->id, $queue3->status->id);
     }
 
     function testGetEvents() {
@@ -23,14 +21,14 @@ class GitHubEventQueueTest extends TestBase
         // PullRequestEvent isn't recordered, so shouldn't turn up in the test results.
         array_unshift($events, new MockEvent('PullRequestEvent', 'refs/heads/develop', 'example/foo'));
         array_unshift($events, new MockEvent('CreateEvent', 'boost-1.61.0', 'example/bar'));
-        GitHubEventQueue::downloadEventsImpl($events);
+        GitHubEvents::downloadEventsImpl($events);
 
         $queue1 = new GitHubEventQueue('test1', 'PushEvent');
         $all1 = new GitHubEventQueue('all1');
 
         // Shouldn't be included in $queue1 yet.
         array_unshift($events, new MockEvent('PushEvent', 'refs/heads/develop', 'example/bar'));
-        GitHubEventQueue::downloadEventsImpl($events);
+        GitHubEvents::downloadEventsImpl($events);
 
         Assert::false($queue1->continuedFromLastRun());
         $events1 = $queue1->getEvents();
@@ -39,7 +37,7 @@ class GitHubEventQueueTest extends TestBase
         Assert::same('master', $events1[0]->branch);
         Assert::same('example/foo', $events1[0]->repo);
         Assert::same('PushEvent', $events1[0]->type);
-        $queue1->catchUp();
+        $queue1->markAllRead();
 
         Assert::false($all1->continuedFromLastRun());
         $events1 = $all1->getEvents();
@@ -52,7 +50,7 @@ class GitHubEventQueueTest extends TestBase
         Assert::same(null, $events1[1]->branch);
         Assert::same('example/bar', $events1[1]->repo);
         Assert::same('CreateEvent', $events1[1]->type);
-        $all1->catchUp();
+        $all1->markAllRead();
 
         $queue1a = new GitHubEventQueue('test1', 'PushEvent');
         Assert::true($queue1a->continuedFromLastRun());
