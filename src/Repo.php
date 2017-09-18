@@ -67,8 +67,8 @@ class Repo extends RepoBase {
     }
 
     function configureRepo() {
-        $this->command("config user.email 'automated@calamity.org.uk'");
-        $this->command("config user.name 'Automated Commit'");
+        $this->command("config user.email \"automated@calamity.org.uk\"");
+        $this->command("config user.name \"Automated Commit\"");
     }
 
     function commitAll($message) {
