@@ -113,7 +113,7 @@ class Repo extends RepoBase {
     }
 
     function pushRepo() {
-        assert(!$this->enable_push);
+        assert(!!$this->enable_push);
 
         // TODO: Maybe I should parse the output from git push to check exactly
         // what succeeded/failed.
