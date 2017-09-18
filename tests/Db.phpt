@@ -59,8 +59,15 @@ class DbTest extends TestBase
     }
 
     function testCreateSqlite() {
+        // Create database in a separate function to ensure that all
+        // connections to the database are closed before destroying
+        // the TempDirectory.
         $temp = new TempDirectory;
         $path = "{$temp->path}/simple.db";
+        $this->_testCreateSqlite($path);
+    }
+
+    function _testCreateSqlite($path) {
         $db = Db::createSqlite($path);
         Assert::true(is_file($path));
 

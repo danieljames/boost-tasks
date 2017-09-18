@@ -79,6 +79,8 @@ class EvilGlobalsTest extends TestBase {
 
         $db = EvilGlobals::database();
         Assert::true(is_file("{$temp_directory->path}/root/cache.db"));
+        unset($db);
+        unset(EvilGlobals::$instance->database);
     }
 
     function testSafeSettings() {
