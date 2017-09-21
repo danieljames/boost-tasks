@@ -119,7 +119,7 @@ function update_git_checkout($repo_path, $update_method, $branch) {
     }
     catch (\RuntimeException $e) {
         echo "Git stash failed\n";
-        $result .= "git stash failed\n";
+        $result .= "git stash failed: {$e->message()}\n";
         $failed = true;
         return $result;
     }
@@ -140,7 +140,7 @@ function update_git_checkout($repo_path, $update_method, $branch) {
     }
     catch (\RuntimeException $e) {
         echo "Git pull failed\n";
-        $result .= "git pull failed\n";
+        $result .= "git pull failed: {$e->message()}\n";
         $failed = true;
     }
 
@@ -149,7 +149,7 @@ function update_git_checkout($repo_path, $update_method, $branch) {
     }
     catch (\RuntimeException $e) {
         echo "Git stash pop failed\n";
-        $result .= "git stash pop failed\n";
+        $result .= "git stash pop failed: : {$e->message()}\n";
         $failed = true;
     }
 
