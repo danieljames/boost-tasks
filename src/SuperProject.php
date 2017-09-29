@@ -65,9 +65,10 @@ class SuperProject extends Repo {
             $submodules = $self->getSubmodules();
             $self->getPendingHashesFromGithub($submodules);
             // Include any events that have arrived since starting this update.
+            $github_start_id = $queue->queue_pos;
             $queue->downloadMoreEvents();
 
-            foreach ($queue->getEvents() as $event) {
+            foreach ($queue->getEvents($github_start_id) as $event) {
                 if ($event->branch == $this->submodule_branch) {
                     if (array_key_exists($event->repo, $submodules)) {
                         $payload = json_decode($event->payload);
