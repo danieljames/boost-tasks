@@ -27,9 +27,11 @@ class Process {
         $process->closeWithErrorCheck();
     }
 
-    public static function status($command, $cwd = null)
+    public static function status($command, $cwd = null, array $env = null,
+            $input = null)
     {
         $process = new self($command, $cwd);
+        if ($input) { fwrite($process->child_stdin, $input); }
         $process->closeChildStdin();
         $process->join();
         $process->close();
