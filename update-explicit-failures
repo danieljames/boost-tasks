@@ -13,10 +13,10 @@ function main($args) {
     EvilGlobals::init($options);
 
     // Update the mirror
-    //GitHubEvents::downloadEvents();
+    GitHubEvents::downloadEvents();
     $mirror = new LocalMirror();
-    //$mirror->refresh();
-    //$mirror->fetchDirty();
+    $mirror->refresh();
+    $mirror->fetchDirty();
 
     // Update explicit-failures-markup
     foreach (EvilGlobals::branchRepos() as $x) {

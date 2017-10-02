@@ -37,9 +37,9 @@ class UpdateExplicitFailures extends Object {
                 // TODO: This duplicates code in update-doc-list.php from the website.
                 foreach($submodule_repo->readLines("ls-tree {$hash} meta/explicit-failures-markup.xml") as $line) {
                     if (!$line) { continue; }
-
                     if (preg_match("@^(\d{6}) (blob) ([a-zA-Z0-9]+)\t(.*)$@", $line, $matches)) {
-                        $update->addLibraries($submodule_repo->read("show {$matches[3]}"));
+                        $libs = $submodule_repo->commandWithOutput("show {$matches[3]}");
+                        $update->addLibraries($libs);
                     } else {
                         throw new RuntimeException("Unmatched submodule line: {$line}");
                     }
