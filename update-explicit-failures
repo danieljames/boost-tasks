@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+require_once(__DIR__.'/vendor/autoload.php');
+
+use GetOptionKit\OptionCollection;
+
+function main($args) {
+    $specs = new OptionCollection;
+    $options = CommandLineOptions::process($args,
+        'Update explicit failure markup in the super project',
+        $specs);
+    if (is_numeric($options)) { exit($options); }
+    EvilGlobals::init($options);
+
+    // Update the mirror
+    //GitHubEvents::downloadEvents();
+    $mirror = new LocalMirror();
+    //$mirror->refresh();
+    //$mirror->fetchDirty();
+
+    // Update explicit-failures-markup
+    foreach (EvilGlobals::branchRepos() as $x) {
+        UpdateExplicitFailures::update(new SuperProject($x));
+    }
+}
+
+main($_SERVER['argv']);

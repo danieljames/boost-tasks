@@ -37,8 +37,18 @@ class GitHubEventQueue extends Object {
         }
     }
 
-    function getEvents() {
-        return GitHubEvents::getEvents($this->queue_pos, $this->queue_end, $this->type);
+    function getEvents($start_id = null, $end_id = null) {
+        if (!$start_id) {
+            $start_id = $this->queue_pos;
+        } else {
+            assert($start_id >= $this->queue_pos && $start_id <= $this->queue_end);
+        }
+        if (!$end_id) {
+            $end_id = $this->queue_end;
+        } else {
+            assert($end_id >= $start_id && $end_id <= $this->queue_end);
+        }
+        return GitHubEvents::getEvents($start_id, $end_id, $this->type);
     }
 
     // Download and adds new events
