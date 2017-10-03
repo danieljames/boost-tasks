@@ -343,6 +343,30 @@ class UpdateExplicitFailuresTest extends \Tester\TestCase {
             $update->addLibraries(MARKUP_PREFIX.'<library>'.MARKUP_POSTFIX);
         }, 'RuntimeException');
     }
+
+    function testLibraryMarkupErrors() {
+        $xml = MARKUP_PREFIX.
+            MARKUP_LIB_ALGORITHM.
+            MARKUP_LIB_ACCUMULATORS.
+            MARKUP_LIB_DETAIL.
+            MARKUP_POSTFIX;
+        $update = new UpdateExplicitFailures($xml);
+
+        // This is a bug, which could be fixed by improving the regular expression
+        // or actually using an XML parser, but I don't think it will happen
+        // for real, just want to make sure the problem is caught.
+        Assert::exception(function() use($update) {
+            $update->addLibraries("<library><!-- </library> --></library>");
+        }, 'RuntimeException', '~^Library parse error:~');
+
+        Assert::exception(function() use($update) {
+            $update->addLibraries("<library></library>");
+        }, 'RuntimeException', 'Missing library name');
+
+        Assert::exception(function() use($update) {
+            $update->addLibraries("<library><mark-unusable><toolset name='cray-*'/></mark-unusable></library>");
+        }, 'RuntimeException', 'Missing library name');
+    }
 }
 
 $test = new UpdateExplicitFailuresTest();
