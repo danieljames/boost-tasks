@@ -38,8 +38,15 @@ class UpdateExplicitFailures extends Object {
                 foreach($submodule_repo->readLines("ls-tree {$hash} meta/explicit-failures-markup.xml") as $line) {
                     if (!$line) { continue; }
                     if (preg_match("@^(\d{6}) (blob) ([a-zA-Z0-9]+)\t(.*)$@", $line, $matches)) {
-                        $libs = $submodule_repo->commandWithOutput("show {$matches[3]}");
-                        $update->addLibraries($libs);
+                        $submodule_xml = $submodule_repo->commandWithOutput("show {$matches[3]}");
+                        if (Process::status("xmllint - ".
+                            "--schema \"{$repo->path}/status/explicit-failures.xsd\"",
+                            null, null, $submodule_xml))
+                        {
+                            Log::error("Error linting failure markup for {$path}");
+                        } else {
+                            $update->addLibraries($submodule_xml);
+                        }
                     } else {
                         throw new RuntimeException("Unmatched submodule line: {$line}");
                     }
@@ -107,12 +114,6 @@ class UpdateExplicitFailures extends Object {
     }
 
     function parseExplicitFailuresMarkup($xml) {
-        if (Process::status("xmllint -",
-            null, null, $xml))
-        {
-            throw new RuntimeException("Error linting xml");
-        }
-
         preg_match_all('@
             # Comment preceeding library markup
             (?:^[ \t]*<!--[ a-z0-9]*-->[ \t]*\n)?
