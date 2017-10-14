@@ -36,7 +36,9 @@ function myErrorHandler($message) {
 }
 
 set_error_handler(function($errno, $errstr, $errfile, $errline) {
-    myErrorHandler("{$errfile}:{$errline}: {$errstr}");
+    if (error_reporting() & $errno) {
+        myErrorHandler("{$errfile}:{$errline}: {$errstr}");
+    }
 });
 
 set_exception_handler(function($e) {

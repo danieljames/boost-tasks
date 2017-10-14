@@ -38,8 +38,15 @@ class UpdateExplicitFailures extends Object {
                 foreach($submodule_repo->readLines("ls-tree {$hash} meta/explicit-failures-markup.xml") as $line) {
                     if (!$line) { continue; }
                     if (preg_match("@^(\d{6}) (blob) ([a-zA-Z0-9]+)\t(.*)$@", $line, $matches)) {
-                        $libs = $submodule_repo->commandWithOutput("show {$matches[3]}");
-                        $update->addLibraries($libs);
+                        $submodule_xml = $submodule_repo->commandWithOutput("show {$matches[3]}");
+                        if (Process::status("xmllint - ".
+                            "--schema \"{$repo->path}/status/explicit-failures.xsd\"",
+                            null, null, $submodule_xml))
+                        {
+                            Log::error("Error linting failure markup for {$path}");
+                        } else {
+                            $update->addLibraries($submodule_xml);
+                        }
                     } else {
                         throw new RuntimeException("Unmatched submodule line: {$line}");
                     }
@@ -107,39 +114,41 @@ class UpdateExplicitFailures extends Object {
     }
 
     function parseExplicitFailuresMarkup($xml) {
-        if (Process::status("xmllint -",
-            null, null, $xml))
-        {
-            throw new RuntimeException("Error linting xml");
-        }
-
         preg_match_all('@
             # Comment preceeding library markup
             (?:^[ \t]*<!--[ a-z0-9]*-->[ \t]*\n)?
-            [ \t]*<library([^>]*)>
+            [ \t]*<library\b[^>]*>
             .*?
-            </library>(?:\s*\n)?
+            </library\b[^>]*>(?:\s*\n)?
         @smxi', $xml, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
         $libraries = array();
 
         foreach ($matches as $match) {
-            $name = null;
-            preg_match_all('@
-                \s*([a-z]+)\s*=\s*([\'"])([^\2]*)\2\s*|(.)
-            @smxi', $match[1][0], $attribute_matches, PREG_SET_ORDER);
-            foreach ($attribute_matches as $attribute) {
-                if (!empty($attribute[4])) {
-                    throw new RuntimeException("Error parsing attribute");
-                }
-                if ($attribute[1] == "name") {
-                    $name = $attribute[3];
-                }
-            }
             $library = new UpdateExplicitFailures_LibraryMarkup();
             $library->start = $match[0][1];
             $library->end = $match[0][1] + strlen($match[0][0]);
             $library->markup = $match[0][0];
-            $libraries[strtolower($name)] = $library;
+
+            // Turn off warnings while parsing library XML.
+            // Will only fail if the markup does something tricky, like
+            // put </library> in a comment.
+            $old_error_reporting = error_reporting();
+            error_reporting($old_error_reporting & ~E_WARNING);
+            try {
+                $simple_xml = new SimpleXMLElement($library->markup);
+                error_reporting($old_error_reporting);
+            } catch (\Exception $e) {
+                error_reporting($old_error_reporting);
+                throw new \RuntimeException("Library parse error: {$e->getMessage()}");
+            }
+            if ($simple_xml->getName() != 'library') {
+                throw new \RuntimeException("Invalid library markup");
+            }
+            $attributes = $simple_xml->attributes();
+            if (!isset($attributes['name'])) {
+                throw new \RuntimeException("Missing library name");
+            }
+            $libraries[strtolower($attributes['name'])] = $library;
         }
 
         return $libraries;
