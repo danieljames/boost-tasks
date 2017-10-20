@@ -39,8 +39,9 @@ class UpdateExplicitFailures extends Object {
                     if (!$line) { continue; }
                     if (preg_match("@^(\d{6}) (blob) ([a-zA-Z0-9]+)\t(.*)$@", $line, $matches)) {
                         $submodule_xml = $submodule_repo->commandWithOutput("show {$matches[3]}");
-                        if (Process::status("xmllint - ".
-                            "--schema \"{$repo->path}/status/explicit-failures.xsd\"",
+                        if (Process::status("xmllint ".
+                            "--schema \"{$repo->path}/status/explicit-failures.xsd\" ".
+                            "-",
                             null, null, $submodule_xml))
                         {
                             Log::error("Error linting failure markup for {$path}");
