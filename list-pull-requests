@@ -1,0 +1,35 @@
+#!/usr/bin/env php
+<?php
+require_once(__DIR__.'/vendor/autoload.php');
+
+use GetOptionKit\OptionCollection;
+
+function main($args) {
+    $specs = new OptionCollection;
+    $options = CommandLineOptions::process($args,
+        'List pull requests',
+        $specs);
+    if (is_numeric($options)) { exit($options); }
+    EvilGlobals::init($options);
+
+    $username = 'danieljames';
+    $organisation = 'boostorg';
+
+    $repos = array();
+    foreach(EvilGlobals::githubCache()->iterate("/users/{$username}/subscriptions") as $subscription) {
+        if ($subscription->owner->login == $organisation) {
+            $repos[] = $subscription->full_name;
+        }
+    }
+
+    if ($repos) {
+        $db = EvilGlobals::database();
+        $query = 'WHERE repo_full_name IN ( ?';
+        $query .= str_repeat(', ?', count($repos) - 1);
+        $query .= ' )';
+        $pull_requests = $db->findAll('pull_request', $query, $repos);
+        print_r($pull_requests);
+    }
+}
+
+main($_SERVER['argv']);
