@@ -29,9 +29,9 @@ class BinTrayCache {
             ()
             $@xi', $version, $match, PREG_OFFSET_CAPTURE)) {
             return array(
-                $match[1][0],
-                $match[2][0],
-                $match[3][0] ?: 0,
+                intval($match[1][0]),
+                intval($match[2][0]),
+                intval($match[3][0]),
                 $match[4][1] != -1 ? "beta". ($match[4][0] ?: 1) : '',
                 $match[5][1] != -1 ? "rc". ($match[5][0] ?: 1) :'',
             );
@@ -164,16 +164,16 @@ class BinTrayCache {
 
         switch($extension) {
         case 'tar.bz2':
-            Process::run("tar -xjf '{$file_path}'", $subdir, null, null, 60*10);
+            Process::run("tar -xjf '{$file_path}'", $subdir, null, null, 60*30);
             break;
         case 'tar.gz':
-            Process::run("tar -xzf '{$file_path}'", $subdir, null, null, 60*10);
+            Process::run("tar -xzf '{$file_path}'", $subdir, null, null, 60*30);
             break;
         case '7z':
-            Process::run("7z x '{$file_path}'", $subdir, null, null, 60*10);
+            Process::run("7z x '{$file_path}'", $subdir, null, null, 60*30);
             break;
         case 'zip':
-            Process::run("unzip '{$file_path}'", $subdir, null, null, 60*10);
+            Process::run("unzip '{$file_path}'", $subdir, null, null, 60*30);
             break;
         default:
             assert(false);
@@ -189,6 +189,21 @@ class BinTrayCache {
             throw new RuntimeException("Multiple roots in archive");
         }
         return "{$subdir}/".reset($new_directories);
+    }
+
+    static function urlBaseDir($urls) {
+        $base_url = null;
+        foreach($urls as $url) {
+            if (is_null($base_url)) {
+                $base_url = $url;
+                $last_slash = strrpos($base_url, "/");
+            } else {
+                $first_difference = strspn($base_url ^ $url, "\0");
+                $last_slash = strrpos($base_url, "/", $first_difference - strlen($base_url));
+            }
+            $base_url = substr($base_url, 0, $last_slash + 1);
+        }
+        return $base_url;
     }
 }
 
@@ -206,7 +221,11 @@ class BinTrayCache_FileDetails {
     }
 
     function getDownloadPage() {
-        return "https://dl.bintray.com/boostorg/{$this->bintray_path}/source/";
+        $urls = array();
+        foreach($this->files as $file) {
+            $urls[] = $this->getFileUrl($file);
+        }
+        return BinTrayCache::urlBaseDir($urls);
     }
 
     function getFileUrl($file) {
