@@ -190,6 +190,21 @@ class BinTrayCache {
         }
         return "{$subdir}/".reset($new_directories);
     }
+
+    static function urlBaseDir($urls) {
+        $base_url = null;
+        foreach($urls as $url) {
+            if (is_null($base_url)) {
+                $base_url = $url;
+                $last_slash = strrpos($base_url, "/");
+            } else {
+                $first_difference = strspn($base_url ^ $url, "\0");
+                $last_slash = strrpos($base_url, "/", $first_difference - strlen($base_url));
+            }
+            $base_url = substr($base_url, 0, $last_slash + 1);
+        }
+        return $base_url;
+    }
 }
 
 class BinTrayCache_FileDetails {
@@ -206,7 +221,11 @@ class BinTrayCache_FileDetails {
     }
 
     function getDownloadPage() {
-        return "https://dl.bintray.com/boostorg/{$this->bintray_path}/source/";
+        $urls = array();
+        foreach($this->files as $file) {
+            $urls[] = $this->getFileUrl($file);
+        }
+        return BinTrayCache::urlBaseDir($urls);
     }
 
     function getFileUrl($file) {
