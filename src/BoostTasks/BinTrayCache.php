@@ -164,16 +164,16 @@ class BinTrayCache {
 
         switch($extension) {
         case 'tar.bz2':
-            Process::run("tar -xjf '{$file_path}'", $subdir, null, null, 60*10);
+            Process::run("tar -xjf '{$file_path}'", $subdir, null, null, 60*30);
             break;
         case 'tar.gz':
-            Process::run("tar -xzf '{$file_path}'", $subdir, null, null, 60*10);
+            Process::run("tar -xzf '{$file_path}'", $subdir, null, null, 60*30);
             break;
         case '7z':
-            Process::run("7z x '{$file_path}'", $subdir, null, null, 60*10);
+            Process::run("7z x '{$file_path}'", $subdir, null, null, 60*30);
             break;
         case 'zip':
-            Process::run("unzip '{$file_path}'", $subdir, null, null, 60*10);
+            Process::run("unzip '{$file_path}'", $subdir, null, null, 60*30);
             break;
         default:
             assert(false);
