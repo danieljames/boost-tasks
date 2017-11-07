@@ -29,9 +29,9 @@ class BinTrayCache {
             ()
             $@xi', $version, $match, PREG_OFFSET_CAPTURE)) {
             return array(
-                $match[1][0],
-                $match[2][0],
-                $match[3][0] ?: 0,
+                intval($match[1][0]),
+                intval($match[2][0]),
+                intval($match[3][0]),
                 $match[4][1] != -1 ? "beta". ($match[4][0] ?: 1) : '',
                 $match[5][1] != -1 ? "rc". ($match[5][0] ?: 1) :'',
             );
