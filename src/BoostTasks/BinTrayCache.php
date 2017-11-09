@@ -58,7 +58,7 @@ class BinTrayCache {
 
         // 'bindto' is used to force file_get_contents to use IPv4,
         // because the IPv6 address isn't working at the time of writing.
-        $context = stream_context_create(array('bindto' => '0:0'));
+        $context = stream_context_create(array('socket' => array('bindto' => '0:0')));
         $files = file_get_contents($url, false, $context);
         if (!$files) {
             throw new RuntimeException("Error downloading file details from bintray.");
