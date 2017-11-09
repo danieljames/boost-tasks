@@ -278,7 +278,7 @@ class BinTrayCache_FileDetails {
     // Throws RuntimeException on failure.
     // TODO: Download to temporary file and move into position.
     function downloadFile($url, $dst_path) {
-        $download_fh = fopen($url, 'rb', false, $cache->stream_context);
+        $download_fh = fopen($url, 'rb', false, $this->cache->stream_context);
 
         if (!$download_fh) {
             throw new RuntimeException("Error connecting to {$url}");
