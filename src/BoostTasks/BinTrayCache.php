@@ -290,30 +290,11 @@ class BinTrayCache_FileDetails {
         $tmp_dir = "{$this->cache->path}/tmp";
         if (!is_dir($tmp_dir)) { mkdir($tmp_dir, 0777, true); }
         $temp_path = tempnam($tmp_dir, "download-");
-        try {
-            $save_fh = fopen($temp_path, "wb");
-            if (!$save_fh) {
-                throw new RuntimeException("Problem opening temporary file at {$dst_path}");
-            }
-
-            do {
-                $chunk = fread($download_fh, 8192);
-                if ($chunk === false) {
-                    throw new RuntimeException("Problem reading chunk: {$url}");
-                }
-                if (fwrite($save_fh, $chunk) === false) {
-                    throw new RuntimeException("Problem writing chunk: {$url}");
-                }
-            } while (!feof($download_fh));
-
-            fclose($download_fh);
-            fclose($save_fh);
-            rename($temp_path, $dst_path);
-        } catch(Exception $e) {
-            if ($download_fh) { fclose($download_fh); }
-            if ($save_fh) { fclose($save_fh); }
-            unlink($temp_path);
-            throw $e;
+        if (@file_put_contents($temp_path, $download_fh) === false) {
+            @unlink($temp_path);
+            throw new RuntimeException("Error downloading from bintray");
         }
+        fclose($download_fh);
+        rename($temp_path, $dst_path);
     }
 }
