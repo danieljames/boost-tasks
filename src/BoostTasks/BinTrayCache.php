@@ -295,8 +295,7 @@ class BinTrayCache_FileDetails {
             fclose($download_fh);
             rename($temp_path, $dst_path);
         } catch(Exception $e) {
-            if ($download_fh) { fclose($download_fh); }
-            unlink($temp_path);
+            @unlink($temp_path);
             throw $e;
         }
     }
