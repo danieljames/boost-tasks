@@ -9,9 +9,17 @@ use Process;
 
 class BinTrayCache {
     var $path;
+    var $stream_context;
 
     function __construct() {
         $this->path = EvilGlobals::dataPath('bintray');
+
+        // 'bindto' is used to force file_get_contents to use IPv4,
+        // because the IPv6 address isn't working at the time of writing.
+        $this->stream_context = stream_context_create(
+            array('socket' =>
+                array('bindto' => '0:0')
+            ));
     }
 
     static function parseVersion($version) {
@@ -56,10 +64,7 @@ class BinTrayCache {
         }
         $url = "https://api.bintray.com/packages/boostorg/{$bintray_path}/files";
 
-        // 'bindto' is used to force file_get_contents to use IPv4,
-        // because the IPv6 address isn't working at the time of writing.
-        $context = stream_context_create(array('socket' => array('bindto' => '0:0')));
-        $files = file_get_contents($url, false, $context);
+        $files = file_get_contents($url, false, $this->stream_context);
         if (!$files) {
             throw new RuntimeException("Error downloading file details from bintray.");
         }
@@ -273,7 +278,7 @@ class BinTrayCache_FileDetails {
     // Throws RuntimeException on failure.
     // TODO: Download to temporary file and move into position.
     function downloadFile($url, $dst_path) {
-        $download_fh = fopen($url, 'rb');
+        $download_fh = fopen($url, 'rb', false, $this->stream_context);
 
         if (!$download_fh) {
             throw new RuntimeException("Error connecting to {$url}");
