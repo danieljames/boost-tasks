@@ -276,7 +276,6 @@ class BinTrayCache_FileDetails {
 
     // Downloads file from $url to local path $dst_path
     // Throws RuntimeException on failure.
-    // TODO: Download to temporary file and move into position.
     function downloadFile($url, $dst_path) {
         $download_fh = fopen($url, 'rb', false, $this->cache->stream_context);
 
@@ -296,8 +295,7 @@ class BinTrayCache_FileDetails {
             fclose($download_fh);
             rename($temp_path, $dst_path);
         } catch(Exception $e) {
-            if ($download_fh) { fclose($download_fh); }
-            unlink($temp_path);
+            @unlink($temp_path);
             throw $e;
         }
     }
