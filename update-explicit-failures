@@ -1,8 +1,15 @@
 #!/usr/bin/env php
 <?php
+
 require_once(__DIR__.'/vendor/autoload.php');
 
 use GetOptionKit\OptionCollection;
+use BoostTasks\Settings;
+use BoostTasks\CommandLineOptions;
+use BoostTasks\GitHubEvents;
+use BoostTasks\SuperProject;
+use BoostTasks\LocalMirror;
+use BoostTasks\UpdateExplicitFailures;
 
 function main($args) {
     $specs = new OptionCollection;
@@ -10,7 +17,7 @@ function main($args) {
         'Update explicit failure markup in the super project',
         $specs);
     if (is_numeric($options)) { exit($options); }
-    EvilGlobals::init($options);
+    Settings::init($options);
 
     // Update the mirror
     GitHubEvents::downloadEvents();
@@ -19,7 +26,7 @@ function main($args) {
     $mirror->fetchDirty();
 
     // Update explicit-failures-markup
-    foreach (EvilGlobals::branchRepos() as $x) {
+    foreach (Settings::branchRepos() as $x) {
         UpdateExplicitFailures::update(new SuperProject($x));
     }
 }

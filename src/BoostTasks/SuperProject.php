@@ -7,14 +7,23 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+namespace BoostTasks;
+
 use Nette\Object;
+use BoostTasks\Settings;
+use BoostTasks\GitHubEventQueue;
+use BoostTasks\RepoBase;
+use BoostTasks\Repo;
+use BoostTasks\Log;
+use BoostTasks\LocalMirror;
+use RuntimeException;
 
 class SuperProject extends Repo {
     var $submodule_branch;
     var $push_warning = false;
 
     static function updateBranches($branches = null, $all = false) {
-        if (!$branches) { $branches = EvilGlobals::branchRepos(); }
+        if (!$branches) { $branches = Settings::branchRepos(); }
         foreach ($branches as $x) {
             $super = new SuperProject($x);
             $super->updateFromEvents($all);
@@ -23,7 +32,7 @@ class SuperProject extends Repo {
 
     function __construct($settings) {
         parent::__construct(
-            array_get($settings, 'module', EvilGlobals::settings('superproject-repo')),
+            array_get($settings, 'module', Settings::settings('superproject-repo')),
             $this->get($settings, 'superproject-branch'),
             $this->get($settings, 'path'),
             array_get($settings, 'remote_url'));
@@ -216,7 +225,7 @@ class SuperProject extends Repo {
             // Note: Alternative would be to use branch API to get more
             //       information.
             //       https://developer.github.com/v3/repos/branches/#get-branch
-            $ref = EvilGlobals::githubCache()->getJson(
+            $ref = Settings::githubCache()->getJson(
                 "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
             if ($ref->object->sha != $submodule->current_hash_value) {
                 $submodule->pending_hash_value = $ref->object->sha;

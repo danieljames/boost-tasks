@@ -1,9 +1,12 @@
 <?php
 
+namespace BoostTasks;
+
 use Nette\Object;
 use Nette\Neon\Neon;
 use BoostTasks\Db;
-//use RuntimeException;
+use BoostTasks\Log;
+use RuntimeException;
 
 class Migrations extends Object {
     static $versions = array(

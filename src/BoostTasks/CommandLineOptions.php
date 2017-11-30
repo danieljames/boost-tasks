@@ -1,5 +1,7 @@
 <?php
 
+namespace BoostTasks;
+
 use GetOptionKit\OptionCollection;
 use GetOptionKit\OptionParser;
 use GetOptionKit\OptionPrinter\ConsoleOptionPrinter;

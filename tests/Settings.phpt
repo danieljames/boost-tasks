@@ -2,51 +2,54 @@
 
 use Tester\Assert;
 use BoostTasks\TempDirectory;
+use BoostTasks\Settings;
+use BoostTasks\Settings_SettingsReader;
+use BoostTasks\Log;
 
 require_once(__DIR__.'/bootstrap.php');
 
-class EvilGlobalsTest extends TestBase {
+class SettingsTest extends TestBase {
     function testSettings() {
-        EvilGlobals::init(array('config-file' => __DIR__.'/test-config1.neon'));
-        Assert::same('name', EvilGlobals::settings('username'));
-        Assert::null(EvilGlobals::settings('website-data'));
+        Settings::init(array('config-file' => __DIR__.'/test-config1.neon'));
+        Assert::same('name', Settings::settings('username'));
+        Assert::null(Settings::settings('website-data'));
         // Q: Do I really need to use realpath here?
-        Assert::same(realpath(__DIR__.'/data'), realpath(EvilGlobals::settings('data')));
+        Assert::same(realpath(__DIR__.'/data'), realpath(Settings::settings('data')));
     }
 
     function testConfigPaths() {
-        EvilGlobals::init(array('config-file' => __DIR__.'/test-config2.neon'));
-        Assert::same('name', EvilGlobals::settings('username'));
-        Assert::null(EvilGlobals::settings('website-data'));
-        Assert::same(__DIR__.'/overwrite-config-paths', EvilGlobals::settings('data'));
+        Settings::init(array('config-file' => __DIR__.'/test-config2.neon'));
+        Assert::same('name', Settings::settings('username'));
+        Assert::null(Settings::settings('website-data'));
+        Assert::same(__DIR__.'/overwrite-config-paths', Settings::settings('data'));
     }
 
     function testDataPath() {
         $temp_directory = new TempDirectory();
         file_put_contents("{$temp_directory->path}/config.neon", 'data: root');
-        EvilGlobals::init(array('config-file' => "{$temp_directory->path}/config.neon"));
+        Settings::init(array('config-file' => "{$temp_directory->path}/config.neon"));
 
         $root = "{$temp_directory->path}/root";
         Assert::true(is_dir($root));
-        Assert::same($root, EvilGlobals::dataPath());
+        Assert::same($root, Settings::dataPath());
 
         $sub1 = "{$root}/sub1";
         Assert::false(is_dir($sub1));
-        Assert::same($sub1, EvilGlobals::dataPath("sub1"));
+        Assert::same($sub1, Settings::dataPath("sub1"));
         Assert::true(is_dir($sub1));
 
         $sub2 = "{$root}/sub2/sub2";
         Assert::false(is_dir($sub2));
-        Assert::same($sub2, EvilGlobals::dataPath("sub2/sub2"));
+        Assert::same($sub2, Settings::dataPath("sub2/sub2"));
         Assert::true(is_dir($sub2));
     }
 
     function testBranches1() {
         $temp_directory = new TempDirectory();
         file_put_contents("{$temp_directory->path}/config.neon", 'data: root');
-        EvilGlobals::init(array('config-file' => "{$temp_directory->path}/config.neon"));
+        Settings::init(array('config-file' => "{$temp_directory->path}/config.neon"));
 
-        Assert::same(array(), EvilGlobals::branchRepos());
+        Assert::same(array(), Settings::branchRepos());
     }
 
     function testBranches2() {
@@ -55,9 +58,9 @@ class EvilGlobalsTest extends TestBase {
             data: root
             superproject-branches: {master: develop, develop: beta}
         ");
-        EvilGlobals::init(array('config-file' => "{$temp_directory->path}/config.neon"));
+        Settings::init(array('config-file' => "{$temp_directory->path}/config.neon"));
 
-        $branches = EvilGlobals::branchRepos();
+        $branches = Settings::branchRepos();
         $super_base = "{$temp_directory->path}/root/super";
         Assert::true(is_dir($super_base));
 
@@ -75,18 +78,18 @@ class EvilGlobalsTest extends TestBase {
     function testDatabase() {
         $temp_directory = new TempDirectory();
         file_put_contents("{$temp_directory->path}/config.neon", 'data: root');
-        EvilGlobals::init(array('config-file' => "{$temp_directory->path}/config.neon"));
+        Settings::init(array('config-file' => "{$temp_directory->path}/config.neon"));
 
-        $db = EvilGlobals::database();
+        $db = Settings::database();
         Assert::true(is_file("{$temp_directory->path}/root/cache.db"));
         unset($db);
-        unset(EvilGlobals::$instance->database);
+        unset(Settings::$instance->database);
     }
 
     function testSafeSettings() {
-        EvilGlobals::init(array('config-file' => __DIR__.'/test-config1.neon'));
+        Settings::init(array('config-file' => __DIR__.'/test-config1.neon'));
 
-        $safe_settings = EvilGlobals::safeSettings();
+        $safe_settings = Settings::safeSettings();
         Assert::same('name', $safe_settings['username']);
         Assert::same('********', $safe_settings['password']);
         Assert::false(array_key_exists('testing', $safe_settings));
@@ -94,30 +97,30 @@ class EvilGlobalsTest extends TestBase {
     }
 
     function testMissingInSafeSettings() {
-        $safe_settings = EvilGlobals::safeSettings();
+        $safe_settings = Settings::safeSettings();
         Assert::false(array_key_exists('username', $safe_settings));
         Assert::false(array_key_exists('password', $safe_settings));
         Assert::false(array_key_exists('testing', $safe_settings));
     }
 
     function testGithubCache() {
-        EvilGlobals::init(array('config-file' => __DIR__.'/test-config1.neon'));
+        Settings::init(array('config-file' => __DIR__.'/test-config1.neon'));
 
-        $github_cache = EvilGlobals::githubCache();
+        $github_cache = Settings::githubCache();
         Assert::same('name', $github_cache->username);
         Assert::same('private', $github_cache->password);
     }
 
     function testUnknownSetting() {
-        EvilGlobals::init(array('config-file' => __DIR__.'/test-config1.neon'));
-        Assert::exception(function() { EvilGlobals::settings('non-existant'); },
+        Settings::init(array('config-file' => __DIR__.'/test-config1.neon'));
+        Assert::exception(function() { Settings::settings('non-existant'); },
             'LogicException');
     }
 }
 
-class EvilGlobals_SettingsReaderTest extends TestBase {
+class Settings_SettingsReaderTest extends TestBase {
     function testErrors() {
-        $reader = new EvilGlobals_SettingsReader(array(), __DIR__);
+        $reader = new Settings_SettingsReader(array(), __DIR__);
         $temp_directory = new TempDirectory();
         Assert::exception(function() use($temp_directory, $reader) {
             $reader->readConfig("{$temp_directory->path}/config.neon");
@@ -126,7 +129,7 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
 
     function testInvalidSettings() {
         // Currently only detected when trying to read in a configuration option.
-        $read = new EvilGlobals_SettingsReader(array(
+        $read = new Settings_SettingsReader(array(
             'username' => array('type' => 'blah blah blah'),
         ), __DIR__);
 
@@ -137,7 +140,7 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
 
     function testIgnoreSettings() {
         // Currently only detected when trying to read in a configuration option.
-        $read = new EvilGlobals_SettingsReader(array(
+        $read = new Settings_SettingsReader(array(
             'username' => array('type' => 'string'),
         ), __DIR__);
 
@@ -152,7 +155,7 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
     }
 
     function testSimpleSettings() {
-        $reader = new EvilGlobals_SettingsReader(array(
+        $reader = new Settings_SettingsReader(array(
             'string1' => array('type' => 'string', 'default' => 'hello'),
             'string2' => array('type' => 'string'),
             'boolean1' => array('type' => 'boolean', 'default' => false),
@@ -202,7 +205,7 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
     }
 
     function testArraySetting() {
-        $reader = new EvilGlobals_SettingsReader(array(
+        $reader = new Settings_SettingsReader(array(
             'array1' => array('type' => 'array', 'sub' => array('type' => 'string')),
             'array2' => array('type' => 'array', 'sub' => array('type' => 'string'), 'default' => array()),
             'array3' => array('type' => 'array', 'sub' => array('type' => 'string'), 'default' => array('1')),
@@ -218,7 +221,7 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
     }
 
     function testPathSetting() {
-        $reader = new EvilGlobals_SettingsReader(array(
+        $reader = new Settings_SettingsReader(array(
             'path1' => array('type' => 'path', 'default' => '.'),
             'path2' => array('type' => 'path', 'default' => '..'),
             'path3' => array('type' => 'path', 'default' => basename(__FILE__)),
@@ -254,7 +257,7 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
     }
 
     function testPrivateSetting() {
-        $reader = new EvilGlobals_SettingsReader(array(
+        $reader = new Settings_SettingsReader(array(
             'value' => array('type' => 'string'),
             'private' => array('type' => 'private', 'default' => 'default')
         ), __DIR__);
@@ -281,7 +284,7 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
     }
 
     function testArrayPasswordSetting() {
-        $reader = new EvilGlobals_SettingsReader(array(
+        $reader = new Settings_SettingsReader(array(
             'password' => array('type' => 'array', 'sub' => array('type' => 'password')),
         ), __DIR__);
         $settings = $reader->readConfig(__DIR__.'/test-config1.neon');
@@ -292,8 +295,8 @@ class EvilGlobals_SettingsReaderTest extends TestBase {
 }
 
 
-$test = new EvilGlobalsTest();
+$test = new SettingsTest();
 $test->run();
 
-$test = new EvilGlobals_SettingsReaderTest();
+$test = new Settings_SettingsReaderTest();
 $test->run();

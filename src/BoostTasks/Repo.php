@@ -1,6 +1,13 @@
 <?php
 
+namespace BoostTasks;
+
 use Nette\Object;
+use BoostTasks\Settings;
+use BoostTasks\RepoBase;
+use BoostTasks\Log;
+use BoostTasks\Process;
+use RuntimeException;
 
 /*
  * Copyright 2013-2015 Daniel James <daniel@calamity.org.uk>.
@@ -27,7 +34,7 @@ class Repo extends RepoBase {
             $this->module = $module;
         }
         $this->branch = $branch;
-        $this->enable_push = EvilGlobals::settings('push-to-repo');
+        $this->enable_push = Settings::settings('push-to-repo');
         $this->url = is_null($url) ?
             "git@github.com:{$this->github_user}/{$this->module}.git" :
             $url;
@@ -106,7 +113,7 @@ class Repo extends RepoBase {
             Log::error("Failed to push to {$this->getModuleBranchName()}.");
             return false;
         }
-        catch (\RuntimeException $e) {
+        catch (RuntimeException $e) {
             Log::error("{$this->getModuleBranchName()}: $e");
             return false;
         }
@@ -121,7 +128,7 @@ class Repo extends RepoBase {
         $status = $this->commandWithStatus('push -q --porcelain');
 
         if ($status > 1) {
-            throw new \RuntimeException("Push failed: {$process->getErrorOutput()}");
+            throw new RuntimeException("Push failed: {$process->getErrorOutput()}");
         }
 
         return $status == 0;

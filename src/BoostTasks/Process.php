@@ -7,6 +7,11 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+namespace BoostTasks;
+
+use RuntimeException;
+use Iterator;
+
 class Process {
     var $process;
     var $child_stdin;
@@ -218,7 +223,7 @@ class Process_LineProcess implements Iterator
     }
 }
 
-class Process_Exception extends \RuntimeException {}
+class Process_Exception extends RuntimeException {}
 class Process_Timeout extends Process_Exception {}
 
 class Process_FailedExitCode extends Process_Exception

@@ -1,5 +1,10 @@
 <?php
 
+namespace BoostTasks;
+
+use BoostTasks\Log;
+use BoostTasks\Process;
+use BoostTasks\Process_FailedExitCode;
 use Nette\Object;
 
 /*

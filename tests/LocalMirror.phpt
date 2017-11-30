@@ -1,6 +1,7 @@
 <?php
 
 use Tester\Assert;
+use BoostTasks\LocalMirror;
 
 require_once(__DIR__.'/bootstrap.php');
 

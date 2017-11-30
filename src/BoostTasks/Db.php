@@ -7,6 +7,7 @@ use RuntimeException;
 use Exception;
 use Iterator;
 use Nette\Object;
+use BoostTasks\Log;
 
 // This is an incredibly crude little library for database stuff that I
 // threw together when I had issues with RedBean in another project.

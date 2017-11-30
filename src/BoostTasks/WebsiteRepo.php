@@ -7,10 +7,18 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+namespace BoostTasks;
+
+use BoostTasks\Settings;
+use BoostTasks\Repo;
+use BoostTasks\WebsiteRepo;
+use BoostTasks\Log;
+use RuntimeException;
+
 class WebsiteRepo extends Repo {
     function __construct() {
         parent::__construct('website', 'master',
-            EvilGlobals::dataPath('repos').'/website');
+            Settings::dataPath('repos').'/website');
     }
 
     function updateDocumentationList($mirror, $version) {

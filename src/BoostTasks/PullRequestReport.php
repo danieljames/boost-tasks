@@ -7,8 +7,11 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+namespace BoostTasks;
+
 use Nette\Object;
 use BoostTasks\Db;
+use BoostTasks\Settings;
 
 class PullRequestReport extends Object {
     static function update($all = false) {
@@ -20,8 +23,8 @@ class PullRequestReport extends Object {
     public function fullUpdate() {
         // Download pull requests.
         $pull_requests = Array();
-        foreach (EvilGlobals::githubCache()->iterate('/orgs/boostorg/repos') as $repo) {
-            foreach (EvilGlobals::githubCache()->iterate("/repos/{$repo->full_name}/pulls") as $pull) {
+        foreach (Settings::githubCache()->iterate('/orgs/boostorg/repos') as $repo) {
+            foreach (Settings::githubCache()->iterate("/repos/{$repo->full_name}/pulls") as $pull) {
                 $data = new \stdClass();
                 $data->id = $pull->id;
                 $data->repo_full_name = $repo->full_name;
@@ -34,7 +37,7 @@ class PullRequestReport extends Object {
             }
         }
 
-        $db = EvilGlobals::database();
+        $db = Settings::database();
         $db->begin();
         $existing_pull_requests = array();
 
@@ -76,7 +79,7 @@ class PullRequestReport extends Object {
         // echo date("r\n", strtotime("2014-01-27T05:26:41Z"));
 
         $pull_requests = Array();
-        foreach (EvilGlobals::database()->getAll('SELECT * FROM pull_request') as $row) {
+        foreach (Settings::database()->getAll('SELECT * FROM pull_request') as $row) {
             $data = new \stdClass();
             $data->id = $row['id'];
             $data->html_url = $row['pull_request_url'];
@@ -94,8 +97,8 @@ class PullRequestReport extends Object {
 
         $json = json_encode($json_data);
 
-        if (\EvilGlobals::settings('website-data')) {
-            file_put_contents(\EvilGlobals::settings('website-data').'/pull-requests.json', $json);
+        if (\Settings::settings('website-data')) {
+            file_put_contents(\Settings::settings('website-data').'/pull-requests.json', $json);
         }
         else {
             echo $json;

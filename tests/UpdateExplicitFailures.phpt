@@ -1,6 +1,7 @@
 <?php
 
 use Tester\Assert;
+use BoostTasks\UpdateExplicitFailures;
 
 require_once(__DIR__.'/bootstrap.php');
 

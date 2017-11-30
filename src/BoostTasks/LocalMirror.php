@@ -7,7 +7,15 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+namespace BoostTasks;
+
 use Nette\Object;
+use BoostTasks\Settings;
+use BoostTasks\GitHubEventQueue;
+use BoostTasks\RepoBase;
+use BoostTasks\Log;
+use BoostTasks\Process;
+use RuntimeException;
 
 /** Maintains a local mirror of the boostorg repos. */
 class LocalMirror extends Object {
@@ -16,7 +24,7 @@ class LocalMirror extends Object {
     var $queue;
 
     function __construct() {
-        $this->mirror_root = EvilGlobals::dataPath('mirror');
+        $this->mirror_root = Settings::dataPath('mirror');
         $this->queue = new GitHubEventQueue('mirror');
     }
 
@@ -48,7 +56,7 @@ class LocalMirror extends Object {
     }
 
     function refreshAll($dirty = true) {
-        foreach (EvilGlobals::githubCache()->iterate('/orgs/boostorg/repos') as $repo) {
+        foreach (Settings::githubCache()->iterate('/orgs/boostorg/repos') as $repo) {
             $url = $repo->clone_url;
             $this->update($repo->clone_url, $dirty);
         }
@@ -57,7 +65,7 @@ class LocalMirror extends Object {
     }
 
     function update($url, $dirty) {
-        $db = EvilGlobals::database();
+        $db = Settings::database();
         $path = parse_url($url, PHP_URL_PATH);
         $entry = $db->findOne(self::$mirror_table, 'path = ?', array($path));
         if ($entry) {
@@ -76,7 +84,7 @@ class LocalMirror extends Object {
     }
 
     function fetchDirty() {
-        $db = EvilGlobals::database();
+        $db = Settings::database();
         $repos = $db->getAll('SELECT id FROM `'.self::$mirror_table.'` WHERE dirty = ? ORDER BY `priority`, `path`', Array(true));
 
         foreach ($repos as $row) {
@@ -108,7 +116,7 @@ class LocalMirror extends Object {
     }
 
     function outputRepos() {
-        foreach(EvilGlobals::database()->findAll(self::$mirror_table) as $repo) {
+        foreach(Settings::database()->findAll(self::$mirror_table) as $repo) {
             echo "{$repo->url} ", $repo->dirty ? '(needs update)' : '' ,"\n";
         }
     }
@@ -117,7 +125,7 @@ class LocalMirror extends Object {
         $dst_dir = rtrim($dst_dir, '/');
 
         if (!@mkdir($dst_dir)) {
-            throw \RuntimeException("Unable to create export destination: '{$dst_dir}'.");
+            throw RuntimeException("Unable to create export destination: '{$dst_dir}'.");
         }
 
         $this->exportRecursiveImpl('boostorg/boost.git', $branch, $dst_dir);
@@ -130,8 +138,8 @@ class LocalMirror extends Object {
         if (is_file("{$dst_dir}/.gitmodules")) {
             $child_repos = array();
             foreach(RepoBase::readSubmoduleConfig($dst_dir) as $name => $values) {
-                if (empty($values['path'])) { throw \RuntimeException("Missing path."); }
-                if (empty($values['url'])) { throw \RuntimeException("Missing URL."); }
+                if (empty($values['path'])) { throw RuntimeException("Missing path."); }
+                if (empty($values['url'])) { throw RuntimeException("Missing URL."); }
                 $child_repos[$values['path']] = self::resolveGitUrl($values['url'], $repo_path);
             }
 
@@ -147,7 +155,7 @@ class LocalMirror extends Object {
     // A close enough emulation of what git-submodule does.
     static function resolveGitUrl($url, $base) {
         if (strpos($url, ':') !== FALSE) {
-            throw new \RuntimeException("Remote URLs aren't supported.");
+            throw new RuntimeException("Remote URLs aren't supported.");
         } else if ($url[0] == '/') {
             // What git-submodule treats as an absolute path
             return '/'.trim($url, '/');
@@ -157,7 +165,7 @@ class LocalMirror extends Object {
             while (true) {
                 if (substr($url, 0, 3) == '../') {
                     if (!$result) {
-                        throw new \RuntimeException("Unable to resolve relative URL.");
+                        throw new RuntimeException("Unable to resolve relative URL.");
                     }
                     $result = dirname($result);
                     if ($result == '/' || $result == '.') { $result = ''; }

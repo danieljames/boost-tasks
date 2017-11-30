@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-/* 
+/*
  * Copyright 2013 Daniel James <daniel@calamity.org.uk>.
  *
  * Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -9,10 +9,17 @@
  */
 
 require_once(__DIR__.'/vendor/autoload.php');
-EvilGlobals::init();
+
+use BoostTasks\Process;
+use BoostTasks\Settings;
+use BoostTasks\RepoBase;
+use BoostTasks\Log;
+// use RuntimeException;
+
+Settings::init();
 
 try {
-    $dst = EvilGlobals::dataPath().'/upload';
+    $dst = Settings::dataPath().'/upload';
 
     if (is_dir($dst)) {
         Process::run("rm -r {$dst}");
@@ -35,7 +42,7 @@ try {
     $commit_hash = trim($repo->commandWithOutput("commit-tree -m Upload -p origin/upload -p {$hash} {$tree_hash}"));
     $repo->command("push origin {$commit_hash}:upload");
 }
-catch (\RuntimeException $e) {
+catch (RuntimeException $e) {
     Log::error("Runtime exception: {$e}");
     exit(1);
 }

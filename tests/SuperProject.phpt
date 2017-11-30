@@ -1,7 +1,11 @@
 <?php
 
 use Tester\Assert;
+use BoostTasks\SuperProject;
+use BoostTasks\SuperProject_SubModule;
 use BoostTasks\TempDirectory;
+use BoostTasks\RepoBase;
+use BoostTasks\Process;
 
 require_once(__DIR__.'/bootstrap.php');
 

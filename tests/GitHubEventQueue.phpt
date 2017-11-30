@@ -1,6 +1,8 @@
 <?php
 
 use Tester\Assert;
+use BoostTasks\GitHubEvents;
+use BoostTasks\GitHubEventQueue;
 
 require_once(__DIR__.'/bootstrap.php');
 

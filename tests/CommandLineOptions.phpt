@@ -2,6 +2,7 @@
 
 use Tester\Assert;
 use GetOptionKit\OptionCollection;
+use BoostTasks\CommandLineOptions;
 
 require_once(__DIR__.'/bootstrap.php');
 

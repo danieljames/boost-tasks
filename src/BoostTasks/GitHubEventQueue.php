@@ -7,7 +7,11 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+namespace BoostTasks;
+
 use Nette\Object;
+use BoostTasks\Settings;
+use BoostTasks\GitHubEvents;
 
 class GitHubEventQueue extends Object {
     // Contains details and status of individual queues.
@@ -19,7 +23,7 @@ class GitHubEventQueue extends Object {
     var $queue_end;
 
     function __construct($name, $type = null) {
-        $db = EvilGlobals::database();
+        $db = Settings::database();
         $this->queue = $db->findOne(self::$queue_table, 'name = ?', array($name));
         $this->type = $type;
         $this->queue_end = GitHubEvents::$status->last_id;

@@ -2,17 +2,17 @@
 
 namespace BoostTasks;
 
-use EvilGlobals;
+use BoostTasks\Settings;
+use BoostTasks\Log;
+use BoostTasks\Process;
 use RuntimeException;
-use Log;
-use Process;
 
 class BinTrayCache {
     var $path;
     var $stream_context;
 
     function __construct() {
-        $this->path = EvilGlobals::dataPath('bintray');
+        $this->path = Settings::dataPath('bintray');
 
         // 'bindto' is used to force file_get_contents to use IPv4,
         // because the IPv6 address isn't working at the time of writing.
