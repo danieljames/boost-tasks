@@ -2,6 +2,7 @@
 
 use Tester\Assert;
 use BoostTasks\Db;
+use BoostTasks\Migrations;
 
 require_once(__DIR__.'/bootstrap.php');
 

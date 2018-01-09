@@ -2,13 +2,15 @@
 
 use Tester\Assert;
 use BoostTasks\Db;
+use BoostTasks\Settings;
+use BoostTasks\Migrations;
 
 require_once(__DIR__.'/../bootstrap.php');
 require_once(__DIR__.'/../../webhook/webhook.php');
 
-EvilGlobals::init(array('testing' => true));
-EvilGlobals::$instance->database = Db::create("sqlite::memory:");
-Migrations::migrate(EvilGlobals::database());
+Settings::init(array('testing' => true));
+Settings::$instance->database = Db::create("sqlite::memory:");
+Migrations::migrate(Settings::database());
 
 $event = new GitHubWebHookEvent();
 $event->event_type = 'pull_request';
@@ -18,7 +20,7 @@ $start = time();
 webhook_pull_request_handler($event);
 $end = time();
 
-$events = EvilGlobals::database()->getAll('select * from `pull_request_event`');
+$events = Settings::database()->getAll('select * from `pull_request_event`');
 
 // Check 'created_on' date, and then delete from results for safe comparison.
 foreach($events as $index => $record) {

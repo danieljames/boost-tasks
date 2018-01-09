@@ -2,6 +2,8 @@
 
 use Tester\Assert;
 use BoostTasks\TempDirectory;
+use BoostTasks\RepoBase;
+use BoostTasks\Process;
 
 require_once(__DIR__.'/bootstrap.php');
 

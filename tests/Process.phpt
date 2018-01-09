@@ -1,6 +1,8 @@
 <?php
 
 use Tester\Assert;
+use BoostTasks\Process;
+use BoostTasks\Process_Timeout;
 
 require_once(__DIR__.'/bootstrap.php');
 
@@ -35,7 +37,7 @@ class ProcessTest extends TestBase {
     function testStderr() {
         $e = Assert::exception(function () {
             Process::run("echo Hello 1>&2 && false");
-        }, 'Process_FailedExitCode');
+        }, 'BoostTasks\Process_FailedExitCode');
         Assert::same("Hello\n", $e->stderr);
     }
 
@@ -51,7 +53,7 @@ class ProcessTest extends TestBase {
                 echo Hello
                 echo Error 1>&2
                 false");
-        }, 'Process_FailedExitCode');
+        }, 'BoostTasks\Process_FailedExitCode');
         Assert::same("Error\nError\n", $e->stderr);
     }
 
@@ -71,12 +73,12 @@ class ProcessTest extends TestBase {
 
         $e = Assert::exception(function() {
             Process::run("printf error 1>&2; false");
-        }, 'Process_FailedExitCode');
+        }, 'BoostTasks\Process_FailedExitCode');
         Assert::same("error", $e->stderr);
 
         $e = Assert::exception(function() {
             Process::run("printf One; printf error 1>&2; echo Two; false");
-        }, 'Process_FailedExitCode');
+        }, 'BoostTasks\Process_FailedExitCode');
         Assert::same("error", $e->stderr);
     }
 

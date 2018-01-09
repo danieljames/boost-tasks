@@ -7,7 +7,16 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+namespace BoostTasks;
+
 use Nette\Object;
+use BoostTasks\RepoBase;
+use BoostTasks\Repo;
+use BoostTasks\Log;
+use BoostTasks\LocalMirror;
+use BoostTasks\Process;
+use RuntimeException;
+use SimpleXMLElement;
 
 class UpdateExplicitFailures extends Object {
     var $xml;
@@ -27,8 +36,8 @@ class UpdateExplicitFailures extends Object {
             // TODO: Duplicates code from LocalMirror.
             $child_repos = array();
             foreach(RepoBase::readSubmoduleConfig($repo->path) as $name => $values) {
-                if (empty($values['path'])) { throw \RuntimeException("Missing path."); }
-                if (empty($values['url'])) { throw \RuntimeException("Missing URL."); }
+                if (empty($values['path'])) { throw RuntimeException("Missing path."); }
+                if (empty($values['url'])) { throw RuntimeException("Missing URL."); }
                 $child_repos[$values['path']] = LocalMirror::resolveGitUrl($values['url'], $mirror_path);
             }
 
@@ -140,14 +149,14 @@ class UpdateExplicitFailures extends Object {
                 error_reporting($old_error_reporting);
             } catch (\Exception $e) {
                 error_reporting($old_error_reporting);
-                throw new \RuntimeException("Library parse error: {$e->getMessage()}");
+                throw new RuntimeException("Library parse error: {$e->getMessage()}");
             }
             if ($simple_xml->getName() != 'library') {
-                throw new \RuntimeException("Invalid library markup");
+                throw new RuntimeException("Invalid library markup");
             }
             $attributes = $simple_xml->attributes();
             if (!isset($attributes['name'])) {
-                throw new \RuntimeException("Missing library name");
+                throw new RuntimeException("Missing library name");
             }
             $libraries[strtolower($attributes['name'])] = $library;
         }

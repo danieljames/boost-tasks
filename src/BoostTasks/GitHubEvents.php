@@ -7,7 +7,11 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+namespace BoostTasks;
+
 use Nette\Object;
+use BoostTasks\Settings;
+use BoostTasks\Repo;
 
 class GitHubEvents {
     // Contains events pulled from GitHub.
@@ -19,7 +23,7 @@ class GitHubEvents {
     static $status;
 
     static function _init() {
-        $db = EvilGlobals::database();
+        $db = Settings::database();
         $status = $db->findOne(self::$event_state_table, 'name = "github-state"');
         if (!$status) {
             $status = $db->dispense(self::$event_state_table);
@@ -33,18 +37,18 @@ class GitHubEvents {
 
     static function getEvents($start_id, $end_id, $type = null) {
         if (!$type) {
-            return EvilGlobals::database()->find(self::$event_table,
+            return Settings::database()->find(self::$event_table,
                     'github_id > ? AND github_id <= ? ORDER BY github_id',
                     array($start_id, $end_id));
         } else {
-            return EvilGlobals::database()->find(self::$event_table,
+            return Settings::database()->find(self::$event_table,
                     'github_id > ? AND github_id <= ? AND type = ? ORDER BY github_id',
                     array($start_id, $end_id, $type));
         }
     }
 
     static function outputEvents() {
-        foreach(EvilGlobals::database()->findAll(self::$event_table) as $event) {
+        foreach(Settings::database()->findAll(self::$event_table) as $event) {
             echo "GitHub id: {$event->github_id}\n";
             echo "Type: {$event->type}\n";
             echo "Branch: {$event->branch}\n";
@@ -57,11 +61,11 @@ class GitHubEvents {
     }
 
     static function downloadEvents() {
-        self::downloadEventsImpl(EvilGlobals::githubCache()->iterate('/orgs/boostorg/events'));
+        self::downloadEventsImpl(Settings::githubCache()->iterate('/orgs/boostorg/events'));
     }
 
     static function downloadEventsImpl($events) {
-        $db = EvilGlobals::database();
+        $db = Settings::database();
         $db->begin();
 
         $last_id = self::$status->last_id;

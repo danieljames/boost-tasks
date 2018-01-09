@@ -7,6 +7,8 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+namespace BoostTasks;
+
 /**
  * Logging...
  *
@@ -15,7 +17,7 @@
 class Log {
     /** @staticvar \Monolog\Logger */
     static $log;
-    
+
     /** @staticvar bool Was an error encountered? */
     static $error = false;
 

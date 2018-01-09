@@ -1,7 +1,12 @@
 <?php
 
+namespace BoostTasks;
+
 use Nette\Object;
-//use RuntimeException;
+use BoostTasks\Settings;
+use BoostTasks\Log;
+use RuntimeException;
+use Iterator;
 
 /**
  * Download github api pages using etags and stuff.
@@ -22,7 +27,7 @@ class GitHubCache extends Object {
     function get($url) {
         $full_url = $this->resolveUrl($url);
         Log::debug("Fetch: {$full_url}");
-        $db = EvilGlobals::database();
+        $db = Settings::database();
         $redirect_count = 0;
 
     repeat_fetch:
@@ -67,7 +72,7 @@ class GitHubCache extends Object {
 
                 break;
             case 304: // Unchanged
-                \Log::debug("Cached: {$url}");
+                Log::debug("Cached: {$url}");
                 assert($cached);
                 break;
             case 301: // Permanent redirect.

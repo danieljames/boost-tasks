@@ -1,8 +1,16 @@
 #!/usr/bin/env php
 <?php
+
 require_once(__DIR__.'/vendor/autoload.php');
 
 use GetOptionKit\OptionCollection;
+use BoostTasks\Settings;
+use BoostTasks\CommandLineOptions;
+use BoostTasks\GitHubEvents;
+use BoostTasks\WebsiteRepo;
+use BoostTasks\SuperProject;
+use BoostTasks\LocalMirror;
+// use RuntimeException;
 
 function main($args) {
     $specs = new OptionCollection;
@@ -11,7 +19,7 @@ function main($args) {
         'Update the documentation list',
         $specs);
     if (is_numeric($options)) { exit($options); }
-    EvilGlobals::init($options);
+    Settings::init($options);
 
     // TODO: For some reason 'hasArgument' is always true, even when
     // there isn't a version. Am I misunderstanding it? Doesn't really
@@ -43,7 +51,7 @@ function main($args) {
     }
 
     // Update maintainer lists.
-    foreach (EvilGlobals::branchRepos() as $x) {
+    foreach (Settings::branchRepos() as $x) {
         $website_repo->updateSuperProject(new SuperProject($x));
     }
 }

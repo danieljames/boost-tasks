@@ -2,9 +2,14 @@
 
 require_once(__DIR__.'/../vendor/autoload.php');
 
+use BoostTasks\Settings;
+use BoostTasks\RepoBase;
+use BoostTasks\Log;
+// use RuntimeException;
+
 function webhook() {
     header("Content-Type: text/plain");
-    EvilGlobals::init(array('config-file' => __DIR__.'/../var/webhook.neon', 'webhook' => true));
+    Settings::init(array('config-file' => __DIR__.'/../var/webhook.neon', 'webhook' => true));
     $event = get_webhook_event();
 
     Log::info("Handling event {$event->event_type}");
@@ -177,7 +182,7 @@ function commit_details($payload) {
 function webhook_pull_request_handler($event) {
     $payload = $event->payload;
 
-    $record = EvilGlobals::database()->dispense('pull_request_event');
+    $record = Settings::database()->dispense('pull_request_event');
     $record->action = $payload->action;
     $record->repo_full_name = $payload->repository->full_name;
     $record->pull_request_id = $payload->pull_request->id;
@@ -196,7 +201,7 @@ class GitHubWebHookEvent {
 }
 
 function get_webhook_event() {
-    $secret_key = EvilGlobals::settings('github-webhook-secret');
+    $secret_key = Settings::settings('github-webhook-secret');
     if (!$secret_key) {
         throw new RuntimeException("github-webhook-secret not set.");
     }
@@ -239,7 +244,7 @@ function get_webhook_event() {
     }
 
     // Get the event type
- 
+
     if (!array_key_exists('HTTP_X_GITHUB_EVENT', $_SERVER)) {
         throw new RuntimeException("No event found.");
     }

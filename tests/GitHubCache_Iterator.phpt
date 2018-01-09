@@ -1,6 +1,8 @@
 <?php
 
 use Tester\Assert;
+use BoostTasks\GitHubCache;
+use BoostTasks\GitHubCache_Iterator;
 
 require_once(__DIR__.'/bootstrap.php');
 

@@ -2,17 +2,17 @@
 
 namespace BoostTasks;
 
-use EvilGlobals;
+use BoostTasks\Settings;
+use BoostTasks\Log;
+use BoostTasks\Process;
 use RuntimeException;
-use Log;
-use Process;
 
 class BinTrayCache {
     var $path;
     var $stream_context;
 
     function __construct() {
-        $this->path = EvilGlobals::dataPath('bintray');
+        $this->path = Settings::dataPath('bintray');
 
         // 'bindto' is used to force file_get_contents to use IPv4,
         // because the IPv6 address isn't working at the time of writing.
@@ -290,11 +290,14 @@ class BinTrayCache_FileDetails {
         $tmp_dir = "{$this->cache->path}/tmp";
         if (!is_dir($tmp_dir)) { mkdir($tmp_dir, 0777, true); }
         $temp_path = tempnam($tmp_dir, "download-");
-        if (@file_put_contents($temp_path, $download_fh) === false) {
-            @unlink($temp_path);
-            throw new RuntimeException("Error downloading from bintray");
+        try {
+            file_put_contents($temp_path, $download_fh);
+            fclose($download_fh);
+            rename($temp_path, $dst_path);
+        } catch(Exception $e) {
+            if ($download_fh) { fclose($download_fh); }
+            unlink($temp_path);
+            throw $e;
         }
-        fclose($download_fh);
-        rename($temp_path, $dst_path);
     }
 }

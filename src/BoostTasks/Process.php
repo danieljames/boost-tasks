@@ -7,6 +7,11 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+namespace BoostTasks;
+
+use RuntimeException;
+use Iterator;
+
 class Process {
     var $process;
     var $child_stdin;
@@ -28,9 +33,9 @@ class Process {
     }
 
     public static function status($command, $cwd = null, array $env = null,
-            $input = null)
+            $input = null, $timeout = 60, array $options = array())
     {
-        $process = new self($command, $cwd);
+        $process = new self($command, $cwd, $env, $timeout, $options);
         if ($input) { fwrite($process->child_stdin, $input); }
         $process->closeChildStdin();
         $process->join();
@@ -38,9 +43,11 @@ class Process {
         return $process->status;
     }
 
-    public static function read($command, $cwd = null)
+    public static function read($command, $cwd = null, array $env = null,
+        $input = null, $timeout = 60, array $options = array())
     {
-        $process = new self($command, $cwd);
+        $process = new self($command, $cwd, $env, $timeout, $options);
+        if ($input) { fwrite($process->child_stdin, $input); }
         $process->closeChildStdin();
 
         $output = '';
@@ -53,9 +60,11 @@ class Process {
         return $output;
     }
 
-    public static function readLines($command, $cwd = null)
+    public static function readLines($command, $cwd = null, array $env = null,
+        $input = null, $timeout = 60, array $options = array())
     {
-        $process = new self($command, $cwd);
+        $process = new self($command, $cwd, $env, $timeout, $options);
+        if ($input) { fwrite($process->child_stdin, $input); }
         $process->closeChildStdin();
         return new Process_LineProcess($process);
     }
@@ -218,7 +227,7 @@ class Process_LineProcess implements Iterator
     }
 }
 
-class Process_Exception extends \RuntimeException {}
+class Process_Exception extends RuntimeException {}
 class Process_Timeout extends Process_Exception {}
 
 class Process_FailedExitCode extends Process_Exception

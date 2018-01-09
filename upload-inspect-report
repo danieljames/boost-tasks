@@ -5,16 +5,20 @@ require_once(__DIR__.'/vendor/autoload.php');
 
 use BoostTasks\BinTrayCache;
 use BoostTasks\TempDirectory;
+use BoostTasks\Settings;
+use BoostTasks\CommandLineOptions;
+use BoostTasks\Log;
+use BoostTasks\Process;
 
 function main() {
     $options = CommandLineOptions::process($_SERVER['argv'],
         'Run inspect on the latest cached downloads from bintray.');
-    EvilGlobals::init($options);
+    Settings::init($options);
 
     // Setup directories.
 
-    $report_path = EvilGlobals::dataPath('inspect');
-    $upload_path = EvilGlobals::dataPath('inspect/upload');
+    $report_path = Settings::dataPath('inspect');
+    $upload_path = Settings::dataPath('inspect/upload');
     $cache = new BinTrayCache;
 
     // Get details of latest downloads and see if they need to be inspected.
@@ -44,7 +48,7 @@ function main() {
     // fairly quickly.
     // Might tweak the cache implementation so that it's less likely to
     // delete a file here.
-    $temp_directory = new TempDirectory(EvilGlobals::dataPath('inspect'));
+    $temp_directory = new TempDirectory(Settings::dataPath('inspect'));
     foreach($branches as $branch => $details) {
         $archive_path = "{$temp_directory->path}/{$branch}/".basename($details['path']);
         mkdir(dirname($archive_path));
@@ -113,8 +117,8 @@ function upload_files($upload_path) {
 
     // Get cowic login details for FTP.
 
-    $cowic_username = EvilGlobals::settings('cowic-username');
-    $cowic_password = EvilGlobals::settings('cowic-password');
+    $cowic_username = Settings::settings('cowic-username');
+    $cowic_password = Settings::settings('cowic-password');
 
     if (is_null($cowic_username) || is_null($cowic_password)) {
         Log::warning("Not uploading inspect reports as login details not set.");

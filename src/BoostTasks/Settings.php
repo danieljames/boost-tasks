@@ -1,5 +1,7 @@
 <?php
 
+namespace BoostTasks;
+
 use Nette\Neon\Neon;
 use Nette\Object;
 use Monolog\Logger;
@@ -7,8 +9,14 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Handler\TestHandler;
 use Monolog\Formatter\LineFormatter;
 use BoostTasks\Db;
+use BoostTasks\CommandLineOptions;
+use BoostTasks\GitHubCache;
+use BoostTasks\Log;
+use BoostTasks\Migrations;
+use LogicException;
+use RuntimeException;
 
-class EvilGlobals extends Object {
+class Settings extends Object {
     static $settings_types = array(
         'data' => array('type' => 'path', 'default' => 'var/data'),
         'username' => array('type' => 'string'),
@@ -41,9 +49,9 @@ class EvilGlobals extends Object {
         if (is_numeric($options)) { exit($options); }
 
         if (!self::$settings_reader) {
-            self::$settings_reader = new EvilGlobals_SettingsReader(self::$settings_types, BOOST_TASKS_ROOT);
+            self::$settings_reader = new Settings_SettingsReader(self::$settings_types, BOOST_TASKS_ROOT);
         }
-        self::$instance = new EvilGlobals($options);
+        self::$instance = new Settings($options);
     }
 
     private function __construct($options = array()) {
@@ -153,7 +161,7 @@ class EvilGlobals extends Object {
 
     static function githubCache() {
         if (!self::$instance->github_cache) {
-            self::$instance->github_cache = new \GitHubCache(
+            self::$instance->github_cache = new GitHubCache(
                 self::$instance->settings['username'],
                 self::$instance->settings['password']);
         }
@@ -179,12 +187,12 @@ class EvilGlobals extends Object {
     }
 
     static function safeSettings() {
-        $settings = EvilGlobals::$settings_reader->outputSettings(EvilGlobals::$instance->settings);
+        $settings = Settings::$settings_reader->outputSettings(Settings::$instance->settings);
         return $settings;
     }
 }
 
-class EvilGlobals_SettingsReader {
+class Settings_SettingsReader {
     var $path_base;
     var $settings_types;
 

@@ -3,8 +3,13 @@
 
 require_once(__DIR__.'/vendor/autoload.php');
 
+use BoostTasks\Settings;
 use BoostTasks\BinTrayCache;
 use BoostTasks\Documentation;
+use BoostTasks\CommandLineOptions;
+use BoostTasks\WebsiteRepo;
+use BoostTasks\Log;
+// use RuntimeException;
 
 define('GET_RELEASE_DOWNLOAD_USAGE', "
 Usage: {} bintray_version [url]
@@ -45,7 +50,7 @@ function main($args) {
         exit(1);
     }
 
-    EvilGlobals::init($options->toArray());
+    Settings::init($options->toArray());
 
     // Get a copy of the website, and start up the php libs.
 

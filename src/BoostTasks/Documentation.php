@@ -2,8 +2,8 @@
 
 namespace BoostTasks;
 
-use EvilGlobals;
-use Log;
+use BoostTasks\Settings;
+use BoostTasks\Log;
 use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
 use RuntimeException;
@@ -11,7 +11,7 @@ use RuntimeException;
 class Documentation {
     static function install($cache, $file_details, $dir) {
         // Get archive path setting.
-        $archives_path = EvilGlobals::settings('website-archives');
+        $archives_path = Settings::settings('website-archives');
         if (!$archives_path) {
             throw new RuntimeException("website-archives not set");
         }
@@ -111,7 +111,7 @@ class Documentation {
         Log::debug("{$file_details->bintray_version} documentation: Extracting to {$destination_path}.");
 
         // Extract into a temporary directory.
-        $archives_path = EvilGlobals::settings('website-archives');
+        $archives_path = Settings::settings('website-archives');
         $temp_directory = new TempDirectory("{$archives_path}/tmp");
         $extract_path = BinTrayCache::extractSingleRootArchive($file_path, $temp_directory->path);
 

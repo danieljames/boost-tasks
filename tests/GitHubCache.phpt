@@ -2,6 +2,10 @@
 
 use Tester\Assert;
 use BoostTasks\Db;
+use BoostTasks\GitHubCache;
+use BoostTasks\GitHubCache_Response;
+use BoostTasks\GitHubCache_Connection;
+use BoostTasks\Log;
 
 require_once(__DIR__.'/bootstrap.php');
 

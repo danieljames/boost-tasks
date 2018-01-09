@@ -6,12 +6,16 @@ require_once(__DIR__.'/vendor/autoload.php');
 use BoostTasks\TempDirectory;
 use BoostTasks\BinTrayCache;
 use BoostTasks\Documentation;
+use BoostTasks\Settings;
+use BoostTasks\CommandLineOptions;
+use BoostTasks\Log;
+// use RuntimeException;
 
 function main() {
     $options = CommandLineOptions::process($_SERVER['argv'],
         'Update the website development documentation from BinTray.');
     if (is_numeric($options)) { exit($options); }
-    EvilGlobals::init($options);
+    Settings::init($options);
 
     foreach(array('master', 'develop') as $branch) {
         try {

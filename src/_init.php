@@ -1,5 +1,7 @@
 <?php
 
+use BoostTasks\Log;
+
 // Path constants
 
 define('BOOST_TASKS_ROOT', dirname(__DIR__));

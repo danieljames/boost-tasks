@@ -3,6 +3,8 @@
 require_once(__DIR__.'/vendor/autoload.php');
 
 use GetOptionKit\OptionCollection;
+use BoostTasks\Settings;
+use BoostTasks\CommandLineOptions;
 
 function main($args) {
     $specs = new OptionCollection;
@@ -10,20 +12,20 @@ function main($args) {
         'List pull requests',
         $specs);
     if (is_numeric($options)) { exit($options); }
-    EvilGlobals::init($options);
+    Settings::init($options);
 
     $username = 'danieljames';
     $organisation = 'boostorg';
 
     $repos = array();
-    foreach(EvilGlobals::githubCache()->iterate("/users/{$username}/subscriptions") as $subscription) {
+    foreach(Settings::githubCache()->iterate("/users/{$username}/subscriptions") as $subscription) {
         if ($subscription->owner->login == $organisation) {
             $repos[] = $subscription->full_name;
         }
     }
 
     if ($repos) {
-        $db = EvilGlobals::database();
+        $db = Settings::database();
         $query = 'WHERE repo_full_name IN ( ?';
         $query .= str_repeat(', ?', count($repos) - 1);
         $query .= ' )';
