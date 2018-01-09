@@ -97,8 +97,8 @@ class PullRequestReport extends Object {
 
         $json = json_encode($json_data);
 
-        if (\Settings::settings('website-data')) {
-            file_put_contents(\Settings::settings('website-data').'/pull-requests.json', $json);
+        if (Settings::settings('website-data')) {
+            file_put_contents(Settings::settings('website-data').'/pull-requests.json', $json);
         }
         else {
             echo $json;
