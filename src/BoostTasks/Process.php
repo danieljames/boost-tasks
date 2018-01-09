@@ -33,9 +33,9 @@ class Process {
     }
 
     public static function status($command, $cwd = null, array $env = null,
-            $input = null)
+            $input = null, $timeout = 60, array $options = array())
     {
-        $process = new self($command, $cwd);
+        $process = new self($command, $cwd, $env, $timeout, $options);
         if ($input) { fwrite($process->child_stdin, $input); }
         $process->closeChildStdin();
         $process->join();
@@ -43,9 +43,11 @@ class Process {
         return $process->status;
     }
 
-    public static function read($command, $cwd = null)
+    public static function read($command, $cwd = null, array $env = null,
+        $input = null, $timeout = 60, array $options = array())
     {
-        $process = new self($command, $cwd);
+        $process = new self($command, $cwd, $env, $timeout, $options);
+        if ($input) { fwrite($process->child_stdin, $input); }
         $process->closeChildStdin();
 
         $output = '';
@@ -58,9 +60,11 @@ class Process {
         return $output;
     }
 
-    public static function readLines($command, $cwd = null)
+    public static function readLines($command, $cwd = null, array $env = null,
+        $input = null, $timeout = 60, array $options = array())
     {
-        $process = new self($command, $cwd);
+        $process = new self($command, $cwd, $env, $timeout, $options);
+        if ($input) { fwrite($process->child_stdin, $input); }
         $process->closeChildStdin();
         return new Process_LineProcess($process);
     }
