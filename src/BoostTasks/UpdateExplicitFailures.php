@@ -70,7 +70,7 @@ class UpdateExplicitFailures extends Object {
                 throw new RuntimeException("Error linting final xml");
             }
 
-            return $repo->commitAll("Update explicit-failures-markup.xml");
+            return $repo->commitAll("Update explicit-failures-markup.xml\n\n[skip ci]");
         });
     }
 
