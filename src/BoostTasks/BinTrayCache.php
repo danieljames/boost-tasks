@@ -268,7 +268,7 @@ class BinTrayCache_FileDetails {
 
         if (hash_file('sha256', $download_path) != $file->sha256) {
             unlink($download_path);
-            throw new RuntimeException("File signature doesn't match: {$url}");
+            throw new RuntimeException("File signature doesn't match: {$this->getFileUrl($file)}");
         }
 
         return $download_path;
