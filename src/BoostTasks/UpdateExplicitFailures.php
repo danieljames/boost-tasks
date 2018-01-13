@@ -126,18 +126,22 @@ class UpdateExplicitFailures extends Object {
     function parseExplicitFailuresMarkup($xml) {
         preg_match_all('@
             # Comment preceeding library markup
-            (?:^[ \t]*<!--[ a-z0-9]*-->[ \t]*\n)?
-            [ \t]*<library\b[^>]*>
-            .*?
-            </library\b[^>]*>(?:\s*\n)?
+            (?<library>
+                (?:^[ \t]*<!--[ a-z0-9]*-->[ \t]*\n)?
+                [ \t]*<library\b[^>]*>
+                .*?
+                </library\b[^>]*>(?:\s*\n)?
+            ) |
+            <!--.*?-->
         @smxi', $xml, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
         $libraries = array();
 
         foreach ($matches as $match) {
+            if (empty($match['library'])) { continue; }
             $library = new UpdateExplicitFailures_LibraryMarkup();
-            $library->start = $match[0][1];
-            $library->end = $match[0][1] + strlen($match[0][0]);
-            $library->markup = $match[0][0];
+            $library->start = $match['library'][1];
+            $library->end = $match['library'][1] + strlen($match[0][0]);
+            $library->markup = $match['library'][0];
 
             // Turn off warnings while parsing library XML.
             // Will only fail if the markup does something tricky, like
