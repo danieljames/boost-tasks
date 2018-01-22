@@ -66,7 +66,7 @@ class WebsiteRepo extends Repo {
 
     function updateSuperProject($super) {
         $website_repo = $this; // NOTE: Need to work on PHP 5.3.
-        Log::info("Update maintainer list for {$super->branch}.");
+        Log::info("Update maintainer list for {$super->branch}\n\n[skip ci]");
         return $super->attemptAndPush(function() use ($super, $website_repo) {
             $website_repo->setupForRun();
 
