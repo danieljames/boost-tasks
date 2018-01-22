@@ -78,7 +78,7 @@ class WebsiteRepo extends Repo {
                 throw new RuntimeException("Error running update-repo.php");
             }
 
-            $message = "Update maintainer list.";
+            $message = "Update maintainer list\n\n[skip ci]";
             return $super->commitAll($message);
         });
     }
