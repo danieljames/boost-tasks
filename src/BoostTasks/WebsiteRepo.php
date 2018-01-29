@@ -66,7 +66,7 @@ class WebsiteRepo extends Repo {
 
     function updateSuperProject($super) {
         $website_repo = $this; // NOTE: Need to work on PHP 5.3.
-        Log::info("Update maintainer list for {$super->branch}\n\n[skip ci]");
+        Log::info("Update maintainer list for {$super->branch}.");
         return $super->attemptAndPush(function() use ($super, $website_repo) {
             $website_repo->setupForRun();
 
@@ -78,7 +78,7 @@ class WebsiteRepo extends Repo {
                 throw new RuntimeException("Error running update-repo.php");
             }
 
-            $message = "Update maintainer list.";
+            $message = "Update maintainer list\n\n[skip ci]";
             return $super->commitAll($message);
         });
     }
