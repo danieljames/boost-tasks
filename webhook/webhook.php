@@ -116,19 +116,6 @@ function update_git_checkout($repo_path, $update_method, $branch) {
 
     $repo = new RepoBase($repo_path);
 
-    $stash_needed = $repo->commandWithStatus('diff-index --quiet HEAD --');
-
-    if ($stash_needed) try {
-        $result .= "Stashing changes\n";
-        $result .= $repo->commandWithOutput('stash');
-    }
-    catch (\RuntimeException $e) {
-        echo "Git stash failed\n";
-        $result .= "git stash failed: {$e->message()}\n";
-        $failed = true;
-        return $result;
-    }
-
     try {
         switch($update_method) {
         case 'pull':
@@ -139,26 +126,14 @@ function update_git_checkout($repo_path, $update_method, $branch) {
             $result .= $repo->commandWithOutput("reset --hard origin/{$branch}");
             break;
         default:
-            $result .= "Error: invalid update method: {$update_method}";
-            $failed = true;
+            return "Error: invalid update method: {$update_method}";
         }
     }
     catch (\RuntimeException $e) {
-        echo "Git pull failed\n";
-        $result .= "git pull failed: {$e->message()}\n";
-        $failed = true;
+        return "Git pull failed";
     }
 
-    if ($stash_needed) try {
-        $result .= $repo->commandWithOutput('stash pop');
-    }
-    catch (\RuntimeException $e) {
-        echo "Git stash pop failed\n";
-        $result .= "git stash pop failed: : {$e->message()}\n";
-        $failed = true;
-    }
-
-    return $failed ? $result : '';
+    return '';
 }
 
 function commit_details($payload) {
