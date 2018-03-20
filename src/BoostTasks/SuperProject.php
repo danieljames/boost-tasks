@@ -119,7 +119,7 @@ class SuperProject extends Repo {
                 if ($updated) {
                     if ($this->enable_push) {
                         if (!$this->pushRepo()) {
-                            Log::error("{$this->getModuleBranchName()}: $e");
+                            Log::error("{$this->getModuleBranchName()}: Error pushing to repo");
                             return false;
                         }
                     } else {
@@ -183,7 +183,7 @@ class SuperProject extends Repo {
             assert(!$submodule->updated_hash_value && $submodule->current_hash_value == $payload->head);
             if ($this->enable_push) {
                 if (!$this->pushRepo()) {
-                    Log::error("{$this->getModuleBranchName()}: $e");
+                    Log::error("{$this->getModuleBranchName()}: Error pushing to repo");
                     break;
                 }
                 $queue->markReadUpTo($event->github_id);
