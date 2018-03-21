@@ -108,6 +108,8 @@ class Repo extends RepoBase {
                     Log::warning("{$this->path} processed, not configured to push to repo.\n");
                     return false;
                 }
+
+                Log::warning("Attempt {$try}: push failed to {$this->getModuleBranchName()}.\n");
             }
 
             Log::error("Failed to push to {$this->getModuleBranchName()}.");
