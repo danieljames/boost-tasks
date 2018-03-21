@@ -125,10 +125,14 @@ class Repo extends RepoBase {
         // TODO: Maybe I should parse the output from git push to check exactly
         // what succeeded/failed.
 
-        $status = $this->commandWithStatus('push -q --porcelain');
+        $status = $this->commandWithStatus('push -q --porcelain', $stderr);
 
         if ($status > 1) {
-            throw new RuntimeException("Push failed: {$process->getErrorOutput()}");
+            throw new RuntimeException("Push failed: {$stderr}");
+        }
+
+        if ($status == 1) {
+            Log::warning("Push failed: {$stderr}");
         }
 
         return $status == 0;

@@ -25,8 +25,13 @@ class RepoBase extends Object {
         return Process::run("git {$command}", $this->path);
     }
 
-    function commandWithStatus($command) {
-        return Process::status("git {$command}", $this->path);
+    function commandWithStatus($command, &$stderr = null) {
+        $process = Process::create("git {$command}", $this->path);
+        $process->closeChildStdin();
+        $process->join();
+        $process->close();
+        $stderr = $process->stderr;
+        return $process->status;
     }
 
     function commandWithInput($command, $input) {

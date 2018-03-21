@@ -60,6 +60,16 @@ class Process {
         return $output;
     }
 
+    // Create a process object.
+    //
+    // Try to use this as little as possible, as I want to be able to replace
+    // Process at some point.
+    public static function create($command, $cwd = null, array $env = null,
+        $timeout = 60, array $options = array())
+    {
+        return new self($command, $cwd, $env, $timeout, $options);
+    }
+
     public static function readLines($command, $cwd = null, array $env = null,
         $input = null, $timeout = 60, array $options = array())
     {
