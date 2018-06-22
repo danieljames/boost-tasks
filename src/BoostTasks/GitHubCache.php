@@ -87,9 +87,7 @@ class GitHubCache extends Object {
                 }
                 goto repeat_fetch;
             default:
-                $message = $response->reason_phrase;
-                if ($response->body) { $message .= "\n {$response->body}"; }
-                throw new RuntimeException($message);
+                throw new GitHubCache_Error($response);
         }
 
         return $cached;
@@ -305,4 +303,20 @@ class GitHubCache_Response {
     var $reason_phrase;
     var $headers;
     var $body;
+}
+
+class GitHubCache_Error extends RuntimeException {
+    var $response;
+
+    function __construct($response) {
+        $this->response = $response;
+    }
+
+    function code() {
+        return $this->response->code;
+    }
+
+    function message() {
+        return "Error: {$this->response->readon_phrase}";
+    }
 }
