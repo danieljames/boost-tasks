@@ -225,10 +225,18 @@ class SuperProject extends Repo {
             // Note: Alternative would be to use branch API to get more
             //       information.
             //       https://developer.github.com/v3/repos/branches/#get-branch
-            $ref = Settings::githubCache()->getJson(
-                "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
-            if ($ref->object->sha != $submodule->current_hash_value) {
-                $submodule->pending_hash_value = $ref->object->sha;
+            try {
+                $ref = Settings::githubCache()->getJson(
+                    "/repos/{$submodule->github_name}/git/refs/heads/{$this->submodule_branch}");
+                if ($ref->object->sha != $submodule->current_hash_value) {
+                    $submodule->pending_hash_value = $ref->object->sha;
+                }
+            } catch (\BoostTasks\GitHubCache_Error $e) {
+                if ($e->code() == 404) {
+                    Log::error("Unable to find {$this->submodule_branch} for {$submodule->github_name}");
+                } else {
+                    throw $e;
+                }
             }
         }
     }
