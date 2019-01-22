@@ -22,6 +22,8 @@ class WebsiteRepo extends Repo {
     }
 
     function updateDocumentationList($mirror, $version) {
+        Log::info("Update documentation list");
+
         $website_repo = $this; // NOTE: Need to work on PHP 5.3.
         return $this->attemptAndPush(function() use($website_repo, $mirror, $version) {
             $website_repo->setupForRun();
@@ -46,6 +48,8 @@ class WebsiteRepo extends Repo {
     }
 
     function updateInProgressReleaseNotes() {
+        Log::info("Update in progress release notes");
+
         $website_repo = $this; // NOTE: Need to work on PHP 5.3.
         return $this->attemptAndPush(function() use($website_repo) {
             $website_repo->setupForRun();
