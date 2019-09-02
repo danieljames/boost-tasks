@@ -78,7 +78,7 @@ class SuperProject extends Repo {
             $queue->downloadMoreEvents();
 
             foreach ($queue->getEvents($github_start_id) as $event) {
-                if ($event->branch == $this->submodule_branch) {
+                if ($event->branch == $self->submodule_branch) {
                     if (array_key_exists($event->repo, $submodules)) {
                         $payload = json_decode($event->payload);
                         assert($payload);
