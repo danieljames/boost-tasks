@@ -196,7 +196,7 @@ class SuperProject extends Repo {
             if ($submodule->ignored_events) {
                 $events = count($submodule->ignored_events);
                 $events .= ($events == 1) ? " PushEvent" : " PushEvents";
-                Log::warning("Ignored {$events} for {$submodule->boost_name} as the hash does not the super project's current value");
+                Log::warning("Ignored {$events} for {$submodule->boost_name} as the hash does not match the super project's current value");
             }
         }
     }
