@@ -78,7 +78,7 @@ class SuperProject extends Repo {
             $queue->downloadMoreEvents();
 
             foreach ($queue->getEvents($github_start_id) as $event) {
-                if ($event->branch == $this->submodule_branch) {
+                if ($event->branch == $self->submodule_branch) {
                     if (array_key_exists($event->repo, $submodules)) {
                         $payload = json_decode($event->payload);
                         assert($payload);
@@ -196,7 +196,7 @@ class SuperProject extends Repo {
             if ($submodule->ignored_events) {
                 $events = count($submodule->ignored_events);
                 $events .= ($events == 1) ? " PushEvent" : " PushEvents";
-                Log::warning("Ignored {$events} for {$submodule->boost_name} as the hash does not the super project's current value");
+                Log::warning("Ignored {$events} for {$submodule->boost_name} as the hash does not match the super project's current value");
             }
         }
     }
