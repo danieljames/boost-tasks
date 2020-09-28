@@ -16,12 +16,14 @@ class GitHubCache extends Object {
     static $table_name = 'githubcache';
     var $username;
     var $password;
+    var $access_token;
     var $connection;
 
-    function __construct($username = null, $password = null) {
+    function __construct($username = null, $password = null, $access_token = null) {
         $this->username = $username;
         $this->password = $password;
-        $this->connection = new GitHubCache_Connection($this->username, $this->password);
+        $this->access_token = $access_token;
+        $this->connection = new GitHubCache_Connection($this->access_token);
     }
 
     function get($url) {
@@ -190,7 +192,7 @@ class GitHubCache_Connection {
     var $ch;
     var $default_headers;
 
-    function __construct($username = null, $password = null) {
+    function __construct($access_token = null) {
         $this->ch = curl_init();
         $this->default_headers = array(
             'User-Agent: Boost Commitbot',
@@ -198,8 +200,11 @@ class GitHubCache_Connection {
         );
         curl_setopt($this->ch, CURLOPT_HEADER, true);
         curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, true);
-        if ($username) {
-            curl_setopt($this->ch, CURLOPT_USERPWD, "{$username}:{$password}");
+        //if ($username) {
+        //    curl_setopt($this->ch, CURLOPT_USERPWD, "{$username}:{$password}");
+        //}
+        if ($access_token) {
+            $this->default_headers[] = "Authorization: token {$access_token}";
         }
     }
 

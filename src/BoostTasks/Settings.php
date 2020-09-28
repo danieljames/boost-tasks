@@ -21,6 +21,7 @@ class Settings extends Object {
         'data' => array('type' => 'path', 'default' => 'var/data'),
         'username' => array('type' => 'string'),
         'password' => array('type' => 'password'),
+        'access-token' => array('type' => 'password'),
         'github-webhook-secret' => array('type' => 'password'),
         'cowic-username' => array('type' => 'string'),
         'cowic-password' => array('type' => 'password'),
@@ -163,7 +164,8 @@ class Settings extends Object {
         if (!self::$instance->github_cache) {
             self::$instance->github_cache = new GitHubCache(
                 self::$instance->settings['username'],
-                self::$instance->settings['password']);
+                self::$instance->settings['password'],
+                self::$instance->settings['access-token']);
         }
 
         return self::$instance->github_cache;
